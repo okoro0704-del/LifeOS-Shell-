@@ -1,0 +1,195 @@
+export const LIFEOS_VERSION = "1.3.0";
+
+export const OS_TYPES = [
+  "hospitality",
+  "realestate",
+  "finance",
+  "services",
+  "shopping",
+  "transport",
+  "other",
+] as const;
+
+export type OsType = (typeof OS_TYPES)[number];
+
+export const DISCOVER_CATEGORIES = [
+  "Hotels",
+  "Restaurants",
+  "Apartments",
+  "Real Estate",
+  "Finance",
+  "Services",
+  "Shopping",
+  "Transport",
+  "Other",
+] as const;
+
+export type DiscoverCategory = (typeof DISCOVER_CATEGORIES)[number];
+
+export type ExperienceStatus = "active" | "inactive" | "pending";
+export type ExperienceType = "web" | "pwa" | "embedded" | "external";
+
+/** Permissions a business experience may request — never granted silently. */
+export const EXPERIENCE_PERMISSIONS = [
+  "profile.basic",
+  "profile.contact",
+  "wallet.view",
+  "wallet.pay",
+  "notifications",
+] as const;
+
+export type ExperiencePermission = (typeof EXPERIENCE_PERMISSIONS)[number];
+
+export const PERMISSION_LABELS: Record<ExperiencePermission, string> = {
+  "profile.basic": "Your basic profile",
+  "profile.contact": "Your contact details",
+  "wallet.view": "View wallet balance (mock)",
+  "wallet.pay": "Request payments (mock)",
+  notifications: "Booking-related notifications",
+};
+
+export const EXPERIENCE_TOKEN_ISSUER = "lifeos";
+export const EXPERIENCE_TOKEN_TTL_SECONDS = 300;
+
+export type ExperienceTokenClaims = {
+  iss: string;
+  sub: string;
+  aud: string;
+  sid: string;
+  exp: number;
+  iat: number;
+  jti: string;
+  experience_id: string;
+  business_id: string;
+  scopes: ExperiencePermission[];
+  display_name?: string;
+};
+
+export interface ExperienceRecord {
+  id: string;
+  businessId: string;
+  businessName: string;
+  osType: OsType;
+  category: DiscoverCategory;
+  experienceType: ExperienceType;
+  experienceUrl: string;
+  approvedOrigin: string;
+  displayName: string;
+  description: string;
+  location?: string | null;
+  status: ExperienceStatus;
+  version: string;
+  icon?: string | null;
+  permissions: ExperiencePermission[];
+  metadata?: Record<string, unknown>;
+  featured?: boolean;
+}
+
+export interface ExperienceConnectionPublic {
+  id: string;
+  experienceId: string;
+  businessName: string;
+  displayName: string;
+  osType: OsType;
+  osLabel: string;
+  status: "connected" | "disconnected";
+  grantedPermissions: ExperiencePermission[];
+  connectedAt: string;
+  disconnectedAt?: string | null;
+}
+
+export interface ExperienceSessionPublic {
+  sessionId: string;
+  experienceId: string;
+  grantedPermissions: ExperiencePermission[];
+  /** One-time handoff code — business OS exchanges this for a signed token. */
+  handoff: string;
+  launchUrl: string;
+  expiresAt: string;
+}
+
+export interface LifeOsUserPublic {
+  id: string;
+  trustId: string;
+  displayName: string;
+  email?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  preferences: LifeOsPreferences;
+  createdAt: string;
+  lastLoginAt: string;
+}
+
+export interface LifeOsPreferences {
+  notificationsEnabled: boolean;
+  marketingTips: boolean;
+  theme: "system" | "light" | "dark";
+  language: string;
+  tokenDisplay: string;
+  openExperiencesIn: "embed" | "external";
+}
+
+export const DEFAULT_PREFERENCES: LifeOsPreferences = {
+  notificationsEnabled: true,
+  marketingTips: false,
+  theme: "system",
+  language: "en",
+  tokenDisplay: "TOK",
+  openExperiencesIn: "embed",
+};
+
+export type ActivityKind =
+  | "hotel_booking"
+  | "payment"
+  | "restaurant_order"
+  | "wallet_transfer"
+  | "account"
+  | "experience"
+  | "security";
+
+export interface ActivityItem {
+  id: string;
+  kind: ActivityKind;
+  title: string;
+  detail: string;
+  description?: string;
+  source: string;
+  status?: string;
+  amount?: string | null;
+  deepLink?: string | null;
+  experienceId?: string | null;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+}
+
+export type NotificationCategory = "Security" | "Wallet" | "Business" | "System";
+
+export interface NotificationItem {
+  id: string;
+  title: string;
+  body: string;
+  source: string;
+  category: NotificationCategory;
+  read: boolean;
+  createdAt: string;
+}
+
+export const TOKEN_SYMBOL = "TOK";
+
+export const AUDIT_EVENTS = {
+  SESSION_CREATED: "lifeos.session.created",
+  SESSION_REVOKED: "lifeos.session.revoked",
+  EXPERIENCE_CONNECTED: "experience.connected",
+  EXPERIENCE_DISCONNECTED: "experience.disconnected",
+  PERMISSION_GRANTED: "experience.permission.granted",
+  PERMISSION_REVOKED: "experience.permission.revoked",
+  PERMISSION_REQUESTED: "experience.permission.requested",
+  PERMISSION_DENIED: "experience.permission.denied",
+  NOTIFICATION_READ: "notification.read",
+  EXPERIENCE_SESSION_CREATED: "experience.session.created",
+  EXPERIENCE_SESSION_VERIFIED: "experience.session.verified",
+  EXPERIENCE_SESSION_REVOKED: "experience.session.revoked",
+  EXPERIENCE_TOKEN_REJECTED: "experience.token.rejected",
+  EXPERIENCE_TOKEN_EXPIRED: "experience.token.expired",
+  EXPERIENCE_TOKEN_REPLAY: "experience.token.replay_detected",
+} as const;

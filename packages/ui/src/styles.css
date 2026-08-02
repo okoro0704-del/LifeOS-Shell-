@@ -1,0 +1,167 @@
+/* Shared LifeOS UI tokens — consumed by the shell */
+.los-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: none;
+  border-radius: 12px;
+  font: inherit;
+  font-weight: 600;
+  padding: 0.85rem 1.25rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.los-btn:active {
+  transform: scale(0.98);
+}
+
+.los-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.los-btn--sm {
+  padding: 0.55rem 0.85rem;
+  font-size: 0.9rem;
+  border-radius: 10px;
+}
+
+.los-btn--primary {
+  background: var(--los-accent, #0d7a6f);
+  color: #fff;
+}
+
+.los-btn--soft {
+  background: var(--los-accent-soft, #d9efe9);
+  color: var(--los-accent, #0d7a6f);
+}
+
+.los-btn--ghost {
+  background: transparent;
+  color: var(--los-text, #1a2332);
+  border: 1px solid var(--los-border, rgba(26, 35, 50, 0.12));
+}
+
+.los-btn--danger {
+  background: #b42318;
+  color: #fff;
+}
+
+.los-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.los-section-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 650;
+}
+
+.los-section-sub {
+  margin: 0.25rem 0 0;
+  color: var(--los-muted, #5c6b7a);
+  font-size: 0.9rem;
+}
+
+.los-empty {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--los-muted, #5c6b7a);
+}
+
+.los-empty p {
+  margin: 0.35rem 0 0;
+}
+
+.los-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 1.1rem;
+  border-radius: 16px;
+  border: 1px solid var(--los-border, rgba(26, 35, 50, 0.1));
+  background: rgba(255, 255, 255, 0.8);
+  color: inherit;
+  font: inherit;
+  cursor: default;
+}
+
+button.los-card {
+  cursor: pointer;
+}
+
+.los-skeleton {
+  border-radius: 14px;
+  background: linear-gradient(
+    90deg,
+    rgba(26, 35, 50, 0.06),
+    rgba(26, 35, 50, 0.12),
+    rgba(26, 35, 50, 0.06)
+  );
+  background-size: 200% 100%;
+  animation: los-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes los-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.los-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.los-sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(15, 23, 32, 0.45);
+}
+
+.los-sheet {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: min(88vh, 720px);
+  overflow: auto;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  padding: 1rem 1.15rem 1.5rem;
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.18);
+}
+
+.los-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.los-sheet-head h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+@media (min-width: 900px) {
+  .los-sheet-overlay {
+    align-items: center;
+  }
+  .los-sheet {
+    border-radius: 18px;
+  }
+}

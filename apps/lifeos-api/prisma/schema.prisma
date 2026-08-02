@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// LifeOS-local user keyed by TrustID public ID — not a separate consumer identity.
+model User {
+  id            String   @id @default(cuid())
+  trustId       String   @unique
+  displayName   String
+  email         String?
+  firstName     String?
+  lastName      String?
+  preferences   String   @default("{}")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastLoginAt   DateTime @default(now())
+  sessions      Session[]
+  notifications Notification[]
+  activities    Activity[]
+  connections     ExperienceConnection[]
+  experienceSessions ExperienceSession[]
+  auditEvents   AuditEvent[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+/// Approved business experiences — only these may be loaded by the shell.
+model Experience {
+  id              String   @id @default(cuid())
+  businessId      String
+  businessName    String
+  osType          String
+  category        String
+  experienceType  String   @default("web")
+  experienceUrl   String
+  approvedOrigin  String
+  displayName     String
+  description     String
+  location        String?
+  status          String   @default("active")
+  version         String   @default("1.0.0")
+  icon            String?
+  /// Requestable permissions (JSON array) — never auto-granted.
+  permissions     String   @default("[]")
+  metadata        String   @default("{}")
+  featured        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  connections     ExperienceConnection[]
+  experienceSessions ExperienceSession[]
+
+  @@index([status])
+  @@index([category])
+  @@index([businessId])
+}
+
+/// Short-lived scoped handoff from LifeOS to a business OS (not TrustID).
+model ExperienceSession {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  experienceId String
+  experience   Experience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+  businessId   String
+  scopes       String
+  status       String    @default("active")
+  jtiHash      String    @unique
+  handoffHash  String?   @unique
+  handoffConsumedAt DateTime?
+  createdAt    DateTime  @default(now())
+  expiresAt    DateTime
+  revokedAt    DateTime?
+
+  @@index([userId, experienceId])
+  @@index([status, expiresAt])
+}
+
+/// User-granted connection to a business experience (scoped permissions).
+model ExperienceConnection {
+  id                 String    @id @default(cuid())
+  userId             String
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  experienceId       String
+  experience         Experience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+  status             String    @default("connected")
+  grantedPermissions String    @default("[]")
+  connectedAt        DateTime  @default(now())
+  disconnectedAt     DateTime?
+  updatedAt          DateTime  @updatedAt
+
+  @@unique([userId, experienceId])
+  @@index([userId, status])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  source    String
+  category  String   @default("System")
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, read])
+}
+
+/// Aggregated activity index — not source of truth for external OS events.
+model Activity {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind         String
+  title        String
+  detail       String
+  source       String
+  status       String   @default("completed")
+  amount       String?
+  deepLink     String?
+  experienceId String?
+  metadata     String   @default("{}")
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+/// LifeOS-specific audit trail (not TrustID identity audit).
+model AuditEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  event     String
+  detail    String   @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([event])
+}

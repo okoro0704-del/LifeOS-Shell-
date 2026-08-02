@@ -1,0 +1,1 @@
+{"root":["./src/main.tsx","./src/vite-env.d.ts","./src/components/requirehossession.tsx","./src/lib/data.ts","./src/lib/session.ts","./src/pages/apartment.tsx","./src/pages/hotelhome.tsx","./src/pages/lifeosauth.tsx","./src/pages/restaurant.tsx","./src/pages/roomdetail.tsx"],"version":"5.9.3"}

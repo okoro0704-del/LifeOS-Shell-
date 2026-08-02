@@ -1,0 +1,14 @@
+node_modules/
+dist/
+build/
+.env
+*.db
+*.db-journal
+.DS_Store
+*.log
+.vite/
+dev-dist/
+.turbo/
+coverage/
+.keys/
+*.pem

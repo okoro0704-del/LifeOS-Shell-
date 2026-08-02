@@ -1,0 +1,127 @@
+:root {
+  --bg: #f7f3ee;
+  --ink: #1c1916;
+  --muted: #6b635b;
+  --accent: #8b4518;
+  --card: #fffdf9;
+  --font: "DM Sans", sans-serif;
+  --display: "Libre Baskerville", Georgia, serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  color: var(--ink);
+  background:
+    linear-gradient(180deg, #efe6da, var(--bg));
+  min-height: 100vh;
+}
+
+.hos {
+  width: min(640px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 1.5rem 0 3rem;
+}
+
+.hos-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+}
+
+.hos-os {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+h1 {
+  font-family: var(--display);
+  margin: 0.25rem 0 0;
+  font-size: 1.75rem;
+}
+
+h2 {
+  font-family: var(--display);
+  font-size: 1.15rem;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.mono {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.85em;
+}
+
+.hos-back {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.hos-greet {
+  padding: 1rem 1.1rem;
+  background: var(--card);
+  border: 1px solid rgba(28, 25, 22, 0.08);
+  border-radius: 14px;
+  margin-bottom: 1.5rem;
+}
+
+.hos-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.hos-list a,
+.hos-list > li > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 1rem;
+  background: var(--card);
+  border: 1px solid rgba(28, 25, 22, 0.08);
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.hos-list span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.hos-btn {
+  display: inline-flex;
+  margin-top: 1rem;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 650;
+  padding: 0.8rem 1.1rem;
+  border-radius: 10px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.hos-confirm {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #eef6ef;
+  border-radius: 12px;
+}
