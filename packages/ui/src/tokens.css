@@ -1,0 +1,128 @@
+/**
+ * LifeOS Design Tokens
+ * Shared visual language for LifeOS and future OS shells.
+ */
+
+:root {
+  /* Brand */
+  --los-accent: #0d7a6f;
+  --los-accent-strong: #0a5f56;
+  --los-accent-soft: #d4efe9;
+  --los-accent-glow: rgba(13, 122, 111, 0.18);
+
+  /* Surfaces */
+  --los-bg: #eef2f5;
+  --los-bg-elevated: #f7f9fb;
+  --los-surface: #ffffff;
+  --los-surface-2: #f3f6f8;
+  --los-text: #1a2332;
+  --los-muted: #5c6b7a;
+  --los-border: rgba(26, 35, 50, 0.1);
+  --los-border-strong: rgba(26, 35, 50, 0.16);
+  --los-danger: #b42318;
+  --los-danger-soft: #fcebea;
+  --los-success: #0f7a4c;
+  --los-warning: #9a6700;
+
+  /* Typography */
+  --los-font: "Manrope", system-ui, sans-serif;
+  --los-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --los-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --los-text-xs: 0.75rem;
+  --los-text-sm: 0.875rem;
+  --los-text-md: 1rem;
+  --los-text-lg: 1.125rem;
+  --los-text-xl: 1.35rem;
+  --los-text-2xl: 1.75rem;
+  --los-text-3xl: 2.25rem;
+  --los-leading: 1.5;
+  --los-tracking-tight: -0.02em;
+
+  /* Spacing (8px grid) */
+  --los-space-1: 0.25rem; /* 4 */
+  --los-space-2: 0.5rem; /* 8 */
+  --los-space-3: 0.75rem; /* 12 */
+  --los-space-4: 1rem; /* 16 */
+  --los-space-5: 1.5rem; /* 24 */
+  --los-space-6: 2rem; /* 32 */
+  --los-space-7: 3rem; /* 48 */
+  --los-space-8: 4rem; /* 64 */
+
+  /* Radius */
+  --los-radius-sm: 10px;
+  --los-radius: 16px;
+  --los-radius-lg: 22px;
+  --los-radius-full: 999px;
+
+  /* Elevation */
+  --los-shadow-sm: 0 1px 2px rgba(26, 35, 50, 0.06);
+  --los-shadow: 0 8px 24px rgba(26, 35, 50, 0.08);
+  --los-shadow-lg: 0 18px 48px rgba(26, 35, 50, 0.14);
+
+  /* Icons */
+  --los-icon-sm: 16px;
+  --los-icon-md: 20px;
+  --los-icon-lg: 28px;
+
+  /* Motion */
+  --los-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --los-duration-fast: 120ms;
+  --los-duration: 220ms;
+  --los-duration-slow: 420ms;
+
+  /* Layout */
+  --nav-h: 64px;
+  --sidebar-w: 232px;
+  --content-max: 720px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+
+  /* Breakpoints (reference) — use in media queries:
+     sm 480, md 720, lg 900, xl 1200 */
+}
+
+html[data-theme="dark"] {
+  --los-accent: #3dcfbf;
+  --los-accent-strong: #2bb3a4;
+  --los-accent-soft: rgba(61, 207, 191, 0.16);
+  --los-accent-glow: rgba(61, 207, 191, 0.2);
+  --los-bg: #0f1419;
+  --los-bg-elevated: #151b22;
+  --los-surface: #1a222c;
+  --los-surface-2: #212a35;
+  --los-text: #e8eef4;
+  --los-muted: #93a0ae;
+  --los-border: rgba(232, 238, 244, 0.1);
+  --los-border-strong: rgba(232, 238, 244, 0.16);
+  --los-danger: #ff7b72;
+  --los-danger-soft: rgba(255, 123, 114, 0.14);
+  --los-success: #3dd68c;
+  --los-warning: #e3b341;
+  --los-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --los-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+  --los-shadow-lg: 0 22px 56px rgba(0, 0, 0, 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-theme="system"] {
+    --los-accent: #3dcfbf;
+    --los-accent-strong: #2bb3a4;
+    --los-accent-soft: rgba(61, 207, 191, 0.16);
+    --los-accent-glow: rgba(61, 207, 191, 0.2);
+    --los-bg: #0f1419;
+    --los-bg-elevated: #151b22;
+    --los-surface: #1a222c;
+    --los-surface-2: #212a35;
+    --los-text: #e8eef4;
+    --los-muted: #93a0ae;
+    --los-border: rgba(232, 238, 244, 0.1);
+    --los-border-strong: rgba(232, 238, 244, 0.16);
+    --los-danger: #ff7b72;
+    --los-danger-soft: rgba(255, 123, 114, 0.14);
+    --los-success: #3dd68c;
+    --los-warning: #e3b341;
+    --los-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --los-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+    --los-shadow-lg: 0 22px 56px rgba(0, 0, 0, 0.5);
+  }
+}

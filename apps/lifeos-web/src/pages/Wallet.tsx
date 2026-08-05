@@ -33,6 +33,7 @@ export function WalletPage() {
   const [data, setData] = useState<Awaited<ReturnType<typeof walletService.get>> | null>(null);
   const [mode, setMode] = useState<Mode>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<Tx | null>(null);
   const [loading, setLoading] = useState(true);
@@ -73,6 +74,7 @@ export function WalletPage() {
     const fd = new FormData(e.currentTarget);
     setBusy(true);
     setError(null);
+    setSuccess(null);
     try {
       await walletService.send({
         to: String(fd.get("to")),
@@ -80,6 +82,7 @@ export function WalletPage() {
         memo: String(fd.get("memo") || "") || undefined,
       });
       setMode("idle");
+      setSuccess("Send recorded (mock).");
       await load();
     } catch (err) {
       setError(userFacingMessage(err));
@@ -93,6 +96,7 @@ export function WalletPage() {
     const fd = new FormData(e.currentTarget);
     setBusy(true);
     setError(null);
+    setSuccess(null);
     try {
       await walletService.pay({
         merchant: String(fd.get("merchant")),
@@ -100,6 +104,7 @@ export function WalletPage() {
         reference: String(fd.get("reference") || "") || undefined,
       });
       setMode("idle");
+      setSuccess("Payment recorded (mock).");
       await load();
     } catch (err) {
       setError(userFacingMessage(err));
@@ -112,19 +117,24 @@ export function WalletPage() {
     <div className="page">
       <SectionHeader title="Wallet" subtitle="Mock Token Network — not real settlement" />
       {error ? <StatusBanner title={error} /> : null}
+      {success ? (
+        <div className="success-banner" role="status">
+          {success}
+        </div>
+      ) : null}
 
-      <div className="wallet-card">
+      <div className="wallet-card" aria-live="polite">
         <div className="label">Balance · mock</div>
         {loading ? (
-          <Skeleton height={40} />
+          <Skeleton height={40} className="wallet-skel" label="Loading balance" />
         ) : (
           <div className="wallet-amount">{data?.balance.formatted ?? "…"}</div>
         )}
-        <div className="muted small mono">{data?.wallet.address}</div>
+        <div className="muted small mono">{data?.wallet.address ?? "—"}</div>
         {data?.notice ? <p className="wallet-notice">{data.notice}</p> : null}
       </div>
 
-      <div className="action-row">
+      <div className="action-row" role="group" aria-label="Wallet actions">
         <Button variant="ghost" onClick={() => setMode("send")}>
           Send
         </Button>
@@ -137,9 +147,10 @@ export function WalletPage() {
       {mode === "send" ? (
         <form className="panel-form" onSubmit={onSend}>
           <h3>Send (mock)</h3>
+          <p className="muted small">Placeholder for Token Network send — no real value moves.</p>
           <label>
             To
-            <input name="to" required placeholder="Address or TrustID" />
+            <input name="to" required placeholder="Address or TrustID" autoComplete="off" />
           </label>
           <label>
             Amount
@@ -151,7 +162,7 @@ export function WalletPage() {
           </label>
           <div className="row-actions">
             <Button type="submit" disabled={busy}>
-              Confirm
+              {busy ? "Sending…" : "Confirm"}
             </Button>
             <Button type="button" variant="ghost" onClick={() => setMode("idle")}>
               Cancel
@@ -163,6 +174,7 @@ export function WalletPage() {
       {mode === "pay" ? (
         <form className="panel-form" onSubmit={onPay}>
           <h3>Pay (mock)</h3>
+          <p className="muted small">Placeholder merchant pay flow.</p>
           <label>
             Merchant
             <input name="merchant" required defaultValue="Sunrise Hotel" />
@@ -177,7 +189,7 @@ export function WalletPage() {
           </label>
           <div className="row-actions">
             <Button type="submit" disabled={busy}>
-              Confirm
+              {busy ? "Paying…" : "Confirm"}
             </Button>
             <Button type="button" variant="ghost" onClick={() => setMode("idle")}>
               Cancel
@@ -189,37 +201,56 @@ export function WalletPage() {
       {mode === "receive" ? (
         <div className="panel-form">
           <h3>Receive (mock)</h3>
-          <div className="mono receive-box">{data?.wallet.address}</div>
+          <p className="muted small">Share this address — settlement is simulated only.</p>
+          {data?.wallet.address ? (
+            <div className="mono receive-box">{data.wallet.address}</div>
+          ) : (
+            <EmptyState title="Address unavailable" detail="Try again when the wallet API is online." />
+          )}
           <Button variant="ghost" onClick={() => setMode("idle")}>
             Done
           </Button>
         </div>
       ) : null}
 
-      <SectionHeader title="Transactions" subtitle="Grouped mock history" />
+      <SectionHeader title="Recent transactions" subtitle="Grouped mock history" />
       {loading ? (
-        <Skeleton height={120} />
+        <>
+          <Skeleton height={56} label="Loading transactions" />
+          <Skeleton height={56} />
+          <Skeleton height={56} />
+        </>
       ) : grouped.length === 0 ? (
-        <EmptyState title="No transactions yet." />
+        <EmptyState
+          title="No transactions yet"
+          detail="Send, receive, or pay (mock) to see activity here."
+          action={
+            <Button size="sm" variant="soft" onClick={() => setMode("pay")}>
+              Try a mock payment
+            </Button>
+          }
+        />
       ) : (
         grouped.map(([day, txs]) => (
           <div key={day} className="tx-group">
             <div className="tx-day">{day}</div>
             <ul className="list">
               {txs.map((tx) => (
-                <li
-                  key={tx.id}
-                  className="list-row clickable"
-                  onClick={() => setSelected(tx)}
-                >
-                  <div>
-                    <strong className="capitalize">{tx.counterparty}</strong>
-                    <div className="muted small capitalize">{tx.kind} · mock</div>
-                  </div>
-                  <span className="mono">
-                    {tx.kind === "receive" ? "+" : "−"}
-                    {tx.amount} {tx.symbol}
-                  </span>
+                <li key={tx.id}>
+                  <button
+                    type="button"
+                    className="list-row clickable full-width-btn"
+                    onClick={() => setSelected(tx)}
+                  >
+                    <div>
+                      <strong className="capitalize">{tx.counterparty}</strong>
+                      <div className="muted small capitalize">{tx.kind} · mock</div>
+                    </div>
+                    <span className="mono">
+                      {tx.kind === "receive" ? "+" : "−"}
+                      {tx.amount} {tx.symbol}
+                    </span>
+                  </button>
                 </li>
               ))}
             </ul>
