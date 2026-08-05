@@ -1,0 +1,15 @@
+# LifeOS Web (PWA) — Netlify static deploy
+# Site settings can override these; keep Publish directory = apps/lifeos-web/dist
+
+[build]
+  command = "npm install && npm run build -w @lifeos/shared && npm run build -w @lifeos/auth-client && npm run build -w @lifeos/experience-sdk && npm run build -w @lifeos/ui && npm run build -w @lifeos/web"
+  publish = "apps/lifeos-web/dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# SPA: serve index.html for client-side routes (/app/*, /callback, …)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
