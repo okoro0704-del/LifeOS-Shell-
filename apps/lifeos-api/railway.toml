@@ -1,0 +1,11 @@
+# Used when this service is deployed as "LifeOS API" on Railway.
+# Set Root Directory to apps/lifeos-api in Railway if the service is scoped there;
+# otherwise use monorepo root with the build/start commands in the dashboard.
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "cd ../.. && npm install && npm run build -w @lifeos/shared && npm run build -w @lifeos/experience-sdk && npm run build -w @lifeos/token-network && npm run db:generate -w @lifeos/api && npm run build -w @lifeos/api"
+
+[deploy]
+startCommand = "npm run start -w @lifeos/api"
+restartPolicyType = "ON_FAILURE"
