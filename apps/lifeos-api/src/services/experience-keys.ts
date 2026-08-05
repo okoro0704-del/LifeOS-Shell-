@@ -1,13 +1,13 @@
 import { createPrivateKey, createPublicKey, generateKeyPairSync, type KeyObject } from "node:crypto";
-import { exportJWK, importJWK, type JWK, type KeyLike } from "jose";
+import { exportJWK, importJWK, type JWK } from "jose";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export type ExperienceKeyPair = {
   kid: string;
-  privateKey: KeyLike;
-  publicKey: KeyLike;
+  privateKey: KeyObject;
+  publicKey: KeyObject;
   publicJwk: JWK;
 };
 
@@ -102,7 +102,7 @@ export function setSigningKeyProvider(next: ExperienceSigningKeyProvider | null)
   provider = next;
 }
 
-export async function importPublicJwk(jwk: JWK): Promise<KeyLike> {
+export async function importPublicJwk(jwk: JWK) {
   return importJWK(jwk, jwk.alg ?? "EdDSA");
 }
 
