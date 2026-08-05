@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ApiError, authClient, userFacingMessage } from "../lib/api";
 import { meService } from "../lib/services";
@@ -10,8 +10,13 @@ export function CallbackPage() {
   const navigate = useNavigate();
   const { setUser } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const started = useRef(false);
 
   useEffect(() => {
+    // Prevent React Strict Mode / remount from consuming PKCE twice
+    if (started.current) return;
+    started.current = true;
+
     const code = params.get("code");
     const state = params.get("state");
     const oauthError = params.get("error");

@@ -33,6 +33,21 @@ async function sha256(input: string) {
   return crypto.subtle.digest("SHA-256", data);
 }
 
+function writePkce(storageKey: string, value: string) {
+  // localStorage survives better across long TrustID redirects than sessionStorage alone
+  localStorage.setItem(storageKey, value);
+  sessionStorage.setItem(storageKey, value);
+}
+
+function readPkce(storageKey: string): string | null {
+  return sessionStorage.getItem(storageKey) ?? localStorage.getItem(storageKey);
+}
+
+function clearPkce(storageKey: string) {
+  sessionStorage.removeItem(storageKey);
+  localStorage.removeItem(storageKey);
+}
+
 export function createAuthClient(config: AuthClientConfig) {
   const storageKey = config.storageKey ?? DEFAULT_STORAGE;
 
@@ -41,7 +56,10 @@ export function createAuthClient(config: AuthClientConfig) {
       const verifier = randomString(64);
       const challenge = b64url(await sha256(verifier));
       const state = randomString(24);
-      sessionStorage.setItem(storageKey, JSON.stringify({ verifier, state }));
+      writePkce(
+        storageKey,
+        JSON.stringify({ verifier, state, createdAt: Date.now() }),
+      );
 
       const url = new URL(`${config.trustIdApi}/oauth/authorize`);
       url.searchParams.set("client_id", config.clientId);
@@ -55,10 +73,14 @@ export function createAuthClient(config: AuthClientConfig) {
     },
 
     async exchangeCode(code: string, state: string) {
-      const raw = sessionStorage.getItem(storageKey);
-      if (!raw) throw new Error("Missing PKCE state");
+      const raw = readPkce(storageKey);
+      if (!raw) {
+        throw new Error(
+          "Missing PKCE state. Start again from LifeOS with Continue with TrustID (same browser).",
+        );
+      }
       const saved = JSON.parse(raw) as { verifier: string; state: string };
-      if (saved.state !== state) throw new Error("State mismatch");
+      if (saved.state !== state) throw new Error("State mismatch. Start login again from LifeOS.");
 
       const res = await fetch(`${config.trustIdApi}/oauth/token`, {
         method: "POST",
@@ -73,7 +95,7 @@ export function createAuthClient(config: AuthClientConfig) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Token exchange failed");
-      sessionStorage.removeItem(storageKey);
+      clearPkce(storageKey);
       return data as { access_token: string; scope: string; expires_in?: number };
     },
 
