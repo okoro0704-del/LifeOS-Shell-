@@ -189,7 +189,7 @@ export async function authRoutes(app: FastifyInstance) {
     reply.setCookie(config.sessionCookieName, rawToken, {
       path: "/",
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: config.isDev ? "lax" : "none",
       secure: !config.isDev,
       expires: expiresAt,
     });
