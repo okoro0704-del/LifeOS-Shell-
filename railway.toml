@@ -1,0 +1,6 @@
+# Railway / Railpack — deploy LifeOS API from monorepo root
+[build]
+buildCommand = "npm run build:api"
+
+[deploy]
+startCommand = "npm start"
