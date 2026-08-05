@@ -10,10 +10,11 @@ export function CallbackPage() {
   const navigate = useNavigate();
   const { setUser } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const [detail, setDetail] = useState("Validating TrustID authorization…");
   const started = useRef(false);
 
   useEffect(() => {
-    // Prevent React Strict Mode / remount from consuming PKCE twice
+    // Run the exchange only once (Strict Mode remounts must not abort a successful flow)
     if (started.current) return;
     started.current = true;
 
@@ -34,16 +35,15 @@ export function CallbackPage() {
       return;
     }
 
-    let cancelled = false;
     (async () => {
       try {
+        setDetail("Exchanging authorization code…");
         const tokens = await authClient.exchangeCode(code, state);
+        setDetail("Creating your LifeOS session…");
         const data = await meService.createSession(tokens.access_token);
-        if (cancelled) return;
         setUser(data.user);
         navigate("/app", { replace: true });
       } catch (err) {
-        if (cancelled) return;
         if (err instanceof ApiError && err.code === "authorization_revoked") {
           setError("TrustID authorization was revoked. Continue with TrustID to reconnect.");
         } else {
@@ -51,10 +51,6 @@ export function CallbackPage() {
         }
       }
     })();
-
-    return () => {
-      cancelled = true;
-    };
   }, [params, navigate, setUser]);
 
   return (
@@ -72,7 +68,7 @@ export function CallbackPage() {
         ) : (
           <>
             <h1>Connecting…</h1>
-            <p className="lead">Validating TrustID authorization and loading your LifeOS profile.</p>
+            <p className="lead">{detail}</p>
           </>
         )}
       </div>
