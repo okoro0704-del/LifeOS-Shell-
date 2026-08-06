@@ -65,6 +65,7 @@ export async function commandRoutes(app: FastifyInstance) {
         text: z.string().min(1).max(200),
         source: z.enum(["text", "voice", "touch", "deeplink", "notification"]).optional(),
         sessionId: z.string().uuid().optional(),
+        mode: z.enum(["ask", "tell"]).optional(),
       })
       .parse(req.body);
     return runCommand({
@@ -73,6 +74,7 @@ export async function commandRoutes(app: FastifyInstance) {
       text: body.text,
       source: body.source ?? "text",
       sessionId: body.sessionId,
+      mode: body.mode,
     });
   });
 

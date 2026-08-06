@@ -5,23 +5,17 @@ import type {
   ContinueItem,
   DiscoverableOffering,
   LifePlanItem,
-  QuickAccessItem,
   RecommendationItem,
   SearchResult,
 } from "@lifeos/shared";
 import {
   Button,
   EmptyState,
-  IconActivity,
-  IconBell,
-  IconBook,
   IconEat,
   IconExplore,
   IconStay,
   IconTicket,
-  IconWallet,
   OfferingCard,
-  QuickAction,
   SectionHeader,
   Skeleton,
   StatusBadge,
@@ -32,6 +26,7 @@ import {
   commandService,
   discoverService,
 } from "../lib/services";
+import { SERVICE_VERTICALS } from "../lib/serviceCatalog";
 import { useAuth } from "../hooks/useAuth";
 import { useCommandLayer } from "../hooks/useCommandLayer";
 import { StatusBanner } from "../components/StatusBanner";
@@ -53,42 +48,14 @@ function formatTime(iso?: string | null) {
   });
 }
 
-function quickIcon(item: QuickAccessItem) {
-  const key = item.icon || item.actionId;
-  if (key === "wallet" || item.actionId === "OPEN_WALLET") return <IconWallet size={20} />;
-  if (key === "stay" || item.label.toLowerCase().includes("room")) return <IconStay size={20} />;
-  if (key === "eat" || item.label.toLowerCase() === "food") return <IconEat size={20} />;
-  if (key === "book") return <IconBook size={20} />;
-  if (key === "ticket" || item.actionId === "VIEW_TICKETS") return <IconTicket size={20} />;
-  if (key === "activity" || item.actionId === "VIEW_ACTIVITY") return <IconActivity size={20} />;
-  if (key === "bell" || item.actionId === "VIEW_NOTIFICATIONS") return <IconBell size={20} />;
-  if (key === "explore" || item.actionId === "DISCOVER_BUSINESSES") return <IconExplore size={20} />;
-  return <IconExplore size={20} />;
+function ServiceTileIcon({ tone }: { tone: string }) {
+  if (tone === "stay") return <IconStay size={26} />;
+  if (tone === "eat") return <IconEat size={26} />;
+  if (tone === "cinema" || tone === "events") return <IconTicket size={26} />;
+  return <IconExplore size={26} />;
 }
 
-/** Home strip: service categories (Rooms, Food, …) plus a little life context. */
-function curateQuickAccess(items: QuickAccessItem[]) {
-  const categories = items.filter((i) => i.id.startsWith("qa_cat_"));
-  const contextual = items.filter(
-    (i) =>
-      i.pinned ||
-      i.id.startsWith("qa_pc_") ||
-      i.id.startsWith("qa_ctx_") ||
-      i.id.startsWith("qa_cont_") ||
-      i.id.startsWith("qa_plan_"),
-  );
-  const utilities = items.filter(
-    (i) => i.kind === "wallet" || i.id === "qa_tickets" || i.id === "qa_wallet",
-  );
-  const seen = new Set<string>();
-  const out: QuickAccessItem[] = [];
-  for (const i of [...categories, ...contextual.slice(0, 2), ...utilities]) {
-    if (seen.has(i.id)) continue;
-    seen.add(i.id);
-    out.push(i);
-  }
-  return out.slice(0, 10);
-}
+const HOME_SERVICES = SERVICE_VERTICALS.slice(0, 6);
 
 export function HomePage() {
   const { user } = useAuth();
@@ -99,7 +66,6 @@ export function HomePage() {
   const [offline, setOffline] = useState(false);
   const [forYou, setForYou] = useState<DiscoverableOffering[]>([]);
   const [recs, setRecs] = useState<RecommendationItem[]>([]);
-  const [quick, setQuick] = useState<QuickAccessItem[]>([]);
   const [showMoreForYou, setShowMoreForYou] = useState(false);
   const [today, setToday] = useState<LifePlanItem[]>([]);
   const [upcoming, setUpcoming] = useState<LifePlanItem[]>([]);
@@ -115,13 +81,11 @@ export function HomePage() {
     setOffline(offlineNow);
     void (async () => {
       try {
-        const [disc, qa, plans] = await Promise.all([
+        const [disc, plans] = await Promise.all([
           discoverService.get(),
-          commandService.quickAccess().catch(() => ({ items: [] as QuickAccessItem[] })),
           actionService.plans().catch(() => null),
         ]);
         setForYou((disc.featuredOfferings ?? disc.offerings ?? []).slice(0, 6));
-        setQuick(qa.items);
         if (plans) {
           setToday(plans.life?.today ?? []);
           setUpcoming((plans.life?.upcoming ?? []).slice(0, 4));
@@ -145,7 +109,6 @@ export function HomePage() {
   }, []);
 
   const first = user?.firstName || user?.displayName?.split(" ")[0] || "there";
-  const quickVisible = useMemo(() => curateQuickAccess(quick), [quick]);
 
   const rightNow = useMemo(() => {
     if (attention[0]) {
@@ -181,21 +144,6 @@ export function HomePage() {
   const forYouPrimary = recs.length > 0 ? recs.slice(0, 2) : null;
   const forYouRest = recs.slice(2);
 
-  async function onQuick(item: QuickAccessItem) {
-    if (["BOOK_SERVICE", "PAY_INVOICE", "CHECK_IN"].includes(item.actionId)) {
-      const outcome = await commandService.executeAction(item.actionId, item.params, false);
-      if (outcome.type === "preview") setPreview(outcome.preview);
-      return;
-    }
-    if (item.navigateTo) {
-      navigate(item.navigateTo);
-      return;
-    }
-    const outcome = await commandService.executeAction(item.actionId, item.params, false);
-    if (outcome.type === "navigate") navigate(outcome.path);
-    if (outcome.type === "preview") setPreview(outcome.preview);
-  }
-
   async function confirmHomePreview() {
     if (!preview) return;
     setConfirmBusy(true);
@@ -229,10 +177,13 @@ export function HomePage() {
       ) : null}
       {providerHint ? <StatusBanner title={providerHint} /> : null}
 
-      <section className="home-command" aria-label="Ask LifeOS">
-        <AskLifeOSTrigger />
+      <section className="home-command" aria-label="LifeOS AI">
+        <div className="home-command__duo">
+          <AskLifeOSTrigger mode="ask" />
+          <AskLifeOSTrigger mode="tell" />
+        </div>
         <p className="muted small home-command__hint">
-          Tell LifeOS what you need — search, plans, or prepare a booking.
+          Ask to search · Tell to get things done
         </p>
       </section>
 
@@ -253,28 +204,41 @@ export function HomePage() {
         </section>
       ) : null}
 
-      <section aria-label="Quick Access">
+      <section aria-label="Services">
         <SectionHeader
-          title="Quick Access"
+          title="Services"
           subtitle="Hotel rooms, food, and more"
           action={
-            <Link to="/app/services" className="text-link">
+            <button
+              type="button"
+              className="text-link"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                navigate("/app/services");
+              }}
+            >
               More
-            </Link>
+            </button>
           }
         />
         {loading ? (
-          <Skeleton height={72} label="Loading quick access" />
+          <Skeleton height={140} label="Loading services" />
         ) : (
-          <div className="quick-row">
-            {quickVisible.map((item) => (
-              <div key={item.id} role="listitem">
-                <QuickAction
-                  icon={quickIcon(item)}
-                  label={item.label}
-                  onClick={() => void onQuick(item)}
-                />
-              </div>
+          <div className="services-pictorial" role="list">
+            {HOME_SERVICES.map((v) => (
+              <button
+                key={v.id}
+                type="button"
+                role="listitem"
+                className={`services-tile services-tile--${v.tone}`}
+                onClick={() => navigate(`/app/services/${encodeURIComponent(v.id)}`)}
+              >
+                <span className="services-tile__media" aria-hidden>
+                  <ServiceTileIcon tone={v.tone} />
+                </span>
+                <span className="services-tile__label">{v.label}</span>
+              </button>
             ))}
           </div>
         )}
@@ -344,7 +308,7 @@ export function HomePage() {
             title="Nothing on for today"
             detail="Ask LifeOS what you can do next."
             action={
-              <Button variant="soft" size="sm" onClick={() => openCommand("What can I do tonight?")}>
+              <Button variant="soft" size="sm" onClick={() => openCommand("What can I do tonight?", "ask")}>
                 Ask LifeOS →
               </Button>
             }

@@ -377,7 +377,7 @@ export function DiscoverPage() {
             onClick={() => {
               selectCategory(card.category);
               setQuery("");
-              openCommand(card.query);
+              openCommand(card.query, "ask");
             }}
           >
             <strong>{card.label}</strong>
@@ -430,7 +430,7 @@ export function DiscoverPage() {
                   onClick={() => {
                     setQuery("");
                     selectCategory("All");
-                    openCommand("Find something to do");
+                    openCommand("Find something to do", "ask");
                   }}
                 >
                   Ask LifeOS

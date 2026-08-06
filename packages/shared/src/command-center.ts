@@ -100,6 +100,30 @@ export const COMMAND_SHORTCUTS = [
   { id: "attention", label: "What needs attention?", query: "what needs my attention?" },
 ] as const;
 
+/** AI search — find offerings, places, plans. */
+export const ASK_SHORTCUTS = [
+  { id: "ask_hotels", label: "Hotel rooms nearby", query: "find hotel rooms near me" },
+  { id: "ask_food", label: "Food & restaurants", query: "find restaurants near me" },
+  { id: "ask_spa", label: "Spa & wellness", query: "find spa and wellness" },
+  { id: "ask_cinema", label: "Cinema tonight", query: "cinema showtimes tonight" },
+  { id: "ask_events", label: "Events this weekend", query: "events this weekend" },
+  { id: "ask_nearby", label: "What's near me?", query: "what's near me?" },
+] as const;
+
+/** AI task automation — book, pay, check in, manage. */
+export const TELL_SHORTCUTS = [
+  { id: "tell_book_spa", label: "Book a massage", query: "book a massage tomorrow" },
+  { id: "tell_book_dinner", label: "Reserve dinner", query: "book dinner tonight" },
+  { id: "tell_book_room", label: "Book a hotel room", query: "book a hotel room" },
+  { id: "tell_pay", label: "Pay an invoice", query: "pay my invoice" },
+  { id: "tell_tickets", label: "Get cinema tickets", query: "buy cinema tickets" },
+  { id: "tell_checkin", label: "Check in", query: "check in to my hotel" },
+  { id: "tell_attention", label: "What needs attention?", query: "what needs my attention?" },
+] as const;
+
+export type CommandCenterMode = "ask" | "tell";
+
+
 export type CompareMetric = "price" | "distance" | "availability" | "cancellation";
 
 export type CompareResult = {

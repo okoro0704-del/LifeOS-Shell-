@@ -22,7 +22,7 @@ export function SearchPage() {
 
   useEffect(() => {
     if (seed.trim()) {
-      openCommand(seed.trim());
+      openCommand(seed.trim(), "ask");
     }
   }, [seed, openCommand]);
 
@@ -38,11 +38,14 @@ export function SearchPage() {
     <div className="page">
       <SectionHeader
         title="Search"
-        subtitle="Ask LifeOS — natural language is the primary search"
+        subtitle="Ask to find things · Tell to get things done"
       />
-      <AskLifeOSTrigger />
+      <div className="home-command__duo">
+        <AskLifeOSTrigger mode="ask" />
+        <AskLifeOSTrigger mode="tell" />
+      </div>
       <p className="muted small pad-inline" style={{ paddingInline: 0, marginTop: "0.5rem" }}>
-        Type what you need: “massage tomorrow”, “my hotel”, “what’s happening today?”
+        Ask: “hotel rooms near me” · Tell: “book a massage tomorrow”
       </p>
       {error ? <StatusBanner title={error} /> : null}
 
@@ -66,7 +69,7 @@ export function SearchPage() {
           title="No recent searches"
           detail="Open Command Center to search the ecosystem."
           action={
-            <Button variant="soft" size="sm" onClick={() => openCommand()}>
+            <Button variant="soft" size="sm" onClick={() => openCommand(undefined, "ask")}>
               Ask LifeOS
             </Button>
           }
@@ -78,13 +81,13 @@ export function SearchPage() {
               key={item.id}
               type="button"
               className="plan-row"
-              onClick={() => openCommand(item.query)}
+              onClick={() => openCommand(item.query, item.kind === "command" ? "tell" : "ask")}
             >
               <div>
                 <strong>{item.query}</strong>
                 <div className="muted small">{item.kind}</div>
               </div>
-              <span className="text-link">Ask</span>
+              <span className="text-link">{item.kind === "command" ? "Tell" : "Ask"}</span>
             </button>
           ))}
         </div>
@@ -98,7 +101,7 @@ export function SearchPage() {
           "My tickets",
           "Show my wallet",
         ].map((q) => (
-          <button key={q} type="button" className="command-chip" onClick={() => openCommand(q)}>
+          <button key={q} type="button" className="command-chip" onClick={() => openCommand(q, "ask")}>
             {q}
           </button>
         ))}

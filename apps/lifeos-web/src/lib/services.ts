@@ -269,6 +269,7 @@ export const commandService = {
     text: string,
     source?: "text" | "voice" | "touch" | "deeplink" | "notification",
     sessionId?: string,
+    mode?: "ask" | "tell",
   ) =>
     api<
       CommandOutcome & {
@@ -279,7 +280,7 @@ export const commandService = {
       }
     >("/commands", {
       method: "POST",
-      body: JSON.stringify({ text, source: source ?? "text", sessionId }),
+      body: JSON.stringify({ text, source: source ?? "text", sessionId, mode }),
     }),
   recent: () => api<{ items: CommandHistoryEntry[] }>("/commands/recent"),
   clearRecent: () => api<{ ok: boolean }>("/commands/recent", { method: "DELETE" }),

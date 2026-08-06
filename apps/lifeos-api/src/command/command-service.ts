@@ -137,6 +137,8 @@ export async function runCommand(input: {
   text: string;
   source?: "text" | "voice" | "touch" | "deeplink" | "notification";
   sessionId?: string;
+  /** ask = bias search · tell = bias task automation */
+  mode?: "ask" | "tell";
 }): Promise<
   CommandOutcome & {
     intent: ReturnType<typeof classifyIntent>;
@@ -152,12 +154,27 @@ export async function runCommand(input: {
     inputType: input.source === "voice" ? "VOICE" : "TEXT",
     prior: priorSession?.intent ?? null,
   });
-  const commandIntent = plan.intent;
+  let commandIntent = plan.intent;
   const intent = await ai.classifyIntent(input.text);
+
+  // Mode bias: Ask prefers discovery/search; Tell prefers book/pay/plan automation
+  if (input.mode === "ask") {
+    const searchTypes = new Set(["SEARCH", "DISCOVER", "COMPARE", "RECOMMEND", "PERSONAL_CONTEXT"]);
+    if (!searchTypes.has(commandIntent.type) && !/\b(book|pay|reserve|buy|cancel)\b/i.test(input.text)) {
+      commandIntent = { ...commandIntent, type: "SEARCH" };
+    }
+  } else if (input.mode === "tell") {
+    if (commandIntent.type === "SEARCH" || commandIntent.type === "DISCOVER" || commandIntent.type === "UNKNOWN") {
+      if (/\bpay\b/i.test(input.text)) commandIntent = { ...commandIntent, type: "PAY" };
+      else if (/\bbuy\b|\bticket/i.test(input.text)) commandIntent = { ...commandIntent, type: "BUY" };
+      else if (/\breserve\b/i.test(input.text)) commandIntent = { ...commandIntent, type: "RESERVE" };
+      else if (/\bbook\b|\bcheck.?in\b/i.test(input.text)) commandIntent = { ...commandIntent, type: "BOOK" };
+    }
+  }
 
   await recordCommandHistory({
     userId: input.userId,
-    kind: "command",
+    kind: input.mode === "ask" ? "search" : "command",
     query: input.text,
     intent: commandIntent.type,
     actionId: intent.suggestedActionId,

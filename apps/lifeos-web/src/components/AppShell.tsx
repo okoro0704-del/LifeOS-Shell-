@@ -97,7 +97,7 @@ export function AppShell() {
             className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
             onClick={(e) => {
               e.preventDefault();
-              openCommand();
+              openCommand(undefined, "ask");
             }}
           >
             <span className="nav-icon" aria-hidden>
@@ -156,8 +156,8 @@ export function AppShell() {
             <span className="brand-name">LifeOS</span>
           </div>
           <div className="app-header__actions">
-            <AskLifeOSTrigger compact className="ask-lifeos-trigger--header" />
-            <button type="button" className="icon-btn" aria-label="Ask LifeOS" onClick={() => openCommand()}>
+            <AskLifeOSTrigger compact mode="ask" className="ask-lifeos-trigger--header" />
+            <button type="button" className="icon-btn" aria-label="Ask LifeOS" onClick={() => openCommand(undefined, "ask")}>
               <IconSearch size={20} />
             </button>
             <NavLink
