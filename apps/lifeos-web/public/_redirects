@@ -1,1 +1,5 @@
+# LifeOS API proxy (must be above SPA fallback)
+/api/*  https://lifeos-shell-production.up.railway.app/:splat  200
+
+# SPA fallback
 /*    /index.html   200

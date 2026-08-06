@@ -41,7 +41,7 @@ export function CallbackPage() {
         const tokens = await authClient.exchangeCode(code, state);
         setDetail("Creating your LifeOS session…");
         const data = await meService.createSession(tokens.access_token);
-        storeSessionToken(data.sessionToken);
+        if (data.sessionToken) storeSessionToken(data.sessionToken);
         setUser(data.user);
         navigate("/app", { replace: true });
       } catch (err) {

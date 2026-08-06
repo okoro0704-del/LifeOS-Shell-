@@ -1,5 +1,6 @@
 # LifeOS Web (PWA) — Netlify static deploy
-# Site settings can override these; keep Publish directory = apps/lifeos-web/dist
+# Publish directory = apps/lifeos-web/dist
+# Note: apps/lifeos-web/public/_redirects is copied into dist and must include the /api proxy.
 
 [build]
   command = "npm install && npm run build -w @lifeos/shared && npm run build -w @lifeos/auth-client && npm run build -w @lifeos/experience-sdk && npm run build -w @lifeos/ui && npm run build -w @lifeos/web"
@@ -7,17 +8,15 @@
 
 [build.environment]
   NODE_VERSION = "20"
-  # Prefer same-origin API so session cookies are first-party
   VITE_LIFEOS_API = "/api"
 
-# Proxy API to Railway BEFORE the SPA catch-all (first-party cookies)
+# Also declared in public/_redirects (publish folder) — keep both in sync.
 [[redirects]]
   from = "/api/*"
   to = "https://lifeos-shell-production.up.railway.app/:splat"
   status = 200
   force = true
 
-# SPA: serve index.html for client-side routes (/app/*, /callback, …)
 [[redirects]]
   from = "/*"
   to = "/index.html"

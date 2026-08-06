@@ -118,6 +118,15 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError("We couldn't load your LifeOS data.", 0, "lifeos_unavailable");
   }
 
+  const contentType = res.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    throw new ApiError(
+      "We couldn't reach the LifeOS API. Please try again in a moment.",
+      res.status || 502,
+      "lifeos_unavailable",
+    );
+  }
+
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const raw = (data as { error?: string }).error;

@@ -9,7 +9,7 @@ export const meService = {
     ),
   logout: () => api<{ ok: boolean }>("/auth/logout", { method: "POST" }),
   createSession: (accessToken: string) =>
-    api<{ user: LifeOsUserPublic; sessionToken: string; expiresAt: string }>("/auth/session", {
+    api<{ user: LifeOsUserPublic; sessionToken?: string; expiresAt?: string }>("/auth/session", {
       method: "POST",
       body: JSON.stringify({ accessToken }),
     }),
