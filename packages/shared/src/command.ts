@@ -51,6 +51,12 @@ export const INTENT_KINDS = [
   "ASK",
   "WALLET_QUERY",
   "PERSONAL_CONTEXT",
+  "COMPARE",
+  "PLAN",
+  "RECOMMEND",
+  "RESERVE",
+  "BUY",
+  "CANCEL",
   "UNKNOWN",
 ] as const;
 
@@ -100,27 +106,41 @@ export type CommandOutcome =
       type: "navigate";
       path: string;
       message?: string;
+      sessionId?: string;
     }
   | {
       type: "results";
       message: string;
       results: SearchResult[];
       intent: ClassifiedIntent;
+      sessionId?: string;
+      reason?: string;
+      canCompare?: boolean;
     }
   | {
       type: "preview";
       message: string;
       preview: ActionPreviewPayload;
+      sessionId?: string;
     }
   | {
       type: "answer";
       message: string;
       suggestions?: AiSuggestion[];
+      sessionId?: string;
+      clarify?: boolean;
     }
   | {
       type: "executed";
       message: string;
       activityId?: string;
+      sessionId?: string;
+    }
+  | {
+      type: "compare";
+      message: string;
+      results: SearchResult[];
+      sessionId?: string;
     };
 
 export type ActionPreviewPayload = {

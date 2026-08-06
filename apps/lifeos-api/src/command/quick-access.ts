@@ -451,24 +451,29 @@ export class QuickAccessService {
       /* ActionRecord may be missing before migrate */
     }
 
-    // Featured offering shortcuts
+    // All available services / offerings — full catalog, not a tiny featured slice
     try {
-      const featured = (await getOfferingProvider().list({}))
-        .filter((o) => o.featured)
-        .slice(0, 2);
-      for (const o of featured) {
+      const offerings = await getOfferingProvider().list({});
+      const seenOffering = new Set(
+        items
+          .map((i) => (i.params?.offeringId ? String(i.params.offeringId) : null))
+          .filter(Boolean),
+      );
+      for (const o of offerings) {
         const id = `qa_off_${o.id}`;
-        if (hidden.has(id)) continue;
+        if (hidden.has(id) || seenOffering.has(o.id)) continue;
+        seenOffering.add(o.id);
         items.push({
           id,
           kind: "contextual",
-          label: o.name,
+          label: o.name.slice(0, 28),
           subtitle: o.businessName,
+          icon: "explore",
           actionId: "OPEN_EXPERIENCE",
-          params: { offeringId: o.id, experienceId: o.experienceId },
+          params: { offeringId: o.id, experienceId: o.experienceId, businessId: o.businessId },
           score: scoreQuickAccessItem({
-            frequency: 0,
-            recencyMs: 86400000 * 3,
+            frequency: freq.get(o.id) ?? (o.featured ? 1 : 0),
+            recencyMs: o.featured ? 86400000 : 86400000 * 7,
             upcoming: false,
             pinned: pinned.has(id),
             contextual: true,
@@ -476,6 +481,33 @@ export class QuickAccessService {
           pinned: pinned.has(id),
           contextual: true,
           navigateTo: `/app/discover?offering=${o.id}`,
+        });
+      }
+
+      // Category shortcuts so every service vertical is one tap away
+      const categories = await getOfferingProvider().categories();
+      for (const cat of categories) {
+        if (cat === "More" || cat === "All") continue;
+        const id = `qa_cat_${cat.toLowerCase()}`;
+        if (hidden.has(id)) continue;
+        if (items.some((i) => i.id === id)) continue;
+        items.push({
+          id,
+          kind: "action",
+          label: cat,
+          subtitle: "Services",
+          icon: "explore",
+          actionId: "DISCOVER_BUSINESSES",
+          params: { category: cat },
+          score: scoreQuickAccessItem({
+            frequency: freq.get(cat) ?? 0,
+            recencyMs: 86400000 * 5,
+            upcoming: false,
+            pinned: pinned.has(id),
+            contextual: false,
+          }),
+          pinned: pinned.has(id),
+          navigateTo: `/app/discover?category=${encodeURIComponent(cat)}`,
         });
       }
     } catch {
@@ -495,7 +527,8 @@ export class QuickAccessService {
       return b.score - a.score;
     });
 
-    return items.slice(0, 16);
+    // Return full service set (contextual + categories + all offerings). Cap only pathological growth.
+    return items.slice(0, 120);
   }
 
   async updatePrefs(

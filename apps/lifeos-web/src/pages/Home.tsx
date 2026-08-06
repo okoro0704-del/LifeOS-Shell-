@@ -92,7 +92,7 @@ export function HomePage() {
           actionService.plans().catch(() => null),
         ]);
         setForYou((disc.featuredOfferings ?? disc.offerings ?? []).slice(0, 4));
-        setQuick(qa.items.slice(0, 8));
+        setQuick(qa.items);
         if (plans) {
           setToday(plans.life?.today ?? []);
           setUpcoming((plans.life?.upcoming ?? []).slice(0, 4));
@@ -168,13 +168,14 @@ export function HomePage() {
       <section className="home-command" aria-label="Ask LifeOS">
         <AskLifeOSTrigger />
         <p className="muted small home-command__hint">
-          Ask what’s on today, or find something for the weekend.
+          Tell LifeOS what you need — search, plans, or prepare a booking.
         </p>
       </section>
 
       <section aria-label="Quick Access">
         <SectionHeader
           title="Quick Access"
+          subtitle={quick.length ? `${quick.length} services & shortcuts` : undefined}
           action={
             <button type="button" className="text-link" onClick={() => openCommand()}>
               More
@@ -184,7 +185,7 @@ export function HomePage() {
         {loading ? (
           <Skeleton height={72} label="Loading quick access" />
         ) : (
-          <div className="quick-row">
+          <div className="quick-row" role="list">
             {quick.map((item) => (
               <QuickAction
                 key={item.id}

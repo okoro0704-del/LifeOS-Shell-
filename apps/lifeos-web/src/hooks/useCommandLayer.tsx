@@ -13,6 +13,8 @@ type CommandLayerState = {
   setLastOutcome: (o: CommandOutcome | null) => void;
   pendingResults: SearchResult[];
   setPendingResults: (r: SearchResult[]) => void;
+  sessionId: string | null;
+  setSessionId: (id: string | null) => void;
 };
 
 const CommandLayerContext = createContext<CommandLayerState | null>(null);
@@ -23,6 +25,7 @@ export function CommandLayerProvider({ children }: { children: ReactNode }) {
   const [preview, setPreview] = useState<ActionPreviewPayload | null>(null);
   const [lastOutcome, setLastOutcome] = useState<CommandOutcome | null>(null);
   const [pendingResults, setPendingResults] = useState<SearchResult[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   const openCommand = useCallback((seed?: string) => {
     if (seed != null) setQuery(seed);
@@ -57,8 +60,10 @@ export function CommandLayerProvider({ children }: { children: ReactNode }) {
       setLastOutcome,
       pendingResults,
       setPendingResults,
+      sessionId,
+      setSessionId,
     }),
-    [open, query, openCommand, closeCommand, preview, lastOutcome, pendingResults],
+    [open, query, openCommand, closeCommand, preview, lastOutcome, pendingResults, sessionId],
   );
 
   return <CommandLayerContext.Provider value={value}>{children}</CommandLayerContext.Provider>;

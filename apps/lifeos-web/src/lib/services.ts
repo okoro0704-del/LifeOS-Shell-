@@ -265,13 +265,33 @@ export const commandService = {
       experiences: ExperienceRecord[];
     }>(`/search?${params}`);
   },
-  run: (text: string, source?: "text" | "voice" | "touch" | "deeplink" | "notification") =>
-    api<CommandOutcome & { intent: ClassifiedIntent }>("/commands", {
+  run: (
+    text: string,
+    source?: "text" | "voice" | "touch" | "deeplink" | "notification",
+    sessionId?: string,
+  ) =>
+    api<
+      CommandOutcome & {
+        intent: ClassifiedIntent;
+        sessionId?: string;
+        canCompare?: boolean;
+        reason?: string;
+      }
+    >("/commands", {
       method: "POST",
-      body: JSON.stringify({ text, source: source ?? "text" }),
+      body: JSON.stringify({ text, source: source ?? "text", sessionId }),
     }),
   recent: () => api<{ items: CommandHistoryEntry[] }>("/commands/recent"),
   clearRecent: () => api<{ ok: boolean }>("/commands/recent", { method: "DELETE" }),
+  removeRecent: (id: string) =>
+    api<{ ok: boolean }>(`/commands/recent/${id}`, { method: "DELETE" }),
+  plan: (text: string) =>
+    api<{ plan: import("@lifeos/shared").QueryPlan }>("/commands/plan", {
+      method: "POST",
+      body: JSON.stringify({ text }),
+    }),
+  shortcuts: () =>
+    api<{ shortcuts: Array<{ id: string; label: string; query: string }> }>("/commands/shortcuts"),
   quickAccess: () => api<{ items: QuickAccessItem[] }>("/quick-access"),
   pin: (id: string) =>
     api<{ items: QuickAccessItem[] }>("/quick-access/pin", {
@@ -293,6 +313,7 @@ export const commandService = {
       suggestions: AiSuggestion[];
       recent: CommandHistoryEntry[];
       quickAccess: QuickAccessItem[];
+      shortcuts?: Array<{ id: string; label: string; query: string }>;
     }>(`/suggestions${q ? `?q=${encodeURIComponent(q)}` : ""}`),
   intent: (text: string) =>
     api<{ intent: ClassifiedIntent }>("/ai/intent", {

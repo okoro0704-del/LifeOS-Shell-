@@ -1,36 +1,23 @@
 # AI Safety
 
-## Boundary
+## Allowed
 
-| Allowed | Forbidden without confirmation |
-|---------|--------------------------------|
-| Search / explain / recommend | Spend money / pay |
-| Summarize / plan / navigate | Book / cancel bookings |
-| Prepare an action | Transfer tokens |
-| Suggest Quick Access | Change security / devices |
-| | Connect experiences silently |
+- Discover, understand, filter, compare, recommend, prepare, navigate  
+- Use **AI-safe** personal context summaries (`GET /context/ai`)  
+- Present Action Preview for consequential work  
 
-## Confirmation pipeline
+## Forbidden without explicit confirmation
 
-```
-AI suggestion → Action Preview → User Confirm → Authorized execution
-```
+- Book / purchase / pay / cancel / refund / transfer  
+- Autonomous multi-step purchasing agents  
 
-Registry flags:
+## Honesty rules
 
-- `BOOK_SERVICE`, `PAY_INVOICE`, `CHECK_IN` → `requiresConfirmation: true`
+- Never claim cheapest / closest / best unless structured data supports it  
+- If attribute missing: say so (`Availability isn’t provided.`)  
+- Do not invent preferences or fabricate provider results  
+- On provider failure: explain + offer Retry / Saved / other category  
 
-`POST /actions/execute` with `confirmed: false` returns a preview for consequential actions.
+## Confirmation copy
 
-## Privacy
-
-- Command history stores sanitized queries (secrets redacted, length-capped)
-- Search metrics omit raw query text
-- No biometric storage
-- No TrustID private credentials
-- No payment credentials in history
-
-## TrustID boundary
-
-LifeOS may know authenticated user reference and app auth state.
-LifeOS must not recreate TrustID auth or store biometrics.
+Use explicit labels: **Confirm booking**, **Confirm payment** — never ambiguous “Continue” for money or commitments.

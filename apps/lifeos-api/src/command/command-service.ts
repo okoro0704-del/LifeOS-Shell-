@@ -16,6 +16,11 @@ import { getCommandWalletProvider } from "./wallet-adapter.js";
 import { personalContextService } from "../services/personal-context.js";
 import { recommendationProvider } from "../services/recommendations.js";
 import { getOfferingProvider } from "../services/offerings.js";
+import { commandSessionService } from "./command-session.js";
+import { planQuery } from "./query-planner.js";
+import { compareResults, filterByIntent, rankSearchResults } from "./search-ranking.js";
+import { locationPermissionService } from "./location.js";
+import type { CommandIntent } from "@lifeos/shared";
 
 function sanitizeHistoryQuery(q: string): string {
   // Never persist secrets / credentials-looking material
@@ -131,16 +136,133 @@ export async function runCommand(input: {
   trustId: string;
   text: string;
   source?: "text" | "voice" | "touch" | "deeplink" | "notification";
-}): Promise<CommandOutcome & { intent: ReturnType<typeof classifyIntent> }> {
+  sessionId?: string;
+}): Promise<
+  CommandOutcome & {
+    intent: ReturnType<typeof classifyIntent>;
+    commandIntent?: CommandIntent;
+    sessionId?: string;
+  }
+> {
   const ai = getAIProvider();
+  const priorSession =
+    (input.sessionId ? commandSessionService.get(input.sessionId, input.userId) : null) ??
+    commandSessionService.latestForUser(input.userId);
+  const plan = planQuery(input.text, {
+    inputType: input.source === "voice" ? "VOICE" : "TEXT",
+    prior: priorSession?.intent ?? null,
+  });
+  const commandIntent = plan.intent;
   const intent = await ai.classifyIntent(input.text);
+
   await recordCommandHistory({
     userId: input.userId,
     kind: "command",
     query: input.text,
-    intent: intent.kind,
+    intent: commandIntent.type,
     actionId: intent.suggestedActionId,
   });
+
+  // Ambiguity — ask before consequential assumptions
+  if (commandIntent.needsClarification && commandIntent.clarificationPrompt) {
+    const session = commandSessionService.create(input.userId, commandIntent, []);
+    return {
+      type: "answer",
+      message: commandIntent.clarificationPrompt,
+      suggestions: [
+        { id: "spa", label: "Spa / massage", query: "book a massage" },
+        { id: "dinner", label: "Dinner", query: "book dinner tonight" },
+        { id: "hotel", label: "Hotel", query: "find a hotel" },
+      ],
+      clarify: true,
+      intent,
+      commandIntent,
+      sessionId: session.sessionId,
+    };
+  }
+
+  // Follow-up: book it / that one → preview from selected or top result
+  if (priorSession && /^(book it|book that|that one|confirm)\b/i.test(input.text.trim())) {
+    const selected =
+      priorSession.results.find((r) => r.id === priorSession.selectedResultId) ??
+      priorSession.results.find((r) => r.type === "OFFERING") ??
+      priorSession.results[0];
+    if (selected) {
+      const offeringId = selected.metadata?.offeringId
+        ? String(selected.metadata.offeringId)
+        : undefined;
+      const params = {
+        ...(selected.actions[0]?.params ?? {}),
+        offeringId,
+        service: selected.title,
+        businessName: selected.subtitle,
+        amount: selected.metadata?.price != null ? selected.metadata.price : selected.description,
+        when: [commandIntent.date, commandIntent.time ?? commandIntent.timeAfter]
+          .filter(Boolean)
+          .join(" · ") || "As selected",
+      };
+      const session = commandSessionService.update(priorSession.sessionId, input.userId, {
+        selectedResultId: selected.id,
+        pendingActionId: "BOOK_SERVICE",
+      });
+      return {
+        type: "preview",
+        message: "Confirm before anything is booked or charged.",
+        preview: buildActionPreview("BOOK_SERVICE", params),
+        intent,
+        commandIntent,
+        sessionId: session?.sessionId ?? priorSession.sessionId,
+      };
+    }
+  }
+
+  // Follow-up compare / filter on session results
+  if (priorSession && (plan.followUp || plan.compareMode) && priorSession.results.length > 0) {
+    let results = [...priorSession.results];
+    const mergedIntent = commandIntent;
+    results = filterByIntent(results, mergedIntent);
+    results = rankSearchResults(results, mergedIntent, { query: input.text });
+
+    if (plan.compareMode || /\bcheapest|closest|compare|which is\b/i.test(input.text)) {
+      const metric = /\bclosest\b/i.test(input.text)
+        ? "distance"
+        : /\bcancellation\b/i.test(input.text)
+          ? "cancellation"
+          : /\bearliest|availability\b/i.test(input.text)
+            ? "availability"
+            : "price";
+      const cmp = compareResults(results, metric);
+      const session = commandSessionService.update(priorSession.sessionId, input.userId, {
+        intent: mergedIntent,
+        results: cmp.results.length ? cmp.results : results,
+        reason: cmp.summary,
+        selectedResultId: cmp.winnerId ?? null,
+      });
+      return {
+        type: "compare",
+        message: cmp.summary,
+        results: (cmp.results.length ? cmp.results : results).slice(0, 6),
+        intent,
+        commandIntent: mergedIntent,
+        sessionId: session?.sessionId ?? priorSession.sessionId,
+      };
+    }
+
+    const session = commandSessionService.update(priorSession.sessionId, input.userId, {
+      intent: mergedIntent,
+      results,
+      reason: `${results.length} option${results.length === 1 ? "" : "s"} remain.`,
+    });
+    return {
+      type: "results",
+      message: `${results.length} option${results.length === 1 ? "" : "s"} remain.`,
+      results: results.slice(0, 8),
+      intent,
+      commandIntent: mergedIntent,
+      sessionId: session?.sessionId ?? priorSession.sessionId,
+      canCompare: results.length > 1,
+    };
+  }
 
   // Navigation / show intents
   if (
@@ -159,6 +281,7 @@ export async function runCommand(input: {
             path: action.navigateTo!,
             message: `Today: ${safe.todaySummary}`,
             intent,
+            commandIntent,
           };
         } catch {
           /* fall through to navigate */
@@ -169,19 +292,29 @@ export async function runCommand(input: {
         path: action.navigateTo,
         message: await ai.generateResponse({ intent }),
         intent,
+        commandIntent,
       };
     }
   }
 
+  // Safe navigation phrases
+  if (commandIntent.type === "NAVIGATE" || /^(open|take me to|show)\s+(wallet|plans|saved|tickets|notifications)\b/i.test(input.text)) {
+    const path = resolveSafeNav(input.text);
+    if (path) {
+      return { type: "navigate", path, message: "Opening…", intent, commandIntent };
+    }
+  }
+
   // Personal context Q&A — structured, user-scoped, no unrestricted DB
-  if (intent.kind === "PERSONAL_CONTEXT") {
+  if (intent.kind === "PERSONAL_CONTEXT" || commandIntent.type === "PERSONAL_CONTEXT") {
     const snap = await personalContextService.getSnapshot(input.userId, input.trustId);
     const safe = personalContextService.toAiSafe(snap);
     const q = intent.query.toLowerCase();
 
     if (
       /nothing planned/.test(q) ||
-      (/what can i do/.test(q) && /(saturday|weekend|today|tonight)/.test(q))
+      (/what can i do/.test(q) && /(saturday|weekend|today|tonight)/.test(q)) ||
+      commandIntent.type === "RECOMMEND"
     ) {
       const recs = await recommendationProvider.recommend({
         signals: snap.signals,
@@ -197,6 +330,7 @@ export async function runCommand(input: {
           title: o.name,
           subtitle: o.businessName,
           description: r.reason,
+          metadata: { offeringId: o.id, price: o.price, category: o.category, availability: o.availability },
           actions: [
             {
               id: `book_${o.id}`,
@@ -216,12 +350,31 @@ export async function runCommand(input: {
           score: r.score,
         });
       }
+      const session = commandSessionService.create(input.userId, commandIntent, results);
       return {
         type: "results",
         message:
           "Here are a few options based on your interests and availability. Select one and I’ll prepare the action.",
         results,
         intent,
+        commandIntent,
+        sessionId: session.sessionId,
+        reason: results[0]?.description,
+        canCompare: results.length > 1,
+      };
+    }
+
+    if (/attention|waiting/i.test(q)) {
+      const attn = snap.attention.slice(0, 5);
+      return {
+        type: "answer",
+        message:
+          attn.length > 0
+            ? attn.map((a) => a.title).join("; ")
+            : "Nothing needs your attention right now.",
+        suggestions: [{ id: "plans", label: "Open Today", actionId: "VIEW_BOOKINGS" }],
+        intent,
+        commandIntent,
       };
     }
 
@@ -230,9 +383,9 @@ export async function runCommand(input: {
     else if (/booked recently|did i book/.test(q)) message = `Recent: ${safe.recentBookingsSummary}`;
     else if (/saved/.test(q)) message = safe.savedSpasSummary;
     else if (/tonight|where am i going/.test(q)) message = `Tonight: ${safe.tonightSummary}`;
-    else if (/pay/.test(q)) message = safe.paymentAttentionSummary;
+    else if (/pay|payment|spent/.test(q)) message = safe.paymentAttentionSummary;
     else if (/yesterday/.test(q)) message = `Yesterday: ${safe.yesterdaySummary}`;
-    else if (/today|doing/.test(q)) message = `Today: ${safe.todaySummary}`;
+    else if (/today|doing|happening/.test(q)) message = `Today: ${safe.todaySummary}`;
     else if (/hotel|ticket|appointment|plan/.test(q)) {
       const filtered = safe.items.filter((i) => {
         if (/hotel/.test(q)) return i.type === "STAY";
@@ -254,40 +407,144 @@ export async function runCommand(input: {
         { id: "discover", label: "Discover", actionId: "DISCOVER_BUSINESSES" },
       ],
       intent,
+      commandIntent,
+    };
+  }
+
+  // Recommendations (non-personal)
+  if (commandIntent.type === "RECOMMEND") {
+    const snap = await personalContextService.getSnapshot(input.userId, input.trustId);
+    const recs = await recommendationProvider.recommend({ signals: snap.signals, limit: 4 });
+    const results: SearchResult[] = [];
+    for (const r of recs) {
+      const o = await getOfferingProvider().getById(r.offeringId);
+      if (!o) continue;
+      results.push({
+        id: `rec_${o.id}`,
+        type: "OFFERING",
+        title: o.name,
+        subtitle: o.businessName,
+        description: r.reason,
+        metadata: { offeringId: o.id, price: o.price, category: o.category },
+        actions: [
+          {
+            id: `sel_${o.id}`,
+            label: "Select",
+            actionId: "BOOK_SERVICE",
+            params: {
+              offeringId: o.id,
+              experienceId: o.experienceId,
+              service: o.name,
+              amount: o.priceFormatted,
+            },
+            requiresConfirmation: true,
+          },
+        ],
+        source: "recommendations",
+        score: r.score,
+      });
+    }
+    const near = locationPermissionService.nearMeLabel(input.userId);
+    const session = commandSessionService.create(input.userId, commandIntent, results);
+    return {
+      type: "results",
+      message: near
+        ? `Suggestions near ${near} — ${results.length} options.`
+        : `I found ${results.length} suggestion${results.length === 1 ? "" : "s"}.`,
+      results,
+      intent,
+      commandIntent,
+      sessionId: session.sessionId,
+      canCompare: true,
     };
   }
 
   // Consequential — preview only; enrich BOOK with offering search
-  if (intent.kind === "BOOK" || intent.kind === "PAY") {
+  if (intent.kind === "BOOK" || intent.kind === "PAY" || commandIntent.type === "BOOK" || commandIntent.type === "RESERVE" || commandIntent.type === "BUY") {
     const actionId = (intent.suggestedActionId ||
-      (intent.kind === "BOOK" ? "BOOK_SERVICE" : "PAY_INVOICE")) as ActionId;
+      (intent.kind === "PAY" ? "PAY_INVOICE" : "BOOK_SERVICE")) as ActionId;
     const params: Record<string, unknown> = { ...intent.slots };
-    if (intent.kind === "PAY") {
+    if (intent.kind === "PAY" || commandIntent.type === "PAY") {
       params.merchant = intent.slots.merchant || intent.query.replace(/^pay\s+/i, "");
       params.amount = params.amount ?? 10000;
     }
-    if (intent.kind === "BOOK") {
-      params.service = intent.slots.service || intent.query;
-      params.when = intent.slots.when || "Tomorrow afternoon";
+    if (intent.kind === "BOOK" || commandIntent.type === "BOOK" || commandIntent.type === "RESERVE") {
+      params.service = intent.slots.service || commandIntent.offeringType || intent.query;
+      params.when =
+        [commandIntent.date, commandIntent.time ?? commandIntent.timeAfter].filter(Boolean).join(" · ") ||
+        intent.slots.when ||
+        "Tomorrow afternoon";
       try {
-        const { getOfferingProvider } = await import("../services/offerings.js");
-        const matches = await getOfferingProvider().search(String(params.service));
-        if (matches[0]) {
-          params.offeringId = matches[0].id;
-          params.experienceId = matches[0].experienceId;
-          params.businessName = matches[0].businessName;
-          params.service = matches[0].name;
-          params.amount = matches[0].priceFormatted;
+        const search = await getUniversalSearch().search({
+          userId: input.userId,
+          trustId: input.trustId,
+          query: plan.searchQuery || String(params.service),
+          intent: commandIntent,
+          limit: 6,
+        });
+        if (search.providerErrors.length && search.results.length === 0) {
+          return {
+            type: "answer",
+            message: "I can’t check availability right now.",
+            suggestions: [
+              { id: "retry", label: "Retry", query: input.text },
+              { id: "saved", label: "Browse saved", query: "what did I save?" },
+              { id: "other", label: "Another category", query: "find restaurants tonight" },
+            ],
+            intent,
+            commandIntent,
+          };
+        }
+        if (search.results.length > 1 && !/\bbook the\b|\bbook it\b/i.test(input.text)) {
+          const session = commandSessionService.create(input.userId, commandIntent, search.results);
+          const reasonParts = [
+            commandIntent.date ? `for ${commandIntent.date}` : null,
+            commandIntent.maxPrice != null ? `under ₦${commandIntent.maxPrice.toLocaleString()}` : null,
+            commandIntent.timeAfter ? `after ${commandIntent.timeAfter}` : null,
+          ].filter(Boolean);
+          return {
+            type: "results",
+            message: `I found ${search.results.length} option${search.results.length === 1 ? "" : "s"}${reasonParts.length ? ` ${reasonParts.join(", ")}` : ""}.`,
+            results: search.results,
+            intent,
+            commandIntent,
+            sessionId: session.sessionId,
+            canCompare: true,
+            reason: reasonParts.join(" · ") || undefined,
+          };
+        }
+        const top = search.results[0];
+        if (top?.metadata?.offeringId) {
+          params.offeringId = top.metadata.offeringId;
+          params.experienceId = top.metadata.experienceId;
+          params.businessName = top.subtitle;
+          params.service = top.title;
+          params.amount =
+            top.metadata.price != null
+              ? `₦${Number(top.metadata.price).toLocaleString()}`
+              : top.description;
+        } else {
+          const matches = await getOfferingProvider().search(String(params.service));
+          if (matches[0]) {
+            params.offeringId = matches[0].id;
+            params.experienceId = matches[0].experienceId;
+            params.businessName = matches[0].businessName;
+            params.service = matches[0].name;
+            params.amount = matches[0].priceFormatted;
+          }
         }
       } catch {
         /* offering enrichment optional */
       }
     }
+    const session = commandSessionService.create(input.userId, commandIntent, []);
     return {
       type: "preview",
       message: await ai.generateResponse({ intent }),
       preview: buildActionPreview(actionId, params),
       intent,
+      commandIntent,
+      sessionId: session.sessionId,
     };
   }
 
@@ -302,6 +559,7 @@ export async function runCommand(input: {
           { id: "open_wallet", label: "Open wallet", actionId: "OPEN_WALLET" },
         ],
         intent,
+        commandIntent,
       };
     }
     return {
@@ -309,32 +567,63 @@ export async function runCommand(input: {
       message: await ai.generateResponse({ intent }),
       suggestions: await ai.suggestActions({ intent }),
       intent,
+      commandIntent,
     };
   }
 
   // Default: search + structured results
-  const searchQ =
-    intent.slots.topic ||
-    intent.slots.service ||
-    intent.query.replace(/^(find( me)?|show|open|book)\s+/i, "");
-  const { results } = await getUniversalSearch().search({
+  const searchQ = plan.searchQuery || intent.slots.topic || intent.slots.service || intent.query;
+  const { results, providerErrors } = await getUniversalSearch().search({
     userId: input.userId,
     trustId: input.trustId,
     query: searchQ || intent.query,
+    intent: commandIntent,
   });
   await recordCommandHistory({
     userId: input.userId,
     kind: "search",
     query: searchQ || intent.query,
-    intent: intent.kind,
+    intent: commandIntent.type,
   });
 
+  if (providerErrors.length && results.length === 0) {
+    return {
+      type: "answer",
+      message: "I can’t reach some search sources right now.",
+      suggestions: [
+        { id: "retry", label: "Retry", query: input.text },
+        { id: "saved", label: "Browse saved", query: "saved" },
+      ],
+      intent,
+      commandIntent,
+    };
+  }
+
+  const session = commandSessionService.create(input.userId, commandIntent, results);
   return {
     type: "results",
-    message: await ai.generateResponse({ intent, results }),
+    message:
+      results.length > 0
+        ? `I found ${results.length} option${results.length === 1 ? "" : "s"}.`
+        : await ai.generateResponse({ intent, results }),
     results,
     intent,
+    commandIntent,
+    sessionId: session.sessionId,
+    canCompare: results.filter((r) => r.type === "OFFERING").length > 1,
   };
+}
+
+function resolveSafeNav(text: string): string | null {
+  const t = text.toLowerCase();
+  if (/wallet/.test(t)) return "/app/wallet";
+  if (/plans|today/.test(t)) return "/app/plans";
+  if (/saved/.test(t)) return "/app/saved";
+  if (/tickets/.test(t)) return "/app/activity?filter=tickets";
+  if (/notifications/.test(t)) return "/app/notifications";
+  if (/discover|explore/.test(t)) return "/app/discover";
+  if (/profile/.test(t)) return "/app/profile";
+  return null;
 }
 
 export async function executeConfirmedAction(input: {

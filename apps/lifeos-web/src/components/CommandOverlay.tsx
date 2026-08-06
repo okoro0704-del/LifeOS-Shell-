@@ -7,19 +7,22 @@ import type {
   QuickAccessItem,
   SearchResult,
 } from "@lifeos/shared";
+import { COMMAND_SHORTCUTS } from "@lifeos/shared";
 import { Button, EmptyState, Skeleton } from "@lifeos/ui";
 import { commandService } from "../lib/services";
 import { useCommandLayer } from "../hooks/useCommandLayer";
 import { ActionPreview } from "./ActionPreview";
 
 function applyOutcome(
-  outcome: CommandOutcome,
+  outcome: CommandOutcome & { sessionId?: string },
   navigate: ReturnType<typeof useNavigate>,
   setPreview: (p: ActionPreviewPayload | null) => void,
   setResults: (r: SearchResult[]) => void,
   setMessage: (m: string) => void,
   close: () => void,
+  setSessionId: (id: string | null) => void,
 ) {
+  if (outcome.sessionId) setSessionId(outcome.sessionId);
   if (outcome.type === "navigate") {
     close();
     navigate(outcome.path);
@@ -30,7 +33,7 @@ function applyOutcome(
     setMessage(outcome.message);
     return;
   }
-  if (outcome.type === "results") {
+  if (outcome.type === "results" || outcome.type === "compare") {
     setResults(outcome.results);
     setMessage(outcome.message);
     return;
@@ -47,6 +50,7 @@ function applyOutcome(
   }
 }
 
+/** First-class Command Center — Ask LifeOS is the doorway into LifeOS. */
 export function CommandOverlay() {
   const {
     open,
@@ -58,6 +62,8 @@ export function CommandOverlay() {
     setLastOutcome,
     pendingResults,
     setPendingResults,
+    sessionId,
+    setSessionId,
   } = useCommandLayer();
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -67,9 +73,13 @@ export function CommandOverlay() {
   const [confirmBusy, setConfirmBusy] = useState(false);
   const [recent, setRecent] = useState<CommandHistoryEntry[]>([]);
   const [quick, setQuick] = useState<QuickAccessItem[]>([]);
+  const [shortcuts, setShortcuts] = useState<{ id: string; label: string; query: string }[]>([
+    ...COMMAND_SHORTCUTS,
+  ]);
   const [liveResults, setLiveResults] = useState<SearchResult[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [canCompare, setCanCompare] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -79,6 +89,7 @@ export function CommandOverlay() {
       .then((s) => {
         setRecent(s.recent);
         setQuick(s.quickAccess);
+        if (s.shortcuts?.length) setShortcuts(s.shortcuts);
       })
       .catch(() => undefined);
     return () => window.clearTimeout(t);
@@ -129,8 +140,9 @@ export function CommandOverlay() {
     setError(null);
     setPreview(null);
     try {
-      const outcome = await commandService.run(trimmed);
+      const outcome = await commandService.run(trimmed, "text", sessionId ?? undefined);
       setLastOutcome(outcome);
+      setCanCompare(Boolean(outcome.type === "results" && outcome.canCompare));
       applyOutcome(
         outcome,
         navigate,
@@ -141,6 +153,7 @@ export function CommandOverlay() {
         },
         setMessage,
         closeCommand,
+        setSessionId,
       );
     } catch {
       setError("Couldn't run that command. Try again.");
@@ -155,7 +168,7 @@ export function CommandOverlay() {
     try {
       const outcome = await commandService.executeAction(actionId, params, confirmed);
       setLastOutcome(outcome);
-      applyOutcome(outcome, navigate, setPreview, setPendingResults, setMessage, closeCommand);
+      applyOutcome(outcome, navigate, setPreview, setPendingResults, setMessage, closeCommand, setSessionId);
     } catch {
       setError("Couldn't run that action.");
     } finally {
@@ -169,7 +182,7 @@ export function CommandOverlay() {
     try {
       const outcome = await commandService.executeAction(preview.actionId, preview.params, true);
       setLastOutcome(outcome);
-      applyOutcome(outcome, navigate, setPreview, setPendingResults, setMessage, closeCommand);
+      applyOutcome(outcome, navigate, setPreview, setPendingResults, setMessage, closeCommand, setSessionId);
       if (outcome.type === "executed") {
         window.setTimeout(() => closeCommand(), 600);
       }
@@ -182,15 +195,26 @@ export function CommandOverlay() {
 
   if (!open) return null;
 
+  const grouped = {
+    OFFERING: displayResults.filter((r) => r.type === "OFFERING"),
+    BUSINESS: displayResults.filter((r) => r.type === "BUSINESS"),
+    PERSONAL: displayResults.filter((r) =>
+      ["PERSONAL", "BOOKING", "TICKET", "ACTIVITY"].includes(r.type),
+    ),
+    OTHER: displayResults.filter(
+      (r) => !["OFFERING", "BUSINESS", "PERSONAL", "BOOKING", "TICKET", "ACTIVITY"].includes(r.type),
+    ),
+  };
+
   return (
     <div className="command-overlay" role="presentation">
-      <button type="button" className="command-overlay__backdrop" aria-label="Close Ask LifeOS" onClick={closeCommand} />
-      <div
-        className="command-panel"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Ask LifeOS"
-      >
+      <button
+        type="button"
+        className="command-overlay__backdrop"
+        aria-label="Close Command Center"
+        onClick={closeCommand}
+      />
+      <div className="command-panel command-panel--center" role="dialog" aria-modal="true" aria-label="Command Center">
         <form
           className="command-panel__form"
           onSubmit={(e) => {
@@ -218,41 +242,63 @@ export function CommandOverlay() {
           }}
         >
           <label className="command-panel__label" htmlFor="ask-lifeos-input">
-            Ask LifeOS
+            Command Center
           </label>
-          <input
-            id="ask-lifeos-input"
-            ref={inputRef}
-            className="command-panel__input"
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setPendingResults([]);
-              setMessage(null);
-              setActiveIndex(0);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "ArrowDown") {
-                e.preventDefault();
-                setActiveIndex((i) => Math.min(i + 1, Math.max(flatItems.length - 1, 0)));
-              } else if (e.key === "ArrowUp") {
-                e.preventDefault();
-                setActiveIndex((i) => Math.max(i - 1, 0));
-              }
-            }}
-            placeholder="Ask LifeOS..."
-            autoComplete="off"
-            aria-autocomplete="list"
-            aria-controls={listId}
-            aria-activedescendant={flatItems[activeIndex] ? `${listId}-${activeIndex}` : undefined}
-          />
+          <div className="command-panel__input-row">
+            <input
+              id="ask-lifeos-input"
+              ref={inputRef}
+              className="command-panel__input"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setPendingResults([]);
+                setMessage(null);
+                setActiveIndex(0);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  setActiveIndex((i) => Math.min(i + 1, Math.max(flatItems.length - 1, 0)));
+                } else if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  setActiveIndex((i) => Math.max(i - 1, 0));
+                }
+              }}
+              placeholder="Tell LifeOS what you need…"
+              autoComplete="off"
+              aria-autocomplete="list"
+              aria-controls={listId}
+              aria-activedescendant={flatItems[activeIndex] ? `${listId}-${activeIndex}` : undefined}
+            />
+            <button
+              type="button"
+              className="command-mic"
+              aria-label="Voice input coming soon"
+              title="Voice ready — recognition coming soon"
+              disabled
+            >
+              ⌄
+            </button>
+          </div>
           <span className="command-panel__hint muted small">
-            {busy ? "Thinking…" : "Enter to run · Esc to close · ↑↓ to move"}
+            {busy ? "Understanding…" : "Enter to run · Esc to close · ↑↓ · Ctrl/⌘ K"}
           </span>
         </form>
 
         {error ? <p className="command-panel__error">{error}</p> : null}
         {message ? <p className="command-panel__message">{message}</p> : null}
+
+        {canCompare && displayResults.length > 1 && !preview ? (
+          <div className="command-panel__toolbar">
+            <Button size="sm" variant="soft" onClick={() => void runCommand("cheapest")}>
+              Compare · cheapest
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => void runCommand("book it")}>
+              Book top result
+            </Button>
+          </div>
+        ) : null}
 
         {preview ? (
           <ActionPreview
@@ -262,8 +308,29 @@ export function CommandOverlay() {
             onConfirm={() => void confirmPreview()}
           />
         ) : (
-          <div id={listId} className="command-panel__body" role="listbox" aria-label="Suggestions">
+          <div id={listId} className="command-panel__body" role="listbox" aria-label="Command results">
             {busy && !displayResults.length ? <Skeleton height={64} label="Loading" /> : null}
+
+            {!query.trim() ? (
+              <section>
+                <h4 className="command-panel__section">Suggested</h4>
+                <div className="command-chips">
+                  {shortcuts.slice(0, 8).map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      className="command-chip"
+                      onClick={() => {
+                        setQuery(s.query);
+                        void runCommand(s.query);
+                      }}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ) : null}
 
             {!query.trim() && quick.length > 0 ? (
               <section>
@@ -289,7 +356,9 @@ export function CommandOverlay() {
                       }}
                     >
                       <span className="command-row__title">{item.label}</span>
-                      <span className="command-row__meta">{item.subtitle ?? (item.pinned ? "Pinned" : "Quick")}</span>
+                      <span className="command-row__meta">
+                        {item.subtitle ?? (item.pinned ? "Pinned" : "Quick")}
+                      </span>
                     </button>
                   );
                 })}
@@ -333,47 +402,50 @@ export function CommandOverlay() {
             ) : null}
 
             {query.trim() ? (
-              <section>
-                <h4 className="command-panel__section">
-                  {pendingResults.length ? "Results" : "Matches"}
-                </h4>
-                {displayResults.length === 0 && !busy ? (
-                  <EmptyState title="No matches" detail="Try a business, wallet, or “show my bookings”." />
-                ) : (
-                  displayResults.map((r, i) => {
-                    const index = i;
-                    return (
-                      <div
-                        key={r.id}
-                        id={`${listId}-${index}`}
-                        role="option"
-                        aria-selected={activeIndex === index}
-                        className={`command-result${activeIndex === index ? " active" : ""}`}
-                        onMouseEnter={() => setActiveIndex(index)}
-                      >
-                        <div className="command-result__main">
-                          <span className="command-result__type">{r.type}</span>
-                          <strong>{r.title}</strong>
-                          {r.subtitle ? <span className="muted small">{r.subtitle}</span> : null}
-                          {r.description ? <p className="muted small">{r.description}</p> : null}
+              <>
+                {(
+                  [
+                    ["OFFERING", "Offerings"],
+                    ["PERSONAL", "Your activity & plans"],
+                    ["BUSINESS", "Businesses"],
+                    ["OTHER", "More"],
+                  ] as const
+                ).map(([key, label]) =>
+                  grouped[key].length ? (
+                    <section key={key}>
+                      <h4 className="command-panel__section">{label}</h4>
+                      {grouped[key].map((r) => (
+                        <div key={r.id} className="command-result" role="option">
+                          <div className="command-result__main">
+                            <span className="command-result__type">{r.type}</span>
+                            <strong>{r.title}</strong>
+                            {r.subtitle ? <span className="muted small">{r.subtitle}</span> : null}
+                            {r.description ? <p className="muted small">{r.description}</p> : null}
+                          </div>
+                          <div className="command-result__actions">
+                            {r.actions.slice(0, 2).map((a) => (
+                              <Button
+                                key={a.id}
+                                size="sm"
+                                variant={a.requiresConfirmation ? "soft" : "ghost"}
+                                onClick={() => void runAction(a.actionId, a.params, false)}
+                              >
+                                {a.label}
+                              </Button>
+                            ))}
+                          </div>
                         </div>
-                        <div className="command-result__actions">
-                          {r.actions.slice(0, 2).map((a) => (
-                            <Button
-                              key={a.id}
-                              size="sm"
-                              variant={a.requiresConfirmation ? "soft" : "ghost"}
-                              onClick={() => void runAction(a.actionId, a.params, false)}
-                            >
-                              {a.label}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })
+                      ))}
+                    </section>
+                  ) : null,
                 )}
-              </section>
+                {displayResults.length === 0 && !busy ? (
+                  <EmptyState
+                    title="No matches"
+                    detail="Try “massage tomorrow”, “my hotel”, or “what’s happening today?”."
+                  />
+                ) : null}
+              </>
             ) : null}
           </div>
         )}
@@ -395,12 +467,14 @@ export function AskLifeOSTrigger({
       type="button"
       className={`ask-lifeos-trigger ${className}`.trim()}
       onClick={() => openCommand()}
-      aria-label="Ask LifeOS"
+      aria-label="Open Command Center"
     >
       <span className="ask-lifeos-trigger__icon" aria-hidden>
         ⌘
       </span>
-      <span className="ask-lifeos-trigger__text">{compact ? "Ask LifeOS" : "Ask LifeOS..."}</span>
+      <span className="ask-lifeos-trigger__text">
+        {compact ? "Ask LifeOS" : "Ask LifeOS…"}
+      </span>
       {!compact ? <kbd className="ask-lifeos-trigger__kbd">Ctrl K</kbd> : null}
     </button>
   );

@@ -1,9 +1,10 @@
 import type { QuickAccessPreferences } from "./command.js";
 import { DEFAULT_QUICK_ACCESS_PREFS } from "./command.js";
 
-export const LIFEOS_VERSION = "1.8.0";
+export const LIFEOS_VERSION = "1.9.0";
 
 export * from "./command.js";
+export * from "./command-center.js";
 export * from "./offering.js";
 export * from "./actions.js";
 export * from "./personal-context.js";

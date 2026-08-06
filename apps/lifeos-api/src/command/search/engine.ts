@@ -1,18 +1,34 @@
-import type { SearchResult, SearchResultType } from "@lifeos/shared";
+import type { CommandIntent, SearchResult, SearchResultType } from "@lifeos/shared";
 import { prisma } from "../../lib/prisma.js";
 import { getExperienceProvider } from "../../services/experience.js";
+import { listSaved } from "../../services/saved-offerings.js";
+import { planQuery } from "../query-planner.js";
+import { filterByIntent, rankSearchResults } from "../search-ranking.js";
 import { ActivitySearchProvider, NotificationSearchProvider } from "./activity-provider.js";
 import {
   BookingSearchProvider,
   ExperienceSearchProvider,
   OfferingSearchProvider,
 } from "./experience-provider.js";
+import {
+  BusinessSearchProvider,
+  PlanSearchProvider,
+  SavedOfferingSearchProvider,
+} from "./extra-providers.js";
 import { LifeOSSearchProvider } from "./lifeos-provider.js";
 import { PersonalContextSearchProvider } from "./personal-context-provider.js";
 import type { SearchContext, SearchProvider } from "./types.js";
 import { WalletSearchProvider } from "./wallet-provider.js";
 
 const DEFAULT_LIMIT = 24;
+const PROVIDER_TIMEOUT_MS = 2200;
+
+async function withTimeout<T>(fn: () => Promise<T>): Promise<T> {
+  return Promise.race([
+    fn(),
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error("timeout")), PROVIDER_TIMEOUT_MS)),
+  ]);
+}
 
 export class UniversalSearchEngine {
   constructor(private readonly providers: SearchProvider[]) {}
@@ -23,9 +39,18 @@ export class UniversalSearchEngine {
     query: string;
     limit?: number;
     types?: SearchResultType[];
-  }): Promise<{ results: SearchResult[]; groups: Record<string, SearchResult[]> }> {
+    intent?: CommandIntent;
+  }): Promise<{
+    results: SearchResult[];
+    groups: Record<string, SearchResult[]>;
+    providerErrors: string[];
+    intent: CommandIntent;
+  }> {
     const q = input.query.trim().slice(0, 200);
-    if (!q) return { results: [], groups: {} };
+    const planned = input.intent ? { intent: input.intent, searchQuery: q } : planQuery(q);
+    if (!q) {
+      return { results: [], groups: {}, providerErrors: [], intent: planned.intent };
+    }
 
     const connections = await getExperienceProvider().listConnections(input.userId);
     const connectedExperienceIds = new Set(
@@ -35,26 +60,47 @@ export class UniversalSearchEngine {
     const ctx: SearchContext = {
       userId: input.userId,
       trustId: input.trustId,
-      query: q,
+      query: planned.searchQuery || q,
       connectedExperienceIds,
     };
 
+    const providerErrors: string[] = [];
     const batches = await Promise.all(
       this.providers.map(async (p) => {
         try {
-          return await p.search(ctx);
+          return await withTimeout(() => p.search(ctx));
         } catch {
+          providerErrors.push(p.id);
           return [] as SearchResult[];
         }
       }),
     );
 
-    let results = batches.flat().sort((a, b) => b.score - a.score);
+    let results = batches.flat();
 
-    // Action-oriented queries: boost OFFERING above EXPERIENCE/BUSINESS
-    if (isActionOrientedQuery(q)) {
+    // Enrich offering metadata for ranking/compare when missing
+    results = results.map((r) => {
+      if (r.type !== "OFFERING" || r.metadata?.price != null) return r;
+      return r;
+    });
+
+    results = filterByIntent(results, planned.intent);
+
+    let savedIds = new Set<string>();
+    try {
+      savedIds = new Set((await listSaved(input.userId)).map((s) => s.offeringId));
+    } catch {
+      /* optional */
+    }
+
+    results = rankSearchResults(results, planned.intent, {
+      savedOfferingIds: savedIds,
+      query: q,
+    });
+
+    if (isActionOrientedQuery(q) || planned.intent.actionCapability === "BOOK") {
       results = results.map((r) =>
-        r.type === "OFFERING" ? { ...r, score: r.score + 0.35 } : r,
+        r.type === "OFFERING" ? { ...r, score: r.score + 0.2 } : r,
       );
       results.sort((a, b) => b.score - a.score);
     }
@@ -85,12 +131,12 @@ export class UniversalSearchEngine {
         data: {
           category: topType,
           hasResults: results.length > 0,
-          intent: null,
+          intent: planned.intent.type,
         },
       })
       .catch(() => undefined);
 
-    return { results, groups };
+    return { results, groups, providerErrors, intent: planned.intent };
   }
 }
 
@@ -106,7 +152,10 @@ export function getUniversalSearch(): UniversalSearchEngine {
   if (!engine) {
     engine = new UniversalSearchEngine([
       new PersonalContextSearchProvider(),
+      new PlanSearchProvider(),
+      new SavedOfferingSearchProvider(),
       new OfferingSearchProvider(),
+      new BusinessSearchProvider(),
       new LifeOSSearchProvider(),
       new ExperienceSearchProvider(),
       new BookingSearchProvider(),
@@ -116,4 +165,9 @@ export function getUniversalSearch(): UniversalSearchEngine {
     ]);
   }
   return engine;
+}
+
+/** Test helper */
+export function resetUniversalSearch() {
+  engine = null;
 }

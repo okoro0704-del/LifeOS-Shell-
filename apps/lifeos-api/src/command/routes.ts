@@ -64,6 +64,7 @@ export async function commandRoutes(app: FastifyInstance) {
       .object({
         text: z.string().min(1).max(200),
         source: z.enum(["text", "voice", "touch", "deeplink", "notification"]).optional(),
+        sessionId: z.string().uuid().optional(),
       })
       .parse(req.body);
     return runCommand({
@@ -71,7 +72,33 @@ export async function commandRoutes(app: FastifyInstance) {
       trustId: req.lifeosUser!.trustId,
       text: body.text,
       source: body.source ?? "text",
+      sessionId: body.sessionId,
     });
+  });
+
+  app.post("/commands/plan", { preHandler: requireSession }, async (req) => {
+    const body = z.object({ text: z.string().min(1).max(200) }).parse(req.body);
+    const { planQuery } = await import("../command/query-planner.js");
+    return { plan: planQuery(body.text) };
+  });
+
+  app.get("/commands/session", { preHandler: requireSession }, async (req) => {
+    const { commandSessionService } = await import("../command/command-session.js");
+    const session = commandSessionService.latestForUser(req.lifeosUser!.id);
+    if (!session) return { session: null };
+    return {
+      session: {
+        sessionId: session.sessionId,
+        intent: session.intent,
+        filters: session.filters,
+        resultCount: session.resultCount,
+        selectedResultId: session.selectedResultId,
+        pendingActionId: session.pendingActionId,
+        createdAt: session.createdAt,
+        expiresAt: session.expiresAt,
+        reason: session.reason,
+      },
+    };
   });
 
   app.get("/commands/recent", { preHandler: requireSession }, async (req) => {
@@ -81,6 +108,44 @@ export async function commandRoutes(app: FastifyInstance) {
 
   app.delete("/commands/recent", { preHandler: requireSession }, async (req) => {
     return clearCommandHistory(req.lifeosUser!.id);
+  });
+
+  app.delete("/commands/recent/:id", { preHandler: requireSession }, async (req) => {
+    const id = (req.params as { id: string }).id;
+    const { prisma } = await import("../lib/prisma.js");
+    await prisma.commandHistory.deleteMany({
+      where: { id, userId: req.lifeosUser!.id },
+    });
+    return { ok: true };
+  });
+
+  app.get("/commands/shortcuts", { preHandler: requireSession }, async () => {
+    const { COMMAND_SHORTCUTS } = await import("@lifeos/shared");
+    return { shortcuts: COMMAND_SHORTCUTS };
+  });
+
+  app.get("/location", { preHandler: requireSession }, async (req) => {
+    const { locationPermissionService } = await import("../command/location.js");
+    return { location: locationPermissionService.get(req.lifeosUser!.id) };
+  });
+
+  app.post("/location/grant", { preHandler: requireSession }, async (req) => {
+    const body = z
+      .object({ mode: z.enum(["coarse", "precise"]).optional(), label: z.string().max(80).optional() })
+      .parse(req.body ?? {});
+    const { locationPermissionService } = await import("../command/location.js");
+    return {
+      location: locationPermissionService.grant(
+        req.lifeosUser!.id,
+        body.mode ?? "coarse",
+        body.label,
+      ),
+    };
+  });
+
+  app.post("/location/revoke", { preHandler: requireSession }, async (req) => {
+    const { locationPermissionService } = await import("../command/location.js");
+    return { location: locationPermissionService.revoke(req.lifeosUser!.id) };
   });
 
   app.get("/quick-access", { preHandler: requireSession }, async (req) => {
@@ -130,11 +195,13 @@ export async function commandRoutes(app: FastifyInstance) {
     const suggestions = await ai.suggestActions({ intent });
     const recent = await listRecentCommands(req.lifeosUser!.id, 8);
     const quick = await quickAccessService.getItems(req.lifeosUser!.id);
+    const { COMMAND_SHORTCUTS } = await import("@lifeos/shared");
     return {
       suggestions,
       recent,
-      quickAccess: quick.slice(0, 8),
+      quickAccess: quick,
       intents: intent,
+      shortcuts: COMMAND_SHORTCUTS,
     };
   });
 

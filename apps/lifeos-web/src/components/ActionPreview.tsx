@@ -21,7 +21,11 @@ export function ActionPreview({
 }) {
   return (
     <div className="action-preview" role="dialog" aria-labelledby="action-preview-title">
-      <p className="action-preview__eyebrow">Confirm to continue</p>
+      <p className="action-preview__eyebrow">
+        {/book|pay|purchase|cancel/i.test(preview.confirmLabel)
+          ? "Review carefully — confirmation required"
+          : "Confirm to continue"}
+      </p>
       <h3 id="action-preview-title">{preview.title}</h3>
       {preview.subtitle ? <p className="muted">{preview.subtitle}</p> : null}
       <dl className="action-preview__lines">
