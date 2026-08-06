@@ -1668,13 +1668,224 @@ button.los-wallet__action:disabled {
   border: 0;
 }
 
+/* Services — vertical “video list” browse */
+.services-page {
+  gap: var(--los-space-4);
+  padding-bottom: 2rem;
+}
+
+.services-page__head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding-bottom: 0.35rem;
+  background: color-mix(in srgb, var(--los-bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.services-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  max-height: min(78vh, 720px);
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scroll-padding: 0.5rem;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.15rem 0.1rem 1.5rem;
+  scrollbar-width: thin;
+}
+
+.services-reel {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-height: min(58vh, 420px);
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  border: 0;
+  border-radius: 1.15rem;
+  overflow: hidden;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  color: #f7f4ef;
+  isolation: isolate;
+  animation: services-reel-in 0.45s ease both;
+  box-shadow: 0 12px 40px color-mix(in srgb, #0a0a0a 28%, transparent);
+}
+
+.services-reel:focus-visible {
+  outline: 2px solid var(--los-accent);
+  outline-offset: 3px;
+}
+
+.services-reel__glow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.95;
+  background:
+    radial-gradient(120% 80% at 20% 0%, color-mix(in srgb, #fff 22%, transparent), transparent 55%),
+    linear-gradient(165deg, var(--reel-a), var(--reel-b) 55%, var(--reel-c));
+}
+
+.services-reel__media {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  min-height: 46%;
+  padding-top: 1.5rem;
+}
+
+.services-reel__icon {
+  display: grid;
+  place-items: center;
+  width: 4.25rem;
+  height: 4.25rem;
+  border-radius: 1.25rem;
+  background: color-mix(in srgb, #fff 14%, transparent);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 22%, transparent);
+}
+
+.services-reel__body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1.25rem 1.35rem 1.5rem;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, #0c0c0c 72%, transparent) 28%);
+}
+
+.services-reel__index {
+  font-family: var(--los-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  opacity: 0.7;
+}
+
+.services-reel__title {
+  margin: 0;
+  font-size: clamp(1.65rem, 5vw, 2.15rem);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.services-reel__blurb {
+  margin: 0;
+  max-width: 28ch;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  opacity: 0.88;
+}
+
+.services-reel__meta {
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  opacity: 0.75;
+}
+
+.services-reel--stay {
+  --reel-a: #1a3a4a;
+  --reel-b: #2f6f7a;
+  --reel-c: #0e2430;
+}
+.services-reel--eat {
+  --reel-a: #4a2a14;
+  --reel-b: #b45a28;
+  --reel-c: #2a160c;
+}
+.services-reel--wellness {
+  --reel-a: #1e3d34;
+  --reel-b: #3d8b72;
+  --reel-c: #122820;
+}
+.services-reel--fitness {
+  --reel-a: #2a2438;
+  --reel-b: #5a4a7a;
+  --reel-c: #16121f;
+}
+.services-reel--cinema {
+  --reel-a: #1a1a28;
+  --reel-b: #3a3550;
+  --reel-c: #0c0c14;
+}
+.services-reel--events {
+  --reel-a: #3a1a28;
+  --reel-b: #8a3a55;
+  --reel-c: #1a0c12;
+}
+.services-reel--activities {
+  --reel-a: #1a3340;
+  --reel-b: #2f6a88;
+  --reel-c: #0e1c24;
+}
+.services-reel--travel {
+  --reel-a: #243040;
+  --reel-b: #4a6a80;
+  --reel-c: #121820;
+}
+
+@keyframes services-reel-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.service-category-page {
+  gap: var(--los-space-4);
+}
+
+.service-category__head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.service-pick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.service-pick {
+  animation: services-reel-in 0.4s ease both;
+}
+
+.service-pick .los-offering {
+  width: 100%;
+}
+
+@media (min-width: 900px) {
+  .services-feed {
+    max-height: min(82vh, 860px);
+  }
+  .services-reel {
+    min-height: min(52vh, 380px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .page-enter,
   .panel-form,
   .experience-overlay,
   .bottom-icon,
   .connection-card,
-  .command-panel {
+  .command-panel,
+  .services-reel,
+  .service-pick {
     animation: none !important;
     transition: none !important;
   }

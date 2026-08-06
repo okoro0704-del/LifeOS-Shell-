@@ -15,7 +15,9 @@ import {
   IconActivity,
   IconBell,
   IconBook,
+  IconEat,
   IconExplore,
+  IconStay,
   IconTicket,
   IconWallet,
   OfferingCard,
@@ -54,28 +56,38 @@ function formatTime(iso?: string | null) {
 function quickIcon(item: QuickAccessItem) {
   const key = item.icon || item.actionId;
   if (key === "wallet" || item.actionId === "OPEN_WALLET") return <IconWallet size={20} />;
-  if (key === "book" || item.actionId === "DISCOVER_BUSINESSES") return <IconBook size={20} />;
+  if (key === "stay" || item.label.toLowerCase().includes("room")) return <IconStay size={20} />;
+  if (key === "eat" || item.label.toLowerCase() === "food") return <IconEat size={20} />;
+  if (key === "book") return <IconBook size={20} />;
   if (key === "ticket" || item.actionId === "VIEW_TICKETS") return <IconTicket size={20} />;
   if (key === "activity" || item.actionId === "VIEW_ACTIVITY") return <IconActivity size={20} />;
   if (key === "bell" || item.actionId === "VIEW_NOTIFICATIONS") return <IconBell size={20} />;
-  if (key === "explore") return <IconExplore size={20} />;
+  if (key === "explore" || item.actionId === "DISCOVER_BUSINESSES") return <IconExplore size={20} />;
   return <IconExplore size={20} />;
 }
 
-/** Default strip: life context + actions + categories — offerings behind See all. */
-function curateQuickAccess(items: QuickAccessItem[], expanded: boolean) {
-  if (expanded) return items;
-  const primary = items.filter(
+/** Home strip: service categories (Rooms, Food, …) plus a little life context. */
+function curateQuickAccess(items: QuickAccessItem[]) {
+  const categories = items.filter((i) => i.id.startsWith("qa_cat_"));
+  const contextual = items.filter(
     (i) =>
       i.pinned ||
-      !i.id.startsWith("qa_off_") ||
-      i.kind === "wallet" ||
-      i.kind === "action",
+      i.id.startsWith("qa_pc_") ||
+      i.id.startsWith("qa_ctx_") ||
+      i.id.startsWith("qa_cont_") ||
+      i.id.startsWith("qa_plan_"),
   );
-  // Prefer non-offering first, then a few featured offerings
-  const withoutOfferings = primary.filter((i) => !i.id.startsWith("qa_off_"));
-  const fewOfferings = items.filter((i) => i.id.startsWith("qa_off_")).slice(0, 3);
-  return [...withoutOfferings, ...fewOfferings].slice(0, 12);
+  const utilities = items.filter(
+    (i) => i.kind === "wallet" || i.id === "qa_tickets" || i.id === "qa_wallet",
+  );
+  const seen = new Set<string>();
+  const out: QuickAccessItem[] = [];
+  for (const i of [...categories, ...contextual.slice(0, 2), ...utilities]) {
+    if (seen.has(i.id)) continue;
+    seen.add(i.id);
+    out.push(i);
+  }
+  return out.slice(0, 10);
 }
 
 export function HomePage() {
@@ -88,7 +100,6 @@ export function HomePage() {
   const [forYou, setForYou] = useState<DiscoverableOffering[]>([]);
   const [recs, setRecs] = useState<RecommendationItem[]>([]);
   const [quick, setQuick] = useState<QuickAccessItem[]>([]);
-  const [quickExpanded, setQuickExpanded] = useState(false);
   const [showMoreForYou, setShowMoreForYou] = useState(false);
   const [today, setToday] = useState<LifePlanItem[]>([]);
   const [upcoming, setUpcoming] = useState<LifePlanItem[]>([]);
@@ -134,10 +145,7 @@ export function HomePage() {
   }, []);
 
   const first = user?.firstName || user?.displayName?.split(" ")[0] || "there";
-  const quickVisible = useMemo(
-    () => curateQuickAccess(quick, quickExpanded),
-    [quick, quickExpanded],
-  );
+  const quickVisible = useMemo(() => curateQuickAccess(quick), [quick]);
 
   const rightNow = useMemo(() => {
     if (attention[0]) {
@@ -248,21 +256,11 @@ export function HomePage() {
       <section aria-label="Quick Access">
         <SectionHeader
           title="Quick Access"
-          subtitle="Shortcuts for what matters"
+          subtitle="Hotel rooms, food, and more"
           action={
-            quick.length > quickVisible.length || !quickExpanded ? (
-              <button
-                type="button"
-                className="text-link"
-                onClick={() => setQuickExpanded((v) => !v)}
-              >
-                {quickExpanded ? "Show less" : "See all"}
-              </button>
-            ) : (
-              <button type="button" className="text-link" onClick={() => openCommand()}>
-                Ask
-              </button>
-            )
+            <Link to="/app/services" className="text-link">
+              More
+            </Link>
           }
         />
         {loading ? (

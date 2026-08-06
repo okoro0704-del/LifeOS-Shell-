@@ -54,8 +54,8 @@ function primaryLabel(o: DiscoverableOffering): string {
 
 const CATEGORY_CHIPS = [
   { id: "All", label: "All" },
-  { id: "Stay", label: "Stay" },
-  { id: "Eat", label: "Eat" },
+  { id: "Stay", label: "Hotel rooms" },
+  { id: "Eat", label: "Food" },
   { id: "Wellness", label: "Wellness" },
   { id: "Fitness", label: "Fitness" },
   { id: "Events", label: "Events" },

@@ -27,6 +27,12 @@ const ConnectionsPage = lazy(() =>
 );
 const PlansPage = lazy(() => import("./pages/Plans").then((m) => ({ default: m.PlansPage })));
 const SavedPage = lazy(() => import("./pages/Saved").then((m) => ({ default: m.SavedPage })));
+const ServicesPage = lazy(() =>
+  import("./pages/Services").then((m) => ({ default: m.ServicesPage })),
+);
+const ServiceCategoryPage = lazy(() =>
+  import("./pages/Services").then((m) => ({ default: m.ServiceCategoryPage })),
+);
 
 function PageFallback() {
   return (
@@ -132,6 +138,22 @@ function ThemedApp() {
                 element={
                   <Suspense fallback={<PageFallback />}>
                     <SavedPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="services"
+                element={
+                  <Suspense fallback={<PageFallback />}>
+                    <ServicesPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="services/:category"
+                element={
+                  <Suspense fallback={<PageFallback />}>
+                    <ServiceCategoryPage />
                   </Suspense>
                 }
               />

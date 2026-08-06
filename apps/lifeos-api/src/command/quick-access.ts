@@ -90,6 +90,7 @@ export class QuickAccessService {
 
     const items: QuickAccessItem[] = [];
 
+    /** Utility shortcuts only — service verticals (Rooms, Food, …) are the main strip. */
     const baseActions: Array<{
       id: string;
       label: string;
@@ -98,11 +99,7 @@ export class QuickAccessService {
       navigateTo?: string;
     }> = [
       { id: "qa_wallet", label: "Wallet", actionId: "OPEN_WALLET", icon: "wallet", navigateTo: "/app/wallet" },
-      { id: "qa_book", label: "Book", actionId: "DISCOVER_BUSINESSES", icon: "book", navigateTo: "/app/discover" },
       { id: "qa_tickets", label: "Tickets", actionId: "VIEW_TICKETS", icon: "ticket", navigateTo: "/app/activity?filter=tickets" },
-      { id: "qa_activity", label: "Activity", actionId: "VIEW_ACTIVITY", icon: "activity", navigateTo: "/app/activity" },
-      { id: "qa_explore", label: "Explore", actionId: "DISCOVER_BUSINESSES", icon: "explore", navigateTo: "/app/discover" },
-      { id: "qa_notifications", label: "Alerts", actionId: "VIEW_NOTIFICATIONS", icon: "bell", navigateTo: "/app/notifications" },
     ];
 
     for (const a of baseActions) {
@@ -196,7 +193,7 @@ export class QuickAccessService {
             }),
             pinned: pinned.has(id),
             contextual: true,
-            navigateTo: a.deepLink || "/app/discover?category=Wellness",
+            navigateTo: a.deepLink || "/app/services/Wellness",
           });
         }
       }
@@ -219,7 +216,7 @@ export class QuickAccessService {
             }),
             pinned: pinned.has(id),
             contextual: true,
-            navigateTo: "/app/discover?category=Fitness",
+            navigateTo: "/app/services/Fitness",
           });
         }
       }
@@ -263,7 +260,7 @@ export class QuickAccessService {
             }),
             pinned: pinned.has(id),
             contextual: true,
-            navigateTo: a.deepLink || "/app/discover?category=Eat",
+            navigateTo: a.deepLink || "/app/services/Eat",
           });
         }
       }
@@ -303,7 +300,7 @@ export class QuickAccessService {
             }),
             pinned: pinned.has(id),
             contextual: true,
-            navigateTo: "/app/discover?category=Events",
+            navigateTo: "/app/services/Events",
           });
         }
       }
@@ -451,80 +448,60 @@ export class QuickAccessService {
       /* ActionRecord may be missing before migrate */
     }
 
-    // All available services / offerings — full catalog, not a tiny featured slice
+    // Service verticals first — Rooms, Food, Wellness, … (not individual offerings)
     try {
-      const offerings = await getOfferingProvider().list({});
-      const seenOffering = new Set(
-        items
-          .map((i) => (i.params?.offeringId ? String(i.params.offeringId) : null))
-          .filter(Boolean),
-      );
-      for (const o of offerings) {
-        const id = `qa_off_${o.id}`;
-        if (hidden.has(id) || seenOffering.has(o.id)) continue;
-        seenOffering.add(o.id);
-        items.push({
-          id,
-          kind: "contextual",
-          label: o.name.slice(0, 28),
-          subtitle: o.businessName,
-          icon: "explore",
-          actionId: "OPEN_EXPERIENCE",
-          params: { offeringId: o.id, experienceId: o.experienceId, businessId: o.businessId },
-          score: scoreQuickAccessItem({
-            frequency: freq.get(o.id) ?? (o.featured ? 1 : 0),
-            recencyMs: o.featured ? 86400000 : 86400000 * 7,
-            upcoming: false,
-            pinned: pinned.has(id),
-            contextual: true,
-          }),
-          pinned: pinned.has(id),
-          contextual: true,
-          navigateTo: `/app/discover?offering=${o.id}`,
-        });
-      }
-
-      // Category shortcuts so every service vertical is one tap away
+      const CATEGORY_LABELS: Record<string, { label: string; icon: string; boost: number }> = {
+        Stay: { label: "Hotel rooms", icon: "stay", boost: 12 },
+        Eat: { label: "Food", icon: "eat", boost: 11 },
+        Wellness: { label: "Wellness", icon: "explore", boost: 10 },
+        Fitness: { label: "Fitness", icon: "explore", boost: 9 },
+        Cinema: { label: "Cinema", icon: "ticket", boost: 8 },
+        Events: { label: "Events", icon: "ticket", boost: 7 },
+        Activities: { label: "Activities", icon: "explore", boost: 6 },
+        Travel: { label: "Travel", icon: "explore", boost: 5 },
+      };
       const categories = await getOfferingProvider().categories();
       for (const cat of categories) {
         if (cat === "More") continue;
+        const meta = CATEGORY_LABELS[cat] ?? { label: cat, icon: "explore", boost: 4 };
         const id = `qa_cat_${cat.toLowerCase()}`;
         if (hidden.has(id)) continue;
         if (items.some((i) => i.id === id)) continue;
         items.push({
           id,
           kind: "action",
-          label: cat,
+          label: meta.label,
           subtitle: "Services",
-          icon: "explore",
+          icon: meta.icon,
           actionId: "DISCOVER_BUSINESSES",
           params: { category: cat },
           score: scoreQuickAccessItem({
-            frequency: freq.get(cat) ?? 0,
-            recencyMs: 86400000 * 5,
+            frequency: (freq.get(cat) ?? 0) + meta.boost,
+            recencyMs: 86400000 * 2,
             upcoming: false,
             pinned: pinned.has(id),
             contextual: false,
           }),
           pinned: pinned.has(id),
-          navigateTo: `/app/discover?category=${encodeURIComponent(cat)}`,
+          navigateTo: `/app/services/${encodeURIComponent(cat)}`,
         });
       }
     } catch {
       /* optional */
     }
 
-    // Apply order preference — curated priority:
-    // pinned → contextual life → base actions → categories → offerings
+    // Apply order preference — categories front and center
+    // pinned → contextual life → service categories → wallet/utilities → experiences
     const tier = (item: QuickAccessItem) => {
       if (item.pinned) return 0;
       if (item.id.startsWith("qa_pc_") || item.id.startsWith("qa_cont_") || item.id.startsWith("qa_pay_") || item.id.startsWith("qa_plan_") || item.id.startsWith("qa_ctx_"))
         return 1;
-      if (item.kind === "wallet" || item.kind === "action") return 2;
-      if (item.id.startsWith("qa_cat_")) return 3;
-      if (item.id.startsWith("qa_exp_")) return 4;
-      if (item.id.startsWith("qa_off_")) return 5;
-      return 4;
+      if (item.id.startsWith("qa_cat_")) return 2;
+      if (item.kind === "wallet" || item.id.startsWith("qa_wallet") || item.id.startsWith("qa_tickets"))
+        return 3;
+      if (item.kind === "action") return 4;
+      if (item.id.startsWith("qa_exp_")) return 5;
+      return 6;
     };
 
     items.sort((a, b) => {
@@ -542,12 +519,7 @@ export class QuickAccessService {
       return b.score - a.score;
     });
 
-    // Soft-downrank offerings so the default strip stays curated; full list still returned
-    return items.map((item, index) =>
-      item.id.startsWith("qa_off_")
-        ? { ...item, score: item.score * 0.35 - index * 0.001 }
-        : item,
-    ).slice(0, 120);
+    return items.slice(0, 40);
   }
 
   async updatePrefs(
