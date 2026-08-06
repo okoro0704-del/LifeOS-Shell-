@@ -386,6 +386,21 @@ button.los-card:focus-visible {
   box-shadow: var(--los-shadow-wallet);
 }
 
+.los-wallet--accent {
+  background: linear-gradient(145deg, #0f8a7d 0%, #0a5f56 55%, #084a43 100%);
+  box-shadow: var(--los-shadow-wallet);
+}
+
+.los-wallet--fiat {
+  background: linear-gradient(145deg, #1c2a3a 0%, #243447 45%, #15202b 100%);
+  box-shadow: 0 12px 28px rgba(21, 32, 43, 0.28);
+}
+
+.los-wallet--token {
+  background: linear-gradient(145deg, #0f8a7d 0%, #0a5f56 55%, #084a43 100%);
+  box-shadow: var(--los-shadow-wallet);
+}
+
 .los-wallet::after {
   content: "";
   position: absolute;

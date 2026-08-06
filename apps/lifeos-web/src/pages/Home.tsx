@@ -1,32 +1,33 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import type { ActivityItem, ExperienceRecord } from "@lifeos/shared";
+import type { ActivityItem, ExperienceRecord, QuickAccessItem, SearchResult } from "@lifeos/shared";
 import {
   ActivityRow,
   Button,
   EmptyState,
   ExperienceCard,
+  IconActivity,
+  IconBell,
   IconBook,
   IconExplore,
-  IconPay,
-  IconReceive,
-  IconSend,
   IconTicket,
+  IconWallet,
   QuickAction,
   SectionHeader,
   Skeleton,
   StatusBadge,
-  WalletCard,
 } from "@lifeos/ui";
-import { ApiError } from "../lib/api";
 import {
   activityService,
+  commandService,
   connectionService,
   discoverService,
-  walletService,
 } from "../lib/services";
 import { useAuth } from "../hooks/useAuth";
+import { useCommandLayer } from "../hooks/useCommandLayer";
 import { StatusBanner } from "../components/StatusBanner";
+import { AskLifeOSTrigger } from "../components/CommandOverlay";
+import { ActionPreview } from "../components/ActionPreview";
 
 function greeting() {
   const h = new Date().getHours();
@@ -35,16 +36,22 @@ function greeting() {
   return "Good evening";
 }
 
-function maskAddress(address?: string) {
-  if (!address || address.length < 8) return "••••";
-  return `•••• ${address.slice(-4)}`;
-}
-
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString(undefined, {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function quickIcon(item: QuickAccessItem) {
+  const key = item.icon || item.actionId;
+  if (key === "wallet" || item.actionId === "OPEN_WALLET") return <IconWallet size={20} />;
+  if (key === "book" || item.actionId === "DISCOVER_BUSINESSES") return <IconBook size={20} />;
+  if (key === "ticket" || item.actionId === "VIEW_TICKETS") return <IconTicket size={20} />;
+  if (key === "activity" || item.actionId === "VIEW_ACTIVITY") return <IconActivity size={20} />;
+  if (key === "bell" || item.actionId === "VIEW_NOTIFICATIONS") return <IconBell size={20} />;
+  if (key === "explore") return <IconExplore size={20} />;
+  return <IconExplore size={20} />;
 }
 
 function isToday(iso: string) {
@@ -56,33 +63,26 @@ function isToday(iso: string) {
 export function HomePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [balance, setBalance] = useState<string>("—");
-  const [walletAddress, setWalletAddress] = useState<string | undefined>();
-  const [walletError, setWalletError] = useState(false);
+  const { openCommand, setPreview, preview } = useCommandLayer();
   const [dataError, setDataError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [featured, setFeatured] = useState<(ExperienceRecord & { availability?: string })[]>([]);
   const [connectedIds, setConnectedIds] = useState<Set<string>>(new Set());
+  const [quick, setQuick] = useState<QuickAccessItem[]>([]);
+  const [aiResults, setAiResults] = useState<SearchResult[]>([]);
+  const [aiMessage, setAiMessage] = useState<string | null>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
 
   useEffect(() => {
     void (async () => {
       try {
-        const [bal, wallet, act, disc, conns] = await Promise.all([
-          walletService.balance().catch((err) => {
-            if (!(err instanceof ApiError && err.code === "wallet_unavailable")) {
-              /* ignore */
-            }
-            setWalletError(true);
-            return null;
-          }),
-          walletService.get().catch(() => null),
+        const [act, disc, conns, qa] = await Promise.all([
           activityService.list(),
           discoverService.get(),
           connectionService.list().catch(() => ({ connections: [] })),
+          commandService.quickAccess().catch(() => ({ items: [] as QuickAccessItem[] })),
         ]);
-        if (bal) setBalance(bal.formatted);
-        if (wallet?.wallet.address) setWalletAddress(wallet.wallet.address);
         setActivities(act.activities);
         setFeatured((disc.featured as typeof featured).slice(0, 4));
         setConnectedIds(
@@ -92,9 +92,9 @@ export function HomePage() {
               .map((c) => c.experienceId),
           ),
         );
-      } catch (err) {
+        setQuick(qa.items.slice(0, 8));
+      } catch {
         setDataError("We couldn't load your home feed. Try again.");
-        void err;
       } finally {
         setLoading(false);
       }
@@ -103,14 +103,40 @@ export function HomePage() {
 
   const first = user?.firstName || user?.displayName?.split(" ")[0] || "there";
   const todayItems = useMemo(
-    () => activities.filter((a) => isToday(a.createdAt)).slice(0, 3),
+    () => activities.filter((a) => isToday(a.createdAt)).slice(0, 4),
     [activities],
   );
-  /** Prefer today; otherwise show a short recent strip — never duplicate both. */
-  const activityStrip = useMemo(() => {
-    if (todayItems.length > 0) return { title: "Today", items: todayItems };
-    return { title: "Recent", items: activities.slice(0, 4) };
-  }, [todayItems, activities]);
+
+  async function onQuick(item: QuickAccessItem) {
+    if (["BOOK_SERVICE", "PAY_INVOICE", "CHECK_IN"].includes(item.actionId)) {
+      const outcome = await commandService.executeAction(item.actionId, item.params, false);
+      if (outcome.type === "preview") setPreview(outcome.preview);
+      return;
+    }
+    if (item.navigateTo) {
+      navigate(item.navigateTo);
+      return;
+    }
+    const outcome = await commandService.executeAction(item.actionId, item.params, false);
+    if (outcome.type === "navigate") navigate(outcome.path);
+    if (outcome.type === "preview") setPreview(outcome.preview);
+  }
+
+  async function confirmHomePreview() {
+    if (!preview) return;
+    setConfirmBusy(true);
+    try {
+      const outcome = await commandService.executeAction(preview.actionId, preview.params, true);
+      setPreview(null);
+      if (outcome.type === "navigate") navigate(outcome.path);
+      if (outcome.type === "executed") {
+        const act = await activityService.list();
+        setActivities(act.activities);
+      }
+    } finally {
+      setConfirmBusy(false);
+    }
+  }
 
   return (
     <div className="page home-page">
@@ -126,48 +152,86 @@ export function HomePage() {
         <StatusBanner title={dataError} detail="Check your connection and refresh." />
       ) : null}
 
-      <section aria-label="Wallet">
+      <section className="home-command" aria-label="Ask LifeOS">
+        <AskLifeOSTrigger />
+        <p className="muted small home-command__hint">Search, navigate, or ask — LifeOS understands intent.</p>
+      </section>
+
+      <section aria-label="Quick Access">
+        <SectionHeader
+          title="Quick Access"
+          action={
+            <button type="button" className="text-link" onClick={() => openCommand()}>
+              More
+            </button>
+          }
+        />
         {loading ? (
-          <Skeleton height={180} label="Loading wallet" className="wallet-skel-block" />
+          <Skeleton height={72} label="Loading quick access" />
         ) : (
-          <WalletCard
-            balance={walletError ? undefined : balance}
-            locked={walletError}
-            lockedMessage="Connect with TrustID to continue"
-            mask={maskAddress(walletAddress)}
-            actions={
-              walletError ? null : (
-                <>
-                  <Link to="/app/wallet?action=pay" className="los-wallet__action">
-                    Pay
-                  </Link>
-                  <Link to="/app/wallet?action=send" className="los-wallet__action">
-                    Send
-                  </Link>
-                  <Link to="/app/wallet?action=receive" className="los-wallet__action">
-                    Receive
-                  </Link>
-                </>
-              )
-            }
-          />
+          <div className="quick-row">
+            {quick.map((item) => (
+              <QuickAction
+                key={item.id}
+                icon={quickIcon(item)}
+                label={item.label}
+                onClick={() => void onQuick(item)}
+              />
+            ))}
+          </div>
         )}
       </section>
 
-      <section aria-label="Quick actions">
-        <div className="quick-row">
-          <QuickAction icon={<IconPay size={20} />} label="Pay" onClick={() => navigate("/app/wallet?action=pay")} />
-          <QuickAction icon={<IconSend size={20} />} label="Send" onClick={() => navigate("/app/wallet?action=send")} />
-          <QuickAction icon={<IconReceive size={20} />} label="Receive" onClick={() => navigate("/app/wallet?action=receive")} />
-          <QuickAction icon={<IconBook size={20} />} label="Book" onClick={() => navigate("/app/discover?category=Hotels")} />
-          <QuickAction icon={<IconExplore size={20} />} label="Discover" onClick={() => navigate("/app/discover")} />
-          <QuickAction icon={<IconTicket size={20} />} label="Activity" onClick={() => navigate("/app/activity")} />
-        </div>
-      </section>
+      {preview ? (
+        <section aria-label="Action preview">
+          <ActionPreview
+            preview={preview}
+            busy={confirmBusy}
+            onCancel={() => setPreview(null)}
+            onConfirm={() => void confirmHomePreview()}
+          />
+        </section>
+      ) : null}
+
+      {aiMessage || aiResults.length ? (
+        <section aria-label="Ask LifeOS results">
+          <SectionHeader title="For this request" subtitle={aiMessage ?? undefined} />
+          <div className="command-home-results">
+            {aiResults.map((r) => (
+              <div key={r.id} className="command-home-card">
+                <span className="command-result__type">{r.type}</span>
+                <strong>{r.title}</strong>
+                {r.subtitle ? <span className="muted small">{r.subtitle}</span> : null}
+                <div className="row-actions">
+                  {r.actions.slice(0, 2).map((a) => (
+                    <Button
+                      key={a.id}
+                      size="sm"
+                      variant="soft"
+                      onClick={() =>
+                        void commandService.executeAction(a.actionId, a.params, false).then((o) => {
+                          if (o.type === "navigate") navigate(o.path);
+                          if (o.type === "preview") setPreview(o.preview);
+                          if (o.type === "results") {
+                            setAiResults(o.results);
+                            setAiMessage(o.message);
+                          }
+                        })
+                      }
+                    >
+                      {a.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section>
         <SectionHeader
-          title={activityStrip.title}
+          title="Today"
           action={
             <Link to="/app/activity" className="text-link">
               All
@@ -175,20 +239,20 @@ export function HomePage() {
           }
         />
         {loading ? (
-          <Skeleton height={88} label="Loading activity" />
-        ) : activityStrip.items.length === 0 ? (
+          <Skeleton height={88} label="Loading today" />
+        ) : todayItems.length === 0 ? (
           <EmptyState
-            title="Nothing scheduled yet"
-            detail="Discover something for today."
+            title="Nothing on for today"
+            detail="Ask LifeOS to find something, or explore the ecosystem."
             action={
-              <Button variant="soft" size="sm" onClick={() => navigate("/app/discover")}>
-                Discover something for today →
+              <Button variant="soft" size="sm" onClick={() => openCommand("Find a spa")}>
+                Ask LifeOS →
               </Button>
             }
           />
         ) : (
           <div className="surface-block">
-            {activityStrip.items.map((a) => (
+            {todayItems.map((a) => (
               <ActivityRow
                 key={a.id}
                 kind={a.kind}

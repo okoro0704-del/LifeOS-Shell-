@@ -11,15 +11,25 @@ export async function notificationRoutes(app: FastifyInstance) {
       orderBy: { createdAt: "desc" },
       take: 50,
     });
-    const notifications: NotificationItem[] = rows.map((r) => ({
-      id: r.id,
-      title: r.title,
-      body: r.body,
-      source: r.source,
-      category: (r.category || "System") as NotificationCategory,
-      read: r.read,
-      createdAt: r.createdAt.toISOString(),
-    }));
+    const notifications: NotificationItem[] = rows.map((r) => {
+      let actionParams: Record<string, unknown> = {};
+      try {
+        actionParams = JSON.parse(r.actionParams || "{}") as Record<string, unknown>;
+      } catch {
+        actionParams = {};
+      }
+      return {
+        id: r.id,
+        title: r.title,
+        body: r.body,
+        source: r.source,
+        category: (r.category || "System") as NotificationCategory,
+        read: r.read,
+        createdAt: r.createdAt.toISOString(),
+        actionId: r.actionId,
+        actionParams,
+      };
+    });
     return {
       notifications,
       unreadCount: notifications.filter((n) => !n.read).length,

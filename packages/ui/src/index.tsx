@@ -296,24 +296,31 @@ export function QuickAction({
 
 export function WalletCard({
   balance,
+  label = "Wallet",
   subtitle = "LifeOS Wallet",
   mask,
   locked,
   lockedMessage,
   actions,
   loading,
+  variant = "accent",
 }: {
   balance?: string;
+  label?: string;
   subtitle?: string;
   mask?: string;
   locked?: boolean;
   lockedMessage?: string;
   actions?: ReactNode;
   loading?: boolean;
+  variant?: "accent" | "fiat" | "token";
 }) {
   return (
-    <div className={`los-wallet${locked ? " los-wallet--locked" : ""}`} aria-live="polite">
-      <p className="los-wallet__label">Wallet</p>
+    <div
+      className={`los-wallet los-wallet--${variant}${locked ? " los-wallet--locked" : ""}`}
+      aria-live="polite"
+    >
+      <p className="los-wallet__label">{label}</p>
       {loading ? (
         <div className="los-skeleton" style={{ height: 40, margin: "0.5rem 0", opacity: 0.35 }} />
       ) : locked ? (

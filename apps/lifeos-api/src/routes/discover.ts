@@ -28,22 +28,7 @@ export async function discoverRoutes(app: FastifyInstance) {
     return { categories: await directory.categories() };
   });
 
-  app.get("/search", { preHandler: requireSession }, async (req) => {
-    const q = String((req.query as { q?: string }).q ?? "").trim();
-    if (!q) return { query: q, businesses: [], experiences: [] };
-    const results = await directory.search(q);
-    return {
-      query: q,
-      businesses: results.map((r) => ({
-        id: r.businessId,
-        name: r.businessName,
-        category: r.category,
-        location: r.location,
-        experienceId: r.id,
-      })),
-      experiences: results,
-    };
-  });
+  // Universal /search lives in command routes (Sprint 4).
 
   app.get("/experiences", { preHandler: requireSession }, async () => {
     const items = await directory.list();

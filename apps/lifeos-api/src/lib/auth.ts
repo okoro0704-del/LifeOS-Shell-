@@ -30,7 +30,15 @@ declare module "fastify" {
 
 function parsePreferences(raw: string): LifeOsPreferences {
   try {
-    return { ...DEFAULT_PREFERENCES, ...(JSON.parse(raw) as Partial<LifeOsPreferences>) };
+    const parsed = JSON.parse(raw) as Partial<LifeOsPreferences>;
+    return {
+      ...DEFAULT_PREFERENCES,
+      ...parsed,
+      quickAccess: {
+        ...DEFAULT_PREFERENCES.quickAccess,
+        ...(parsed.quickAccess ?? {}),
+      },
+    };
   } catch {
     return { ...DEFAULT_PREFERENCES };
   }

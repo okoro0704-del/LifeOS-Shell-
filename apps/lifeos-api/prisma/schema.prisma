@@ -25,6 +25,7 @@ model User {
   connections     ExperienceConnection[]
   experienceSessions ExperienceSession[]
   auditEvents   AuditEvent[]
+  commandHistory CommandHistory[]
 }
 
 model Session {
@@ -105,18 +106,47 @@ model ExperienceConnection {
 }
 
 model Notification {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title     String
-  body      String
-  source    String
-  category  String   @default("System")
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String
+  body         String
+  source       String
+  category     String   @default("System")
+  read         Boolean  @default(false)
+  actionId     String?
+  actionParams String   @default("{}")
+  createdAt    DateTime @default(now())
 
   @@index([userId, createdAt])
   @@index([userId, read])
+}
+
+/// Lightweight command / search history — never stores secrets or payment credentials.
+model CommandHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String
+  query     String
+  intent    String?
+  actionId  String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+/// Privacy-conscious search metrics — no raw query text.
+model SearchMetric {
+  id             String   @id @default(cuid())
+  category       String
+  hasResults     Boolean
+  actionSelected Boolean  @default(false)
+  intent         String?
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([category])
 }
 
 /// Aggregated activity index — not source of truth for external OS events.

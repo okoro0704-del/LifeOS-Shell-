@@ -100,10 +100,15 @@ async function ensureWelcomeContent(userId: string) {
       },
       {
         userId,
-        title: "Hotel booking confirmed",
-        body: "Your Sunrise Hotel booking was confirmed (mock).",
+        title: "Your hotel check-in is available",
+        body: "Sunrise Hotel is ready for check-in.",
         source: "hospitalityos",
         category: "Business",
+        actionId: "CHECK_IN",
+        actionParams: JSON.stringify({
+          experienceId: "exp_sunrise_hotel",
+          bookingId: "preview_booking",
+        }),
       },
       {
         userId,
@@ -111,6 +116,8 @@ async function ensureWelcomeContent(userId: string) {
         body: "Your payment of 50 TOK was completed (mock).",
         source: "token-network",
         category: "Wallet",
+        actionId: "OPEN_WALLET",
+        actionParams: "{}",
       },
       {
         userId,
@@ -118,6 +125,8 @@ async function ensureWelcomeContent(userId: string) {
         body: "Your restaurant order is ready.",
         source: "hospitalityos",
         category: "Business",
+        actionId: "OPEN_EXPERIENCE",
+        actionParams: JSON.stringify({ experienceId: "exp_grand_restaurant" }),
       },
       {
         userId,
@@ -125,6 +134,8 @@ async function ensureWelcomeContent(userId: string) {
         body: "Grand Restaurant is now discoverable in LifeOS.",
         source: "lifeos",
         category: "System",
+        actionId: "DISCOVER_BUSINESSES",
+        actionParams: "{}",
       },
     ],
   });

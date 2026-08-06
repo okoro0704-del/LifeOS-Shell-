@@ -3,17 +3,20 @@ import { z } from "zod";
 import { requireSession } from "../lib/auth.js";
 import { getTokenNetwork } from "../services/token-network.js";
 import { prisma } from "../lib/prisma.js";
+import { getFiatWallet } from "../services/fiat-wallet.js";
 
 const sendBody = z.object({
   to: z.string().min(1),
   amount: z.number().positive(),
   memo: z.string().optional(),
+  rail: z.enum(["token", "fiat"]).optional().default("token"),
 });
 
 const payBody = z.object({
   merchant: z.string().min(1),
   amount: z.number().positive(),
   reference: z.string().optional(),
+  rail: z.enum(["token", "fiat"]).optional().default("token"),
 });
 
 function walletUnavailable(reply: FastifyReply) {
@@ -28,17 +31,26 @@ export async function walletRoutes(app: FastifyInstance) {
     try {
       const tn = getTokenNetwork();
       const trustId = req.lifeosUser!.trustId;
-      const [wallet, balance, transactions] = await Promise.all([
+      const [wallet, balance, transactions, fiat] = await Promise.all([
         tn.getWallet(trustId),
         tn.getBalance(trustId),
         tn.getTransactions(trustId),
+        Promise.resolve(getFiatWallet(trustId)),
       ]);
       return {
+        fiat,
+        token: {
+          wallet,
+          balance,
+          transactions: transactions.slice(0, 20),
+        },
+        // Back-compat for older clients
         wallet,
         balance,
         transactions: transactions.slice(0, 20),
         mock: true,
-        notice: "Mock Token Network data — not real financial transactions.",
+        notice:
+          "Cash (fiat) and Tokens are preview balances in LifeOS — not real bank or Token Network settlement.",
       };
     } catch {
       return walletUnavailable(reply);
@@ -47,8 +59,17 @@ export async function walletRoutes(app: FastifyInstance) {
 
   app.get("/wallet/balance", { preHandler: requireSession }, async (req, reply) => {
     try {
-      const balance = await getTokenNetwork().getBalance(req.lifeosUser!.trustId);
-      return { ...balance, mock: true };
+      const trustId = req.lifeosUser!.trustId;
+      const [token, fiat] = await Promise.all([
+        getTokenNetwork().getBalance(trustId),
+        Promise.resolve(getFiatWallet(trustId)),
+      ]);
+      return {
+        ...token,
+        fiat: fiat.balance,
+        formatted: fiat.balance.formatted,
+        mock: true,
+      };
     } catch {
       return walletUnavailable(reply);
     }
@@ -56,8 +77,16 @@ export async function walletRoutes(app: FastifyInstance) {
 
   app.get("/wallet/transactions", { preHandler: requireSession }, async (req, reply) => {
     try {
-      const txs = await getTokenNetwork().getTransactions(req.lifeosUser!.trustId);
-      return { transactions: txs, mock: true };
+      const trustId = req.lifeosUser!.trustId;
+      const [tokenTxs, fiat] = await Promise.all([
+        getTokenNetwork().getTransactions(trustId),
+        Promise.resolve(getFiatWallet(trustId)),
+      ]);
+      return {
+        transactions: tokenTxs,
+        fiatTransactions: fiat.transactions,
+        mock: true,
+      };
     } catch {
       return walletUnavailable(reply);
     }
@@ -65,6 +94,12 @@ export async function walletRoutes(app: FastifyInstance) {
 
   app.post("/wallet/send", { preHandler: requireSession }, async (req, reply) => {
     const body = sendBody.parse(req.body);
+    if (body.rail === "fiat") {
+      return reply.code(501).send({
+        error: "fiat_not_live",
+        message: "Cash transfers are coming soon. Token send is available in preview.",
+      });
+    }
     try {
       const tx = await getTokenNetwork().send(req.lifeosUser!.trustId, body);
       await prisma.activity.create({
@@ -88,6 +123,12 @@ export async function walletRoutes(app: FastifyInstance) {
 
   app.post("/wallet/pay", { preHandler: requireSession }, async (req, reply) => {
     const body = payBody.parse(req.body);
+    if (body.rail === "fiat") {
+      return reply.code(501).send({
+        error: "fiat_not_live",
+        message: "Cash payments are coming soon. Token pay is available in preview.",
+      });
+    }
     try {
       const tx = await getTokenNetwork().requestPayment(req.lifeosUser!.trustId, body);
       await prisma.activity.create({

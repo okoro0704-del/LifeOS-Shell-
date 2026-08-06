@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import {
   ActivityRow,
   Button,
+  Chip,
   EmptyState,
   SectionHeader,
   Sheet,
@@ -16,14 +17,17 @@ type Tx = {
   id: string;
   kind: string;
   amount: number;
-  symbol: string;
+  symbol?: string;
+  currency?: string;
   counterparty: string;
   memo?: string;
   createdAt: string;
   status: string;
+  rail?: "fiat" | "token";
 };
 
 type Mode = "idle" | "send" | "receive" | "pay";
+type Rail = "fiat" | "token";
 
 function maskAddress(address?: string) {
   if (!address || address.length < 8) return "••••";
@@ -47,10 +51,15 @@ function formatTime(iso: string) {
   });
 }
 
+function unit(tx: Tx) {
+  return tx.symbol || tx.currency || "";
+}
+
 export function WalletPage() {
   const [params, setParams] = useSearchParams();
   const [data, setData] = useState<Awaited<ReturnType<typeof walletService.get>> | null>(null);
   const [mode, setMode] = useState<Mode>("idle");
+  const [rail, setRail] = useState<Rail>("fiat");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -70,26 +79,54 @@ export function WalletPage() {
 
   useEffect(() => {
     const action = params.get("action");
+    const railParam = params.get("rail");
+    if (railParam === "token" || railParam === "fiat") setRail(railParam);
     if (action === "send" || action === "pay" || action === "receive") {
       setMode(action);
       params.delete("action");
+      params.delete("rail");
       setParams(params, { replace: true });
     }
   }, [params, setParams]);
 
+  const fiatTxs: Tx[] = useMemo(
+    () =>
+      (data?.fiat?.transactions ?? []).map((t) => ({
+        ...t,
+        symbol: t.currency,
+        rail: "fiat" as const,
+      })),
+    [data],
+  );
+
+  const tokenTxs: Tx[] = useMemo(
+    () =>
+      (data?.token?.transactions ?? data?.transactions ?? []).map((t) => ({
+        ...t,
+        rail: "token" as const,
+      })),
+    [data],
+  );
+
+  const activeTxs = rail === "fiat" ? fiatTxs : tokenTxs;
+
   const grouped = useMemo(() => {
     const map = new Map<string, Tx[]>();
-    for (const tx of data?.transactions ?? []) {
+    for (const tx of activeTxs) {
       const key = dayLabel(tx.createdAt);
       const list = map.get(key) ?? [];
       list.push(tx);
       map.set(key, list);
     }
     return [...map.entries()];
-  }, [data]);
+  }, [activeTxs]);
 
   async function onSend(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (rail === "fiat") {
+      setError("Cash transfers are coming soon. Switch to Tokens to send in preview.");
+      return;
+    }
     const fd = new FormData(e.currentTarget);
     setBusy(true);
     setError(null);
@@ -112,6 +149,10 @@ export function WalletPage() {
 
   async function onPay(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (rail === "fiat") {
+      setError("Cash payments are coming soon. Switch to Tokens to pay in preview.");
+      return;
+    }
     const fd = new FormData(e.currentTarget);
     setBusy(true);
     setError(null);
@@ -132,9 +173,16 @@ export function WalletPage() {
     }
   }
 
+  const fiat = data?.fiat;
+  const tokenBalance = data?.token?.balance ?? data?.balance;
+  const tokenWallet = data?.token?.wallet ?? data?.wallet;
+
   return (
     <div className="page">
-      <SectionHeader title="Wallet" />
+      <SectionHeader
+        title="Wallet"
+        subtitle="Cash for everyday money · Tokens for the ecosystem"
+      />
       {error ? <StatusBanner title={error} /> : null}
       {success ? (
         <div className="success-banner" role="status">
@@ -142,12 +190,45 @@ export function WalletPage() {
         </div>
       ) : null}
 
+      <div className="chip-row" role="tablist" aria-label="Wallet type">
+        <Chip active={rail === "fiat"} onClick={() => setRail("fiat")} role="tab" aria-selected={rail === "fiat"}>
+          Cash
+        </Chip>
+        <Chip active={rail === "token"} onClick={() => setRail("token")} role="tab" aria-selected={rail === "token"}>
+          Tokens
+        </Chip>
+      </div>
+
       {loading ? (
         <Skeleton height={180} label="Loading wallet" />
+      ) : rail === "fiat" ? (
+        <WalletCard
+          variant="fiat"
+          label="Cash"
+          subtitle={fiat?.label ?? "LifeOS Cash"}
+          balance={fiat?.balance.formatted}
+          mask={fiat?.accountMask}
+          actions={
+            <>
+              <button type="button" className="los-wallet__action" onClick={() => setMode("pay")}>
+                Pay
+              </button>
+              <button type="button" className="los-wallet__action" onClick={() => setMode("send")}>
+                Send
+              </button>
+              <button type="button" className="los-wallet__action" onClick={() => setMode("receive")}>
+                Add
+              </button>
+            </>
+          }
+        />
       ) : (
         <WalletCard
-          balance={data?.balance.formatted}
-          mask={maskAddress(data?.wallet.address)}
+          variant="token"
+          label="Tokens"
+          subtitle="LifeOS Token"
+          balance={tokenBalance?.formatted}
+          mask={maskAddress(tokenWallet?.address)}
           actions={
             <>
               <button type="button" className="los-wallet__action" onClick={() => setMode("pay")}>
@@ -164,12 +245,24 @@ export function WalletPage() {
         />
       )}
 
+      {rail === "fiat" && fiat?.notice ? (
+        <p className="muted small wallet-rail-note">{fiat.notice}</p>
+      ) : null}
+
       {mode === "send" ? (
         <form className="panel-form" onSubmit={onSend}>
-          <h3>Send</h3>
+          <h3>Send {rail === "fiat" ? "cash" : "tokens"}</h3>
+          {rail === "fiat" ? (
+            <p className="muted small">Bank transfers will land here. Preview only for now.</p>
+          ) : null}
           <label>
             To
-            <input name="to" required placeholder="Address or TrustID" autoComplete="off" />
+            <input
+              name="to"
+              required
+              placeholder={rail === "fiat" ? "Account or phone" : "Address or TrustID"}
+              autoComplete="off"
+            />
           </label>
           <label>
             Amount
@@ -192,7 +285,7 @@ export function WalletPage() {
 
       {mode === "pay" ? (
         <form className="panel-form" onSubmit={onPay}>
-          <h3>Pay</h3>
+          <h3>Pay with {rail === "fiat" ? "cash" : "tokens"}</h3>
           <label>
             Merchant
             <input name="merchant" required defaultValue="Sunrise Hotel" />
@@ -218,9 +311,20 @@ export function WalletPage() {
 
       {mode === "receive" ? (
         <div className="panel-form">
-          <h3>Receive</h3>
-          {data?.wallet.address ? (
-            <div className="mono receive-box">{data.wallet.address}</div>
+          <h3>{rail === "fiat" ? "Add cash" : "Receive tokens"}</h3>
+          {rail === "fiat" ? (
+            <>
+              <p className="muted small">
+                Bank top-ups and card funding will appear here. Your cash account mask is{" "}
+                <span className="mono">{fiat?.accountMask ?? "••••"}</span>.
+              </p>
+              <EmptyState
+                title="Funding coming soon"
+                detail="Physical fiat rails are not connected yet — this is a preview of your cash wallet."
+              />
+            </>
+          ) : tokenWallet?.address ? (
+            <div className="mono receive-box">{tokenWallet.address}</div>
           ) : (
             <EmptyState title="Address unavailable" />
           )}
@@ -230,7 +334,10 @@ export function WalletPage() {
         </div>
       ) : null}
 
-      <SectionHeader title="Recent transactions" />
+      <SectionHeader
+        title="Recent activity"
+        subtitle={rail === "fiat" ? "Cash movements" : "Token movements"}
+      />
       {loading ? (
         <>
           <Skeleton height={48} />
@@ -239,11 +346,10 @@ export function WalletPage() {
       ) : grouped.length === 0 ? (
         <EmptyState
           title="No transactions yet"
-          detail="Pay, send, or receive to see activity here."
-          action={
-            <Button size="sm" variant="soft" onClick={() => setMode("pay")}>
-              Make a payment →
-            </Button>
+          detail={
+            rail === "fiat"
+              ? "Cash payments and transfers will show here."
+              : "Pay, send, or receive tokens to see activity here."
           }
         />
       ) : (
@@ -254,11 +360,11 @@ export function WalletPage() {
               {txs.map((tx) => (
                 <ActivityRow
                   key={tx.id}
-                  kind={tx.kind === "receive" ? "wallet_transfer" : "payment"}
+                  kind={tx.kind === "receive" || tx.kind === "deposit" ? "wallet_transfer" : "payment"}
                   title={tx.counterparty}
-                  detail={tx.kind}
+                  detail={`${tx.kind} · ${rail === "fiat" ? "Cash" : "Token"}`}
                   time={formatTime(tx.createdAt)}
-                  amount={`${tx.kind === "receive" ? "+" : "−"}${tx.amount} ${tx.symbol}`}
+                  amount={`${tx.kind === "receive" || tx.kind === "deposit" ? "+" : "−"}${tx.amount} ${unit(tx)}`}
                   onClick={() => setSelected(tx)}
                 />
               ))}
@@ -268,11 +374,11 @@ export function WalletPage() {
       )}
 
       <section className="wallet-status">
-        <SectionHeader title="Network" subtitle="Token settlement status" />
+        <SectionHeader title="Status" />
         <div className="surface-block padded">
           <p className="muted small">
-            Connected to the LifeOS wallet provider. Settlement is simulated until Token Network
-            goes live.
+            {data?.notice ??
+              "Cash is your physical fiat wallet preview. Tokens connect to the ecosystem Token Network when it goes live."}
           </p>
         </div>
       </section>
@@ -283,9 +389,13 @@ export function WalletPage() {
             <div>
               <div className="label">Amount</div>
               <div className="mono">
-                {selected.kind === "receive" ? "+" : "−"}
-                {selected.amount} {selected.symbol}
+                {selected.kind === "receive" || selected.kind === "deposit" ? "+" : "−"}
+                {selected.amount} {unit(selected)}
               </div>
+            </div>
+            <div>
+              <div className="label">Wallet</div>
+              <div>{selected.rail === "fiat" ? "Cash (fiat)" : "Tokens"}</div>
             </div>
             <div>
               <div className="label">Type</div>

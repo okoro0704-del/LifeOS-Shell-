@@ -1,4 +1,9 @@
-export const LIFEOS_VERSION = "1.4.1";
+import type { QuickAccessPreferences } from "./command.js";
+import { DEFAULT_QUICK_ACCESS_PREFS } from "./command.js";
+
+export const LIFEOS_VERSION = "1.5.0";
+
+export * from "./command.js";
 
 export const OS_TYPES = [
   "hospitality",
@@ -127,6 +132,7 @@ export interface LifeOsPreferences {
   language: string;
   tokenDisplay: string;
   openExperiencesIn: "embed" | "external";
+  quickAccess: QuickAccessPreferences;
 }
 
 export const DEFAULT_PREFERENCES: LifeOsPreferences = {
@@ -136,6 +142,7 @@ export const DEFAULT_PREFERENCES: LifeOsPreferences = {
   language: "en",
   tokenDisplay: "TOK",
   openExperiencesIn: "embed",
+  quickAccess: { ...DEFAULT_QUICK_ACCESS_PREFS },
 };
 
 export type ActivityKind =
@@ -145,7 +152,8 @@ export type ActivityKind =
   | "wallet_transfer"
   | "account"
   | "experience"
-  | "security";
+  | "security"
+  | "command";
 
 export interface ActivityItem {
   id: string;
@@ -172,6 +180,9 @@ export interface NotificationItem {
   category: NotificationCategory;
   read: boolean;
   createdAt: string;
+  /** Registered Action Registry id — notifications launch actions, not custom handlers. */
+  actionId?: string | null;
+  actionParams?: Record<string, unknown>;
 }
 
 export const TOKEN_SYMBOL = "TOK";
@@ -192,4 +203,6 @@ export const AUDIT_EVENTS = {
   EXPERIENCE_TOKEN_REJECTED: "experience.token.rejected",
   EXPERIENCE_TOKEN_EXPIRED: "experience.token.expired",
   EXPERIENCE_TOKEN_REPLAY: "experience.token.replay_detected",
+  COMMAND_EXECUTED: "lifeos.command.executed",
+  ACTION_CONFIRMED: "lifeos.action.confirmed",
 } as const;

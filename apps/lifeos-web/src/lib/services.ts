@@ -1,4 +1,19 @@
-import type { ActivityItem, ExperienceConnectionPublic, ExperienceRecord, LifeOsPreferences, LifeOsUserPublic, NotificationItem, ExperiencePermission, ExperienceSessionPublic } from "@lifeos/shared";
+import type {
+  ActivityItem,
+  AiSuggestion,
+  ClassifiedIntent,
+  CommandHistoryEntry,
+  CommandOutcome,
+  ExperienceConnectionPublic,
+  ExperienceRecord,
+  LifeOsPreferences,
+  LifeOsUserPublic,
+  NotificationItem,
+  ExperiencePermission,
+  ExperienceSessionPublic,
+  QuickAccessItem,
+  SearchResult,
+} from "@lifeos/shared";
 import { api } from "./api";
 
 export const meService = {
@@ -15,28 +30,65 @@ export const meService = {
     }),
 };
 
+type TokenTx = {
+  id: string;
+  kind: string;
+  amount: number;
+  symbol: string;
+  counterparty: string;
+  memo?: string;
+  createdAt: string;
+  status: string;
+};
+
+type FiatTx = {
+  id: string;
+  kind: string;
+  amount: number;
+  currency: string;
+  counterparty: string;
+  memo?: string;
+  createdAt: string;
+  status: string;
+  rail?: "fiat";
+};
+
 export const walletService = {
   get: () =>
     api<{
+      fiat?: {
+        currency: string;
+        currencyName: string;
+        label: string;
+        accountMask: string;
+        balance: { amount: number; currency: string; formatted: string };
+        transactions: FiatTx[];
+        preview?: boolean;
+        notice?: string;
+      };
+      token?: {
+        wallet: { address: string; symbol: string };
+        balance: { amount: number; symbol: string; formatted: string };
+        transactions: TokenTx[];
+      };
+      // Back-compat
       wallet: { address: string; symbol: string };
       balance: { amount: number; symbol: string; formatted: string };
-      transactions: Array<{
-        id: string;
-        kind: string;
-        amount: number;
-        symbol: string;
-        counterparty: string;
-        memo?: string;
-        createdAt: string;
-        status: string;
-      }>;
+      transactions: TokenTx[];
       mock?: boolean;
       notice?: string;
     }>("/wallet"),
-  balance: () => api<{ formatted: string; mock?: boolean }>("/wallet/balance"),
-  send: (body: { to: string; amount: number; memo?: string }) =>
+  balance: () =>
+    api<{
+      formatted: string;
+      amount?: number;
+      symbol?: string;
+      fiat?: { amount: number; currency: string; formatted: string };
+      mock?: boolean;
+    }>("/wallet/balance"),
+  send: (body: { to: string; amount: number; memo?: string; rail?: "fiat" | "token" }) =>
     api("/wallet/send", { method: "POST", body: JSON.stringify(body) }),
-  pay: (body: { merchant: string; amount: number; reference?: string }) =>
+  pay: (body: { merchant: string; amount: number; reference?: string; rail?: "fiat" | "token" }) =>
     api("/wallet/pay", { method: "POST", body: JSON.stringify(body) }),
 };
 
@@ -56,6 +108,8 @@ export const discoverService = {
   search: (q: string) =>
     api<{
       query: string;
+      results?: SearchResult[];
+      groups?: Record<string, SearchResult[]>;
       businesses: { id: string; name: string; category: string; location?: string | null; experienceId: string }[];
       experiences: ExperienceRecord[];
     }>(`/search?q=${encodeURIComponent(q)}`),
@@ -138,5 +192,58 @@ export const profileService = {
     api<{ user: LifeOsUserPublic }>("/profile", {
       method: "PATCH",
       body: JSON.stringify({ preferences }),
+    }),
+};
+
+export const commandService = {
+  search: (q: string, type?: string) => {
+    const params = new URLSearchParams({ q });
+    if (type) params.set("type", type);
+    return api<{
+      query: string;
+      results: SearchResult[];
+      groups: Record<string, SearchResult[]>;
+      businesses: { id: string; name: string; category: string; location?: string | null; experienceId: string }[];
+      experiences: ExperienceRecord[];
+    }>(`/search?${params}`);
+  },
+  run: (text: string, source?: "text" | "voice" | "touch" | "deeplink" | "notification") =>
+    api<CommandOutcome & { intent: ClassifiedIntent }>("/commands", {
+      method: "POST",
+      body: JSON.stringify({ text, source: source ?? "text" }),
+    }),
+  recent: () => api<{ items: CommandHistoryEntry[] }>("/commands/recent"),
+  clearRecent: () => api<{ ok: boolean }>("/commands/recent", { method: "DELETE" }),
+  quickAccess: () => api<{ items: QuickAccessItem[] }>("/quick-access"),
+  pin: (id: string) =>
+    api<{ items: QuickAccessItem[] }>("/quick-access/pin", {
+      method: "POST",
+      body: JSON.stringify({ id }),
+    }),
+  unpin: (id: string) =>
+    api<{ items: QuickAccessItem[] }>("/quick-access/unpin", {
+      method: "POST",
+      body: JSON.stringify({ id }),
+    }),
+  reorder: (order: string[]) =>
+    api<{ items: QuickAccessItem[] }>("/quick-access/reorder", {
+      method: "POST",
+      body: JSON.stringify({ order }),
+    }),
+  suggestions: (q?: string) =>
+    api<{
+      suggestions: AiSuggestion[];
+      recent: CommandHistoryEntry[];
+      quickAccess: QuickAccessItem[];
+    }>(`/suggestions${q ? `?q=${encodeURIComponent(q)}` : ""}`),
+  intent: (text: string) =>
+    api<{ intent: ClassifiedIntent }>("/ai/intent", {
+      method: "POST",
+      body: JSON.stringify({ text }),
+    }),
+  executeAction: (actionId: string, params?: Record<string, unknown>, confirmed = false) =>
+    api<CommandOutcome>("/actions/execute", {
+      method: "POST",
+      body: JSON.stringify({ actionId, params, confirmed }),
     }),
 };

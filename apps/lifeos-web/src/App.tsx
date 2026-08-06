@@ -2,6 +2,7 @@ import { Suspense, lazy } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { ThemeProvider } from "./hooks/useTheme";
+import { CommandLayerProvider } from "./hooks/useCommandLayer";
 import { AppShell } from "./components/AppShell";
 import { RequireAuth } from "./components/RequireAuth";
 import { WelcomePage } from "./pages/Welcome";
@@ -44,7 +45,14 @@ function ThemedApp() {
           <Route path="/" element={<WelcomePage />} />
           <Route path="/callback" element={<CallbackPage />} />
           <Route element={<RequireAuth />}>
-            <Route path="/app" element={<AppShell />}>
+            <Route
+              path="/app"
+              element={
+                <CommandLayerProvider>
+                  <AppShell />
+                </CommandLayerProvider>
+              }
+            >
               <Route
                 index
                 element={

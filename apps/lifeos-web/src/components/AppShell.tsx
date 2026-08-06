@@ -11,7 +11,9 @@ import {
   IconWallet,
 } from "@lifeos/ui";
 import { useAuth } from "../hooks/useAuth";
+import { useCommandLayer } from "../hooks/useCommandLayer";
 import { notificationService } from "../lib/services";
+import { CommandOverlay, AskLifeOSTrigger } from "./CommandOverlay";
 
 type IconComp = ComponentType<SVGProps<SVGSVGElement> & { size?: number }>;
 
@@ -31,6 +33,7 @@ const tabs: {
 export function AppShell() {
   const { user } = useAuth();
   const location = useLocation();
+  const { openCommand } = useCommandLayer();
   const [unread, setUnread] = useState(0);
   const [offline, setOffline] = useState(!navigator.onLine);
   const [deferredPrompt, setDeferredPrompt] = useState<{
@@ -87,11 +90,18 @@ export function AppShell() {
             </NavLink>
           ))}
           <div className="side-nav-divider" aria-hidden />
-          <NavLink to="/app/search" className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}>
+          <NavLink
+            to="/app/search"
+            className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
+            onClick={(e) => {
+              e.preventDefault();
+              openCommand();
+            }}
+          >
             <span className="nav-icon" aria-hidden>
               <IconSearch size={20} />
             </span>
-            Search
+            Ask LifeOS
           </NavLink>
           <NavLink
             to="/app/notifications"
@@ -132,9 +142,10 @@ export function AppShell() {
             <span className="brand-name">LifeOS</span>
           </div>
           <div className="app-header__actions">
-            <NavLink to="/app/search" className="icon-btn" aria-label="Search">
+            <AskLifeOSTrigger compact className="ask-lifeos-trigger--header" />
+            <button type="button" className="icon-btn" aria-label="Ask LifeOS" onClick={() => openCommand()}>
               <IconSearch size={20} />
-            </NavLink>
+            </button>
             <NavLink
               to="/app/notifications"
               className="icon-btn"
@@ -195,6 +206,8 @@ export function AppShell() {
             <Outlet />
           </div>
         </main>
+
+        <CommandOverlay />
 
         <nav className="bottom-nav" aria-label="Primary">
           {tabs.map((t) => (
