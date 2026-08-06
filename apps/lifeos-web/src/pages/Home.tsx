@@ -11,10 +11,6 @@ import type {
 import {
   Button,
   EmptyState,
-  IconEat,
-  IconExplore,
-  IconStay,
-  IconTicket,
   OfferingCard,
   SectionHeader,
   Skeleton,
@@ -26,7 +22,6 @@ import {
   commandService,
   discoverService,
 } from "../lib/services";
-import { SERVICE_VERTICALS } from "../lib/serviceCatalog";
 import { useAuth } from "../hooks/useAuth";
 import { useCommandLayer } from "../hooks/useCommandLayer";
 import { StatusBanner } from "../components/StatusBanner";
@@ -48,14 +43,14 @@ function formatTime(iso?: string | null) {
   });
 }
 
-function ServiceTileIcon({ tone }: { tone: string }) {
-  if (tone === "stay") return <IconStay size={26} />;
-  if (tone === "eat") return <IconEat size={26} />;
-  if (tone === "cinema" || tone === "events") return <IconTicket size={26} />;
-  return <IconExplore size={26} />;
+function roomInitials(o: DiscoverableOffering) {
+  return o.businessName
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
 }
-
-const HOME_SERVICES = SERVICE_VERTICALS.slice(0, 6);
 
 export function HomePage() {
   const { user } = useAuth();
@@ -65,6 +60,7 @@ export function HomePage() {
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
   const [forYou, setForYou] = useState<DiscoverableOffering[]>([]);
+  const [homeRooms, setHomeRooms] = useState<DiscoverableOffering[]>([]);
   const [recs, setRecs] = useState<RecommendationItem[]>([]);
   const [showMoreForYou, setShowMoreForYou] = useState(false);
   const [today, setToday] = useState<LifePlanItem[]>([]);
@@ -81,11 +77,21 @@ export function HomePage() {
     setOffline(offlineNow);
     void (async () => {
       try {
-        const [disc, plans] = await Promise.all([
+        const [disc, rooms, plans] = await Promise.all([
           discoverService.get(),
+          discoverService
+            .offerings({ category: "Stay" })
+            .catch(() => ({ offerings: [] as DiscoverableOffering[] })),
           actionService.plans().catch(() => null),
         ]);
         setForYou((disc.featuredOfferings ?? disc.offerings ?? []).slice(0, 6));
+        const roomList = rooms.offerings
+          .filter((o) => o.type === "ROOM" || o.category === "Stay")
+          .sort((a, b) => {
+            if (Boolean(a.featured) !== Boolean(b.featured)) return a.featured ? -1 : 1;
+            return (a.distanceKm ?? 99) - (b.distanceKm ?? 99);
+          });
+        setHomeRooms(roomList.slice(0, 6));
         if (plans) {
           setToday(plans.life?.today ?? []);
           setUpcoming((plans.life?.upcoming ?? []).slice(0, 4));
@@ -144,6 +150,11 @@ export function HomePage() {
   const forYouPrimary = recs.length > 0 ? recs.slice(0, 2) : null;
   const forYouRest = recs.slice(2);
 
+  function openRoomFeed(roomId?: string) {
+    const qs = roomId ? `?focus=${encodeURIComponent(roomId)}` : "";
+    navigate(`/app/services/Stay/feed${qs}`);
+  }
+
   async function confirmHomePreview() {
     if (!preview) return;
     setConfirmBusy(true);
@@ -187,6 +198,59 @@ export function HomePage() {
         </p>
       </section>
 
+      <section aria-label="Services">
+        <SectionHeader
+          title="Services"
+          subtitle="Rooms available around you"
+          action={
+            <button type="button" className="text-link" onClick={() => openRoomFeed()}>
+              More
+            </button>
+          }
+        />
+        {loading ? (
+          <Skeleton height={160} label="Loading rooms" />
+        ) : homeRooms.length === 0 ? (
+          <EmptyState
+            title="No rooms yet"
+            detail="Open More to browse hotel rooms nearby."
+            action={
+              <Button variant="soft" size="sm" onClick={() => openRoomFeed()}>
+                Browse rooms
+              </Button>
+            }
+          />
+        ) : (
+          <div className="services-pictorial services-pictorial--rooms" role="list">
+            {homeRooms.map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                role="listitem"
+                className="services-tile services-tile--stay services-tile--room"
+                onClick={() => openRoomFeed(o.id)}
+              >
+                <span className="services-tile__media" aria-hidden>
+                  {o.image ? (
+                    <img src={o.image} alt="" className="services-tile__photo" />
+                  ) : (
+                    <span className="services-tile__initials">{roomInitials(o)}</span>
+                  )}
+                </span>
+                <span className="services-tile__copy">
+                  <span className="services-tile__label">{o.name}</span>
+                  <span className="services-tile__sub">{o.businessName}</span>
+                  <span className="services-tile__price">
+                    {o.priceFormatted}
+                    {o.availability ? ` · ${o.availability}` : ""}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
       {!loading && rightNow ? (
         <section className="right-now" aria-label="Right now">
           <SectionHeader title="Right now" subtitle="Your next best step" />
@@ -203,46 +267,6 @@ export function HomePage() {
           </button>
         </section>
       ) : null}
-
-      <section aria-label="Services">
-        <SectionHeader
-          title="Services"
-          subtitle="Hotel rooms, food, and more"
-          action={
-            <button
-              type="button"
-              className="text-link"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                navigate("/app/services");
-              }}
-            >
-              More
-            </button>
-          }
-        />
-        {loading ? (
-          <Skeleton height={140} label="Loading services" />
-        ) : (
-          <div className="services-pictorial" role="list">
-            {HOME_SERVICES.map((v) => (
-              <button
-                key={v.id}
-                type="button"
-                role="listitem"
-                className={`services-tile services-tile--${v.tone}`}
-                onClick={() => navigate(`/app/services/${encodeURIComponent(v.id)}`)}
-              >
-                <span className="services-tile__media" aria-hidden>
-                  <ServiceTileIcon tone={v.tone} />
-                </span>
-                <span className="services-tile__label">{v.label}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </section>
 
       {preview ? (
         <section aria-label="Action confirmation" className="home-preview-section">

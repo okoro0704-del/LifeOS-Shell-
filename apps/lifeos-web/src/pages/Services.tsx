@@ -76,7 +76,13 @@ export function ServicesPage() {
                 role="listitem"
                 className={`services-reel services-reel--${v.tone}`}
                 style={{ animationDelay: `${Math.min(i, 6) * 40}ms` }}
-                onClick={() => navigate(`/app/services/${encodeURIComponent(v.id)}`)}
+                onClick={() =>
+                  navigate(
+                    v.id === "Stay"
+                      ? `/app/services/Stay/feed`
+                      : `/app/services/${encodeURIComponent(v.id)}`,
+                  )
+                }
               >
                 <div className="services-reel__glow" aria-hidden />
                 <div className="services-reel__media">
@@ -101,7 +107,7 @@ export function ServicesPage() {
   );
 }
 
-/** Offerings inside one service vertical — pick a preference. */
+/** Offerings inside one service vertical — Stay opens the swipe feed. */
 export function ServiceCategoryPage() {
   const { category = "" } = useParams();
   const navigate = useNavigate();
@@ -115,13 +121,17 @@ export function ServiceCategoryPage() {
 
   useEffect(() => {
     if (!category) return;
+    if (category.toLowerCase() === "stay") {
+      navigate("/app/services/Stay/feed", { replace: true });
+      return;
+    }
     setLoading(true);
     void discoverService
       .offerings({ category })
       .then((d) => setOfferings(d.offerings))
       .catch(() => setError("Couldn't load this category."))
       .finally(() => setLoading(false));
-  }, [category]);
+  }, [category, navigate]);
 
   const sorted = useMemo(
     () =>

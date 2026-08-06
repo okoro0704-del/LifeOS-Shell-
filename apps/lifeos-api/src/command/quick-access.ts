@@ -483,7 +483,7 @@ export class QuickAccessService {
             contextual: false,
           }),
           pinned: pinned.has(id),
-          navigateTo: `/app/services/${encodeURIComponent(cat)}`,
+          navigateTo: `/app/services/${encodeURIComponent(cat)}${cat === "Stay" ? "/feed" : ""}`,
         });
       }
     } catch {
