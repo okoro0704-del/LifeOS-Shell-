@@ -1,13 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import type { ActivityItem, ExperienceRecord, NotificationItem } from "@lifeos/shared";
-import { Button, EmptyState, SectionHeader, Skeleton, StatusDot } from "@lifeos/ui";
-import { ApiError, userFacingMessage } from "../lib/api";
+import type { ActivityItem, ExperienceRecord } from "@lifeos/shared";
+import {
+  ActivityRow,
+  Button,
+  EmptyState,
+  ExperienceCard,
+  QuickAction,
+  SectionHeader,
+  Skeleton,
+  StatusBadge,
+  WalletCard,
+} from "@lifeos/ui";
+import { ApiError } from "../lib/api";
 import {
   activityService,
   connectionService,
   discoverService,
-  notificationService,
   walletService,
 } from "../lib/services";
 import { useAuth } from "../hooks/useAuth";
@@ -20,54 +29,66 @@ function greeting() {
   return "Good evening";
 }
 
+function maskAddress(address?: string) {
+  if (!address || address.length < 8) return "••••";
+  return `•••• ${address.slice(-4)}`;
+}
+
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function isToday(iso: string) {
+  const d = new Date(iso);
+  const now = new Date();
+  return d.toDateString() === now.toDateString();
+}
+
 export function HomePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [balance, setBalance] = useState<string>("—");
-  const [walletError, setWalletError] = useState<string | null>(null);
+  const [walletAddress, setWalletAddress] = useState<string | undefined>();
+  const [walletError, setWalletError] = useState(false);
   const [dataError, setDataError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const [featured, setFeatured] = useState<(ExperienceRecord & { featured?: boolean })[]>([]);
-  const [nearby, setNearby] = useState<(ExperienceRecord & { availability?: string })[]>([]);
-  const [recentExperiences, setRecentExperiences] = useState<
-    { id: string; displayName: string; osLabel: string }[]
-  >([]);
-  const [notes, setNotes] = useState<NotificationItem[]>([]);
+  const [featured, setFeatured] = useState<(ExperienceRecord & { availability?: string })[]>([]);
+  const [connectedIds, setConnectedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     void (async () => {
       try {
-        const [bal, act, disc, conns, notifs] = await Promise.all([
+        const [bal, wallet, act, disc, conns] = await Promise.all([
           walletService.balance().catch((err) => {
-            setWalletError(
-              err instanceof ApiError && err.code === "wallet_unavailable"
-                ? "Wallet unavailable."
-                : userFacingMessage(err),
-            );
+            if (!(err instanceof ApiError && err.code === "wallet_unavailable")) {
+              /* ignore */
+            }
+            setWalletError(true);
             return null;
           }),
+          walletService.get().catch(() => null),
           activityService.list(),
           discoverService.get(),
           connectionService.list().catch(() => ({ connections: [] })),
-          notificationService.list().catch(() => ({ notifications: [], unreadCount: 0 })),
         ]);
         if (bal) setBalance(bal.formatted);
-        setActivities(act.activities.slice(0, 4));
-        setFeatured(disc.featured.slice(0, 3));
-        setNearby(disc.items.filter((i) => i.location).slice(0, 3));
-        const connected = conns.connections
-          .filter((c) => c.status === "connected")
-          .slice(0, 3)
-          .map((c) => ({
-            id: c.experienceId,
-            displayName: c.displayName,
-            osLabel: c.osLabel,
-          }));
-        setRecentExperiences(connected);
-        setNotes(notifs.notifications.filter((n) => !n.read).slice(0, 2));
+        if (wallet?.wallet.address) setWalletAddress(wallet.wallet.address);
+        setActivities(act.activities);
+        setFeatured((disc.featured as typeof featured).slice(0, 4));
+        setConnectedIds(
+          new Set(
+            conns.connections
+              .filter((c) => c.status === "connected")
+              .map((c) => c.experienceId),
+          ),
+        );
       } catch (err) {
-        setDataError(userFacingMessage(err));
+        setDataError("We couldn't load your home feed. Try again.");
+        void err;
       } finally {
         setLoading(false);
       }
@@ -75,206 +96,167 @@ export function HomePage() {
   }, []);
 
   const first = user?.firstName || user?.displayName?.split(" ")[0] || "there";
+  const todayItems = useMemo(
+    () => activities.filter((a) => isToday(a.createdAt)).slice(0, 4),
+    [activities],
+  );
+  const recentItems = useMemo(() => activities.slice(0, 5), [activities]);
 
   return (
     <div className="page home-page">
-      <header className="home-hero">
-        <p className="eyebrow fade-in">LifeOS</p>
-        <h1 className="fade-in delay-1">
-          {greeting()}, {first}
-        </h1>
-        <StatusDot label="TrustID connected" />
+      <header className="home-greeting">
+        <p className="home-greeting__hello">{greeting()}</p>
+        <h1 className="home-greeting__name">{first}</h1>
+        <StatusBadge label="Identity protected" tone="ok" />
       </header>
 
-      {dataError ? <StatusBanner title={dataError} /> : null}
-
-      <section className="home-wallet fade-in delay-2" aria-label="Wallet summary">
-        <div className="label">Wallet · mock</div>
-        {loading && !walletError ? (
-          <Skeleton height={40} className="wallet-skel" label="Loading balance" />
-        ) : walletError ? (
-          <p className="wallet-error">{walletError}</p>
-        ) : (
-          <div className="wallet-amount">{balance}</div>
-        )}
-        <div className="home-wallet-actions">
-          <Link to="/app/wallet?action=pay" className="home-chip">
-            Pay
-          </Link>
-          <Link to="/app/wallet?action=send" className="home-chip">
-            Send
-          </Link>
-          <Link to="/app/wallet?action=receive" className="home-chip">
-            Receive
-          </Link>
-        </div>
-      </section>
-
-      <section className="fade-in delay-2" aria-label="Quick actions">
-        <div className="quick-grid">
-          <Link to="/app/wallet?action=pay" className="quick-tile">
-            Pay
-          </Link>
-          <Link to="/app/search" className="quick-tile">
-            Search
-          </Link>
-          <Link to="/app/discover" className="quick-tile">
-            Discover
-          </Link>
-          <Link to="/app/connections" className="quick-tile">
-            Connections
-          </Link>
-        </div>
-      </section>
-
-      <section className="fade-in delay-3">
-        <SectionHeader
-          title="Continue"
-          subtitle="Pick up where you left off"
-          action={
-            <Link to="/app/connections" className="text-link">
-              All
-            </Link>
-          }
+      {dataError ? (
+        <StatusBanner
+          title={dataError}
+          detail="Check your connection and refresh."
         />
+      ) : null}
+
+      <section aria-label="Wallet">
         {loading ? (
-          <Skeleton height={72} label="Loading experiences" />
-        ) : recentExperiences.length === 0 ? (
+          <Skeleton height={180} label="Loading wallet" className="wallet-skel-block" />
+        ) : (
+          <WalletCard
+            balance={walletError ? undefined : balance}
+            locked={walletError}
+            lockedMessage="Connect with TrustID to continue"
+            mask={maskAddress(walletAddress)}
+            actions={
+              walletError ? null : (
+                <>
+                  <Link to="/app/wallet?action=pay" className="los-wallet__action">
+                    Pay
+                  </Link>
+                  <Link to="/app/wallet?action=send" className="los-wallet__action">
+                    Send
+                  </Link>
+                  <Link to="/app/wallet?action=receive" className="los-wallet__action">
+                    Receive
+                  </Link>
+                </>
+              )
+            }
+          />
+        )}
+      </section>
+
+      <section aria-label="Quick actions">
+        <div className="quick-row">
+          <QuickAction icon="◈" label="Pay" onClick={() => navigate("/app/wallet?action=pay")} />
+          <QuickAction icon="↑" label="Send" onClick={() => navigate("/app/wallet?action=send")} />
+          <QuickAction icon="↓" label="Receive" onClick={() => navigate("/app/wallet?action=receive")} />
+          <QuickAction icon="⌂" label="Book" onClick={() => navigate("/app/discover?category=Hotels")} />
+          <QuickAction icon="◎" label="Discover" onClick={() => navigate("/app/discover")} />
+          <QuickAction icon="☰" label="Tickets" onClick={() => navigate("/app/activity")} />
+        </div>
+      </section>
+
+      <section>
+        <SectionHeader title="Today" />
+        {loading ? (
+          <Skeleton height={88} label="Loading today" />
+        ) : todayItems.length === 0 ? (
           <EmptyState
-            title="No recent experiences"
-            detail="Connect a business from Discover to see it here."
+            title="Nothing scheduled yet"
+            detail="Discover something for today."
             action={
               <Button variant="soft" size="sm" onClick={() => navigate("/app/discover")}>
-                Browse Discover
+                Discover something for today →
               </Button>
             }
           />
         ) : (
-          <div className="feature-rail">
-            {recentExperiences.map((e) => (
-              <Link key={e.id} to={`/app/discover?open=${e.id}`} className="feature-tile">
-                <div className="biz-logo" aria-hidden>
-                  {e.displayName.slice(0, 1)}
-                </div>
-                <div className="feature-name">{e.displayName}</div>
-                <div className="muted small">{e.osLabel}</div>
-              </Link>
+          <div className="surface-block">
+            {todayItems.map((a) => (
+              <ActivityRow
+                key={a.id}
+                kind={a.kind}
+                title={a.title}
+                detail={a.detail}
+                time={formatTime(a.createdAt)}
+                amount={a.amount ?? undefined}
+                onClick={a.deepLink ? () => navigate(a.deepLink!) : undefined}
+              />
             ))}
           </div>
         )}
       </section>
 
-      <section className="fade-in delay-3">
+      <section>
         <SectionHeader
-          title="Near you"
-          subtitle="Experiences with a location"
+          title="Recommended"
           action={
             <Link to="/app/discover" className="text-link">
-              Map soon
-            </Link>
-          }
-        />
-        {loading ? (
-          <Skeleton height={72} />
-        ) : nearby.length === 0 ? (
-          <EmptyState title="Nothing nearby yet." detail="Location-tagged businesses will appear here." />
-        ) : (
-          <ul className="list">
-            {nearby.map((e) => (
-              <li key={e.id}>
-                <Link to={`/app/discover?open=${e.id}`} className="list-row stretch-link">
-                  <div>
-                    <strong>{e.displayName}</strong>
-                    <div className="muted small">{e.location}</div>
-                  </div>
-                  <span className="badge">{e.category}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section className="fade-in delay-3">
-        <SectionHeader
-          title="Recent activity"
-          action={
-            <Link to="/app/activity" className="text-link">
               See all
             </Link>
           }
         />
         {loading ? (
-          <Skeleton height={72} />
-        ) : activities.length === 0 ? (
-          <EmptyState title="No activity yet." detail="Your ecosystem events will appear here." />
+          <div className="exp-rail">
+            <Skeleton height={180} />
+            <Skeleton height={180} />
+          </div>
+        ) : featured.length === 0 ? (
+          <EmptyState
+            title="No experiences yet"
+            detail="Browse the ecosystem when businesses are available."
+            action={
+              <Button variant="soft" size="sm" onClick={() => navigate("/app/discover")}>
+                Open Explore
+              </Button>
+            }
+          />
         ) : (
-          <ul className="list">
-            {activities.map((a) => (
-              <li key={a.id} className="list-row">
-                <div>
-                  <strong>{a.title}</strong>
-                  <div className="muted small">{a.detail}</div>
-                </div>
-                {a.amount ? <span className="mono">{a.amount}</span> : null}
-              </li>
+          <div className="exp-rail">
+            {featured.map((e) => (
+              <ExperienceCard
+                key={e.id}
+                name={e.displayName}
+                category={e.category}
+                location={e.location}
+                availability={e.availability ?? "Available now"}
+                initial={e.icon ?? e.displayName}
+                connected={connectedIds.has(e.id)}
+                onClick={() => navigate(`/app/discover?open=${e.id}`)}
+              />
             ))}
-          </ul>
+          </div>
         )}
       </section>
 
-      <section className="fade-in delay-3">
+      <section>
         <SectionHeader
-          title="Notifications"
+          title="Recent activity"
           action={
-            <Link to="/app/notifications" className="text-link">
-              Inbox
+            <Link to="/app/activity" className="text-link">
+              All
             </Link>
           }
         />
         {loading ? (
-          <Skeleton height={56} />
-        ) : notes.length === 0 ? (
-          <EmptyState title="You're all caught up." />
+          <Skeleton height={120} />
+        ) : recentItems.length === 0 ? (
+          <EmptyState title="No recent activity" detail="Events from connected experiences will appear here." />
         ) : (
-          <ul className="list">
-            {notes.map((n) => (
-              <li key={n.id} className="list-row unread">
-                <div>
-                  <strong>{n.title}</strong>
-                  <div className="muted small">{n.body}</div>
-                </div>
-              </li>
+          <div className="surface-block">
+            {recentItems.map((a) => (
+              <ActivityRow
+                key={a.id}
+                kind={a.kind}
+                title={a.title}
+                detail={a.detail}
+                time={formatTime(a.createdAt)}
+                amount={a.amount ?? undefined}
+                onClick={a.deepLink ? () => navigate(a.deepLink!) : undefined}
+              />
             ))}
-          </ul>
+          </div>
         )}
-      </section>
-
-      <section className="fade-in delay-3">
-        <SectionHeader
-          title="Featured"
-          action={
-            <Link to="/app/discover" className="text-link">
-              Discover
-            </Link>
-          }
-        />
-        <div className="feature-rail">
-          {featured.map((e) => (
-            <Link key={e.id} to={`/app/discover?open=${e.id}`} className="feature-tile">
-              <div className="feature-name">{e.displayName}</div>
-              <div className="muted small">
-                {(e.metadata?.osLabel as string) ?? e.category}
-              </div>
-            </Link>
-          ))}
-        </div>
-        {!loading && featured.length === 0 ? <EmptyState title="No experiences yet." /> : null}
-        <div className="section-cta">
-          <Button variant="soft" className="full-width" onClick={() => navigate("/app/discover")}>
-            Browse ecosystem
-          </Button>
-        </div>
       </section>
     </div>
   );

@@ -1,9 +1,16 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import type { LifeOsPreferences, LifeOsUserPublic } from "@lifeos/shared";
 import { LIFEOS_VERSION } from "@lifeos/shared";
-import { Avatar, Badge, Button, SectionHeader, Skeleton, StatusDot } from "@lifeos/ui";
-import { trustIdWeb, userFacingMessage } from "../lib/api";
+import {
+  Avatar,
+  Button,
+  ProfileRow,
+  SectionHeader,
+  Skeleton,
+  StatusBadge,
+} from "@lifeos/ui";
+import { trustIdWeb } from "../lib/api";
 import { connectionService, profileService, walletService } from "../lib/services";
 import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../hooks/useTheme";
@@ -20,6 +27,7 @@ export function ProfilePage() {
   const [balance, setBalance] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showPrefs, setShowPrefs] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -34,8 +42,8 @@ export function ProfilePage() {
         setAbout(data.about);
         setConnCount(conns.connections.filter((c) => c.status === "connected").length);
         if (bal) setBalance(bal.formatted);
-      } catch (e) {
-        setError(userFacingMessage(e));
+      } catch {
+        setError("We couldn't load your profile.");
       } finally {
         setLoading(false);
       }
@@ -54,99 +62,79 @@ export function ProfilePage() {
 
   return (
     <div className="page">
-      <SectionHeader title="Profile" subtitle="Identity, trust, and LifeOS preferences" />
+      <SectionHeader title="Profile" />
       {error ? <StatusBanner title={error} /> : null}
-      {loading ? <Skeleton height={96} label="Loading profile" /> : null}
+      {loading ? <Skeleton height={88} label="Loading profile" /> : null}
 
       {user ? (
         <div className="profile-hero">
           <Avatar name={user.displayName} size="lg" />
           <div>
             <h1 className="profile-name">{user.displayName}</h1>
-            <div className="mono muted small">TrustID · {user.trustId}</div>
-            {user.email ? <div className="muted small">{user.email}</div> : null}
+            <StatusBadge label="Identity protected" tone="ok" />
           </div>
         </div>
       ) : null}
 
-      <div className="trust-card">
-        <div className="trust-card-head">
-          <StatusDot label="TrustID connected" />
-          <Badge variant="success">Verified session</Badge>
-        </div>
-        <p className="muted small">
-          Identity credentials, recovery, and device trust live in TrustID. LifeOS never stores
-          passwords. Future verification badges will appear here without leaving the shell.
-        </p>
-        <a className="los-btn los-btn--soft los-btn--sm" href={trustIdWeb} target="_blank" rel="noreferrer">
-          Open TrustID
-        </a>
-      </div>
-
-      <section>
-        <SectionHeader title="Trust & security" subtitle="Ready for future identity verification" />
-        <div className="settings-stack">
-          <div className="settings-row static">
-            <div>
-              <strong>Trusted devices</strong>
-              <div className="muted small">Managed in TrustID · coming soon in-shell</div>
-            </div>
-            <Badge>TrustID</Badge>
-          </div>
-          <div className="settings-row static">
-            <div>
-              <strong>Identity verification</strong>
-              <div className="muted small">Placeholder for government ID / biometrics later</div>
-            </div>
-            <Badge>Soon</Badge>
-          </div>
-          <a className="settings-row" href={trustIdWeb} target="_blank" rel="noreferrer">
-            <div>
-              <strong>Security settings</strong>
-              <div className="muted small">Sessions, credentials, wipe & recovery</div>
-            </div>
-            <span className="chevron" aria-hidden>
-              →
-            </span>
-          </a>
-        </div>
+      <section className="profile-stack">
+        <SectionHeader title="Trust & security" />
+        <ProfileRow
+          label="TrustID"
+          subtitle="Manage identity & recovery"
+          onClick={() => window.open(trustIdWeb, "_blank", "noopener,noreferrer")}
+        />
+        <ProfileRow
+          label="Connected devices"
+          subtitle="Managed in TrustID"
+          onClick={() => window.open(trustIdWeb, "_blank", "noopener,noreferrer")}
+        />
+        <ProfileRow
+          label="Security"
+          subtitle="Sessions and credentials"
+          onClick={() => window.open(trustIdWeb, "_blank", "noopener,noreferrer")}
+        />
       </section>
 
-      <section>
-        <SectionHeader title="Wallet" />
-        <Link to="/app/wallet" className="settings-row">
-          <div>
-            <strong>Mock balance</strong>
-            <div className="muted small">{balance ?? "Open wallet"}</div>
-          </div>
-          <span className="chevron" aria-hidden>
-            →
-          </span>
-        </Link>
+      <section className="profile-stack">
+        <SectionHeader title="LifeOS" />
+        <ProfileRow
+          label="Connected experiences"
+          subtitle={`${connCount} connected`}
+          onClick={() => navigate("/app/connections")}
+        />
+        <ProfileRow
+          label="Wallet"
+          subtitle={balance ?? "Open wallet"}
+          onClick={() => navigate("/app/wallet")}
+        />
+        <ProfileRow
+          label="Notifications"
+          onClick={() => navigate("/app/notifications")}
+        />
       </section>
 
-      <section>
-        <SectionHeader title="Connected experiences" />
-        <Link to="/app/connections" className="settings-row">
-          <div>
-            <strong>
-              {connCount} connected experience{connCount === 1 ? "" : "s"}
-            </strong>
-            <div className="muted small">Permissions and disconnect controls</div>
-          </div>
-          <span className="chevron" aria-hidden>
-            →
-          </span>
-        </Link>
-        <Link to="/app/notifications" className="settings-row">
-          Notifications
-        </Link>
-      </section>
-
-      <section>
-        <SectionHeader title="Preferences" subtitle="LifeOS-only settings" />
-        {prefs ? (
-          <div className="prefs">
+      <section className="profile-stack">
+        <SectionHeader title="Preferences" />
+        <ProfileRow
+          label="Appearance"
+          subtitle={prefs ? prefs.theme : "System"}
+          onClick={() => setShowPrefs((v) => !v)}
+        />
+        {showPrefs && prefs ? (
+          <div className="prefs surface-block padded">
+            <label className="toggle-row">
+              <span>Theme</span>
+              <select
+                value={prefs.theme}
+                onChange={(e) =>
+                  void patch({ theme: e.target.value as LifeOsPreferences["theme"] })
+                }
+              >
+                <option value="system">System</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+              </select>
+            </label>
             <label className="toggle-row">
               <span>Notifications</span>
               <input
@@ -164,19 +152,6 @@ export function ProfilePage() {
                 checked={prefs.marketingTips}
                 onChange={() => void patch({ marketingTips: !prefs.marketingTips })}
               />
-            </label>
-            <label className="toggle-row">
-              <span>Theme</span>
-              <select
-                value={prefs.theme}
-                onChange={(e) =>
-                  void patch({ theme: e.target.value as LifeOsPreferences["theme"] })
-                }
-              >
-                <option value="system">System</option>
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-              </select>
             </label>
             <label className="toggle-row">
               <span>Language</span>
@@ -206,20 +181,9 @@ export function ProfilePage() {
         ) : null}
       </section>
 
-      <section>
-        <SectionHeader title="Privacy" subtitle="What LifeOS stores vs TrustID" />
-        <div className="privacy-note">
-          <p className="muted small">
-            LifeOS keeps shell preferences, connection grants, and mock wallet state. Passwords,
-            recovery keys, and identity proofs stay in TrustID. Business OSs own their own sessions
-            after you launch an experience.
-          </p>
-        </div>
-      </section>
-
-      <section>
+      <section className="profile-stack">
         <SectionHeader title="About" />
-        <div className="muted small">LifeOS {about?.version ?? LIFEOS_VERSION}</div>
+        <div className="muted small padded-inline">LifeOS {about?.version ?? LIFEOS_VERSION}</div>
         <div className="about-links">
           <a href="#">Terms</a>
           <a href="#">Privacy</a>
@@ -235,7 +199,7 @@ export function ProfilePage() {
           navigate("/");
         }}
       >
-        Sign out of LifeOS
+        Sign out
       </Button>
     </div>
   );

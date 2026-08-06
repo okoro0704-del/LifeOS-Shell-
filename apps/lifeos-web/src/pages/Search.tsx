@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { ExperienceRecord } from "@lifeos/shared";
-import { EmptyState, SectionHeader, Skeleton } from "@lifeos/ui";
-import { userFacingMessage } from "../lib/api";
+import { EmptyState, ExperienceCard, SearchBar, SectionHeader, Skeleton } from "@lifeos/ui";
 import { discoverService } from "../lib/services";
 import { StatusBanner } from "../components/StatusBanner";
 
@@ -31,7 +30,7 @@ export function SearchPage() {
           setExperiences(res.experiences);
           setError(null);
         })
-        .catch((e) => setError(userFacingMessage(e)))
+        .catch(() => setError("We couldn't search right now. Try again."))
         .finally(() => setBusy(false));
     }, 250);
     return () => clearTimeout(handle);
@@ -39,58 +38,53 @@ export function SearchPage() {
 
   return (
     <div className="page">
-      <SectionHeader title="Search" subtitle="Businesses and experiences across LifeOS" />
-      <input
-        className="search-input"
+      <SectionHeader title="Search" />
+      <SearchBar
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Search hotels, restaurants, services…"
+        placeholder="What are you looking for?"
         autoFocus
+        aria-label="Search LifeOS"
       />
       {error ? <StatusBanner title={error} /> : null}
-      {busy ? <Skeleton height={48} /> : null}
+      {busy ? <Skeleton height={48} label="Searching" /> : null}
 
       {!q.trim() ? (
-        <EmptyState title="Search the ecosystem" detail="Try “Sunrise” or “Restaurant”." />
+        <EmptyState
+          title="Search the ecosystem"
+          detail="Try a hotel, restaurant, or city."
+          action={
+            <Link to="/app/discover" className="text-link">
+              Browse Discover →
+            </Link>
+          }
+        />
       ) : (
         <>
-          <SectionHeader title="Businesses" />
-          {businesses.length === 0 ? (
-            <EmptyState title="No businesses matched." />
+          <SectionHeader title="Results" subtitle={`${businesses.length + experiences.length} found`} />
+          {businesses.length === 0 && experiences.length === 0 && !busy ? (
+            <EmptyState title="No matches" detail="Try a different spelling or category." />
           ) : (
-            <ul className="list">
+            <div className="exp-grid">
               {businesses.map((b) => (
-                <li
+                <ExperienceCard
                   key={b.id + b.experienceId}
-                  className="list-row clickable"
+                  name={b.name}
+                  category={b.category}
+                  location={b.location}
                   onClick={() => navigate(`/app/discover?open=${b.experienceId}`)}
-                >
-                  <div>
-                    <strong>{b.name}</strong>
-                    <div className="muted small">
-                      {b.category}
-                      {b.location ? ` · ${b.location}` : ""}
-                    </div>
-                  </div>
-                </li>
+                />
               ))}
-            </ul>
-          )}
-
-          <SectionHeader title="Experiences" />
-          {experiences.length === 0 ? (
-            <EmptyState title="No experiences matched." />
-          ) : (
-            <ul className="list">
               {experiences.map((e) => (
-                <li key={e.id} className="list-row clickable">
-                  <Link to={`/app/discover?open=${e.id}`} className="stretch-link">
-                    <strong>{e.displayName}</strong>
-                    <div className="muted small">{e.description}</div>
-                  </Link>
-                </li>
+                <ExperienceCard
+                  key={e.id}
+                  name={e.displayName}
+                  category={e.category}
+                  location={e.location}
+                  onClick={() => navigate(`/app/discover?open=${e.id}`)}
+                />
               ))}
-            </ul>
+            </div>
           )}
         </>
       )}

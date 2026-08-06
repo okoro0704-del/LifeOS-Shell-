@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Button, EmptyState, SectionHeader, Sheet, Skeleton } from "@lifeos/ui";
-import { userFacingMessage } from "../lib/api";
+import {
+  ActivityRow,
+  Button,
+  EmptyState,
+  SectionHeader,
+  Sheet,
+  Skeleton,
+  WalletCard,
+} from "@lifeos/ui";
 import { walletService } from "../lib/services";
 import { StatusBanner } from "../components/StatusBanner";
 
@@ -18,6 +25,11 @@ type Tx = {
 
 type Mode = "idle" | "send" | "receive" | "pay";
 
+function maskAddress(address?: string) {
+  if (!address || address.length < 8) return "••••";
+  return `•••• ${address.slice(-4)}`;
+}
+
 function dayLabel(iso: string) {
   const d = new Date(iso);
   const today = new Date();
@@ -25,7 +37,14 @@ function dayLabel(iso: string) {
   yday.setDate(today.getDate() - 1);
   if (d.toDateString() === today.toDateString()) return "Today";
   if (d.toDateString() === yday.toDateString()) return "Yesterday";
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 export function WalletPage() {
@@ -45,7 +64,7 @@ export function WalletPage() {
 
   useEffect(() => {
     void load()
-      .catch((e) => setError(userFacingMessage(e)))
+      .catch(() => setError("We couldn't load your wallet. Try again."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -82,10 +101,10 @@ export function WalletPage() {
         memo: String(fd.get("memo") || "") || undefined,
       });
       setMode("idle");
-      setSuccess("Send recorded (mock).");
+      setSuccess("Sent successfully.");
       await load();
-    } catch (err) {
-      setError(userFacingMessage(err));
+    } catch {
+      setError("Couldn't complete send. Try again.");
     } finally {
       setBusy(false);
     }
@@ -104,10 +123,10 @@ export function WalletPage() {
         reference: String(fd.get("reference") || "") || undefined,
       });
       setMode("idle");
-      setSuccess("Payment recorded (mock).");
+      setSuccess("Payment recorded.");
       await load();
-    } catch (err) {
-      setError(userFacingMessage(err));
+    } catch {
+      setError("Couldn't complete payment. Try again.");
     } finally {
       setBusy(false);
     }
@@ -115,7 +134,7 @@ export function WalletPage() {
 
   return (
     <div className="page">
-      <SectionHeader title="Wallet" subtitle="Mock Token Network — not real settlement" />
+      <SectionHeader title="Wallet" />
       {error ? <StatusBanner title={error} /> : null}
       {success ? (
         <div className="success-banner" role="status">
@@ -123,31 +142,31 @@ export function WalletPage() {
         </div>
       ) : null}
 
-      <div className="wallet-card" aria-live="polite">
-        <div className="label">Balance · mock</div>
-        {loading ? (
-          <Skeleton height={40} className="wallet-skel" label="Loading balance" />
-        ) : (
-          <div className="wallet-amount">{data?.balance.formatted ?? "…"}</div>
-        )}
-        <div className="muted small mono">{data?.wallet.address ?? "—"}</div>
-        {data?.notice ? <p className="wallet-notice">{data.notice}</p> : null}
-      </div>
-
-      <div className="action-row" role="group" aria-label="Wallet actions">
-        <Button variant="ghost" onClick={() => setMode("send")}>
-          Send
-        </Button>
-        <Button variant="ghost" onClick={() => setMode("receive")}>
-          Receive
-        </Button>
-        <Button onClick={() => setMode("pay")}>Pay</Button>
-      </div>
+      {loading ? (
+        <Skeleton height={180} label="Loading wallet" />
+      ) : (
+        <WalletCard
+          balance={data?.balance.formatted}
+          mask={maskAddress(data?.wallet.address)}
+          actions={
+            <>
+              <button type="button" className="los-wallet__action" onClick={() => setMode("pay")}>
+                Pay
+              </button>
+              <button type="button" className="los-wallet__action" onClick={() => setMode("send")}>
+                Send
+              </button>
+              <button type="button" className="los-wallet__action" onClick={() => setMode("receive")}>
+                Receive
+              </button>
+            </>
+          }
+        />
+      )}
 
       {mode === "send" ? (
         <form className="panel-form" onSubmit={onSend}>
-          <h3>Send (mock)</h3>
-          <p className="muted small">Placeholder for Token Network send — no real value moves.</p>
+          <h3>Send</h3>
           <label>
             To
             <input name="to" required placeholder="Address or TrustID" autoComplete="off" />
@@ -173,8 +192,7 @@ export function WalletPage() {
 
       {mode === "pay" ? (
         <form className="panel-form" onSubmit={onPay}>
-          <h3>Pay (mock)</h3>
-          <p className="muted small">Placeholder merchant pay flow.</p>
+          <h3>Pay</h3>
           <label>
             Merchant
             <input name="merchant" required defaultValue="Sunrise Hotel" />
@@ -200,12 +218,11 @@ export function WalletPage() {
 
       {mode === "receive" ? (
         <div className="panel-form">
-          <h3>Receive (mock)</h3>
-          <p className="muted small">Share this address — settlement is simulated only.</p>
+          <h3>Receive</h3>
           {data?.wallet.address ? (
             <div className="mono receive-box">{data.wallet.address}</div>
           ) : (
-            <EmptyState title="Address unavailable" detail="Try again when the wallet API is online." />
+            <EmptyState title="Address unavailable" />
           )}
           <Button variant="ghost" onClick={() => setMode("idle")}>
             Done
@@ -213,20 +230,19 @@ export function WalletPage() {
         </div>
       ) : null}
 
-      <SectionHeader title="Recent transactions" subtitle="Grouped mock history" />
+      <SectionHeader title="Recent transactions" />
       {loading ? (
         <>
-          <Skeleton height={56} label="Loading transactions" />
-          <Skeleton height={56} />
-          <Skeleton height={56} />
+          <Skeleton height={48} />
+          <Skeleton height={48} />
         </>
       ) : grouped.length === 0 ? (
         <EmptyState
           title="No transactions yet"
-          detail="Send, receive, or pay (mock) to see activity here."
+          detail="Pay, send, or receive to see activity here."
           action={
             <Button size="sm" variant="soft" onClick={() => setMode("pay")}>
-              Try a mock payment
+              Make a payment →
             </Button>
           }
         />
@@ -234,29 +250,32 @@ export function WalletPage() {
         grouped.map(([day, txs]) => (
           <div key={day} className="tx-group">
             <div className="tx-day">{day}</div>
-            <ul className="list">
+            <div className="surface-block">
               {txs.map((tx) => (
-                <li key={tx.id}>
-                  <button
-                    type="button"
-                    className="list-row clickable full-width-btn"
-                    onClick={() => setSelected(tx)}
-                  >
-                    <div>
-                      <strong className="capitalize">{tx.counterparty}</strong>
-                      <div className="muted small capitalize">{tx.kind} · mock</div>
-                    </div>
-                    <span className="mono">
-                      {tx.kind === "receive" ? "+" : "−"}
-                      {tx.amount} {tx.symbol}
-                    </span>
-                  </button>
-                </li>
+                <ActivityRow
+                  key={tx.id}
+                  kind={tx.kind === "receive" ? "wallet_transfer" : "payment"}
+                  title={tx.counterparty}
+                  detail={tx.kind}
+                  time={formatTime(tx.createdAt)}
+                  amount={`${tx.kind === "receive" ? "+" : "−"}${tx.amount} ${tx.symbol}`}
+                  onClick={() => setSelected(tx)}
+                />
               ))}
-            </ul>
+            </div>
           </div>
         ))
       )}
+
+      <section className="wallet-status">
+        <SectionHeader title="Network" subtitle="Token settlement status" />
+        <div className="surface-block padded">
+          <p className="muted small">
+            Connected to the LifeOS wallet provider. Settlement is simulated until Token Network
+            goes live.
+          </p>
+        </div>
+      </section>
 
       {selected ? (
         <Sheet title="Transaction" onClose={() => setSelected(null)}>
@@ -287,10 +306,6 @@ export function WalletPage() {
             <div>
               <div className="label">Date</div>
               <div>{new Date(selected.createdAt).toLocaleString()}</div>
-            </div>
-            <div>
-              <div className="label">Source</div>
-              <div>Token Network (mock)</div>
             </div>
           </div>
         </Sheet>

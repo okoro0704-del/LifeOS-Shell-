@@ -5,8 +5,8 @@ import { notificationService } from "../lib/services";
 
 const tabs = [
   { to: "/app", end: true, label: "Home", icon: "⌂" },
+  { to: "/app/discover", label: "Explore", icon: "◎" },
   { to: "/app/wallet", label: "Wallet", icon: "◈" },
-  { to: "/app/discover", label: "Discover", icon: "◎" },
   { to: "/app/activity", label: "Activity", icon: "☰" },
   { to: "/app/profile", label: "Profile", icon: "◉" },
 ] as const;
@@ -45,6 +45,9 @@ export function AppShell() {
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
+  const hideChromeHeader =
+    location.pathname === "/app" || location.pathname === "/app/";
+
   return (
     <div className="shell">
       <a href="#main-content" className="skip-link">
@@ -69,6 +72,7 @@ export function AppShell() {
               {t.label}
             </NavLink>
           ))}
+          <div className="side-nav-divider" aria-hidden />
           <NavLink to="/app/search" className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}>
             <span className="nav-icon" aria-hidden>
               ⌕
@@ -108,12 +112,12 @@ export function AppShell() {
       </aside>
 
       <div className="shell-main">
-        <header className="topbar">
-          <div className="brand brand--mobile">
-            <span className="brand-mark" aria-hidden />
+        <header className={`app-header${hideChromeHeader ? " app-header--home" : ""}`}>
+          <div className="app-header__brand">
+            <span className="brand-mark brand-mark--sm" aria-hidden />
             <span className="brand-name">LifeOS</span>
           </div>
-          <div className="topbar-actions">
+          <div className="app-header__actions">
             <NavLink to="/app/search" className="icon-btn" aria-label="Search">
               <span aria-hidden>⌕</span>
             </NavLink>
@@ -125,22 +129,25 @@ export function AppShell() {
               <span aria-hidden>✉</span>
               {unread ? (
                 <span className="badge-dot" aria-hidden>
-                  {unread}
+                  {unread > 9 ? "9+" : unread}
                 </span>
               ) : null}
             </NavLink>
           </div>
         </header>
+
         {offline ? (
           <div className="offline-banner" role="status">
-            You&apos;re offline. Cached pages may still work; experiences need a connection.
+            <strong>You&apos;re offline</strong>
+            <span>Showing your latest saved information.</span>
           </div>
         ) : null}
+
         {showInstall && deferredPrompt ? (
           <div className="install-banner" role="region" aria-label="Install LifeOS">
             <div>
               <strong>Install LifeOS</strong>
-              <p className="muted small">Add to your home screen for a fuller OS feel.</p>
+              <p className="muted small">Add to your home screen for everyday access.</p>
             </div>
             <div className="row-actions">
               <button
@@ -168,11 +175,13 @@ export function AppShell() {
             </div>
           </div>
         ) : null}
+
         <main id="main-content" className="content" key={location.pathname}>
           <div className="page-enter">
             <Outlet />
           </div>
         </main>
+
         <nav className="bottom-nav" aria-label="Primary">
           {tabs.map((t) => (
             <NavLink

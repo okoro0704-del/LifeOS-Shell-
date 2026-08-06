@@ -1,10 +1,18 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ActivityItem } from "@lifeos/shared";
-import { EmptyState, SectionHeader, Skeleton } from "@lifeos/ui";
+import { ActivityRow, Button, EmptyState, SectionHeader, Skeleton } from "@lifeos/ui";
 import { activityService } from "../lib/services";
-import { userFacingMessage } from "../lib/api";
 import { StatusBanner } from "../components/StatusBanner";
+
+function formatStamp(iso: string) {
+  const d = new Date(iso);
+  const now = new Date();
+  if (d.toDateString() === now.toDateString()) {
+    return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  }
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
 
 export function ActivityPage() {
   const [items, setItems] = useState<ActivityItem[]>([]);
@@ -16,43 +24,45 @@ export function ActivityPage() {
     void activityService
       .list()
       .then((d) => setItems(d.activities))
-      .catch((e) => setError(userFacingMessage(e)))
+      .catch(() => setError("We couldn't load activity. Try again."))
       .finally(() => setLoading(false));
   }, []);
 
   return (
     <div className="page">
-      <SectionHeader
-        title="Activity"
-        subtitle="Ecosystem feed — LifeOS aggregates; source systems remain authoritative"
-      />
+      <SectionHeader title="Activity" subtitle="Your recent LifeOS events" />
       {error ? <StatusBanner title={error} /> : null}
-      {loading ? <Skeleton height={140} /> : null}
+      {loading ? (
+        <>
+          <Skeleton height={56} />
+          <Skeleton height={56} />
+          <Skeleton height={56} />
+        </>
+      ) : null}
       {!loading && items.length === 0 ? (
-        <EmptyState title="No activity yet." detail="Events from LifeOS and connected OSs will appear here." />
+        <EmptyState
+          title="No activity yet"
+          detail="Bookings, payments, and experience events will show up here."
+          action={
+            <Button variant="soft" size="sm" onClick={() => navigate("/app/discover")}>
+              Discover something →
+            </Button>
+          }
+        />
       ) : (
-        <ul className="list">
+        <div className="surface-block">
           {items.map((a) => (
-            <li
+            <ActivityRow
               key={a.id}
-              className={`list-row${a.deepLink ? " clickable" : ""}`}
-              onClick={() => {
-                if (a.deepLink) navigate(a.deepLink);
-              }}
-            >
-              <div>
-                <div className="muted small">{a.source}</div>
-                <strong>{a.title}</strong>
-                <div className="muted small">{a.detail}</div>
-                <div className="muted small">
-                  {new Date(a.createdAt).toLocaleString()}
-                  {a.status ? ` · ${a.status}` : ""}
-                </div>
-              </div>
-              {a.amount ? <span className="mono">{a.amount}</span> : null}
-            </li>
+              kind={a.kind}
+              title={a.title}
+              detail={a.detail}
+              time={formatStamp(a.createdAt)}
+              amount={a.amount ?? undefined}
+              onClick={a.deepLink ? () => navigate(a.deepLink!) : undefined}
+            />
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );

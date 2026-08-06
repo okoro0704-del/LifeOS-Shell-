@@ -24,10 +24,10 @@ export function RequireAuth() {
         <div className="welcome-inner">
           <p className="brand-hero">LifeOS</p>
           <StatusBanner
-            title="Your LifeOS session has expired"
-            detail="Continue with TrustID."
+            title="Your session ended"
+            detail="Continue with TrustID to sign in again."
             action={
-              <Button onClick={() => navigate("/")}>Continue with TrustID</Button>
+              <Button onClick={() => navigate("/")}>Continue with TrustID →</Button>
             }
           />
         </div>
@@ -41,9 +41,9 @@ export function RequireAuth() {
         <div className="welcome-inner">
           <p className="brand-hero">LifeOS</p>
           <StatusBanner
-            title="We couldn't load your LifeOS data"
-            detail="Check that the LifeOS API is running, then retry."
-            action={<Button onClick={() => window.location.reload()}>Retry</Button>}
+            title="Something went wrong"
+            detail="We couldn't load LifeOS. Try again in a moment."
+            action={<Button onClick={() => window.location.reload()}>Try again</Button>}
           />
         </div>
       </div>

@@ -5,45 +5,37 @@ import type {
   ExperienceRecord,
   ExperienceSessionPublic,
 } from "@lifeos/shared";
-import { Chip, EmptyState, SectionHeader, Skeleton } from "@lifeos/ui";
+import {
+  Chip,
+  EmptyState,
+  ExperienceCard,
+  SearchBar,
+  SectionHeader,
+  Skeleton,
+} from "@lifeos/ui";
 import { ExperienceViewer } from "../components/ExperienceViewer";
 import { PermissionConsent } from "../components/PermissionConsent";
 import { PermissionRequestSheet } from "../components/PermissionRequestSheet";
 import { StatusBanner } from "../components/StatusBanner";
-import { userFacingMessage } from "../lib/api";
 import { discoverService } from "../lib/services";
 
 type Listing = ExperienceRecord & { loadable: boolean; availability?: string };
 
-const SECTION_CATEGORIES = ["Hotels", "Restaurants", "Apartments"] as const;
-
-function BizTile({
-  e,
-  onOpen,
-}: {
-  e: Listing;
-  onOpen: (id: string) => void;
-}) {
-  return (
-    <button type="button" className="feature-tile" onClick={() => onOpen(e.id)}>
-      <div className="biz-logo" aria-hidden>
-        {(e.icon && e.icon.length === 1 ? e.icon : e.displayName.slice(0, 1)).toUpperCase()}
-      </div>
-      <div className="feature-name">{e.displayName}</div>
-      <div className="muted small">
-        {(e.metadata?.osLabel as string) ?? e.osType}
-        {e.location ? ` · ${e.location}` : ""}
-      </div>
-    </button>
-  );
-}
+const CATEGORY_CHIPS = [
+  { id: "All", label: "All" },
+  { id: "Hotels", label: "Stay" },
+  { id: "Restaurants", label: "Eat" },
+  { id: "Apartments", label: "Stay+" },
+  { id: "Services", label: "Wellness" },
+  { id: "Transport", label: "Travel" },
+  { id: "Other", label: "More" },
+] as const;
 
 export function DiscoverPage() {
   const [params, setParams] = useSearchParams();
   const [items, setItems] = useState<Listing[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
   const [featured, setFeatured] = useState<Listing[]>([]);
-  const [category, setCategory] = useState<string>("All");
+  const [category, setCategory] = useState<string>(params.get("category") || "All");
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,14 +55,18 @@ export function DiscoverPage() {
   const openId = params.get("open");
 
   useEffect(() => {
+    const cat = params.get("category");
+    if (cat) setCategory(cat);
+  }, [params]);
+
+  useEffect(() => {
     void discoverService
       .get()
       .then((d) => {
         setItems(d.items);
         setFeatured(d.featured as Listing[]);
-        setCategories(d.categories);
       })
-      .catch((e) => setError(userFacingMessage(e)))
+      .catch(() => setError("We couldn't load experiences. Try again."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -87,8 +83,8 @@ export function DiscoverPage() {
         } else {
           setPending({ experience, requestable: perms.requestable });
         }
-      } catch (e) {
-        setError(userFacingMessage(e));
+      } catch {
+        setError("We couldn't open this experience. Try again.");
       }
     })();
   }, [openId, items]);
@@ -103,38 +99,43 @@ export function DiscoverPage() {
           i.displayName.toLowerCase().includes(q) ||
           i.description.toLowerCase().includes(q) ||
           i.businessName.toLowerCase().includes(q) ||
-          (i.location ?? "").toLowerCase().includes(q),
+          (i.location ?? "").toLowerCase().includes(q) ||
+          i.category.toLowerCase().includes(q),
       );
     }
     return list;
   }, [items, category, query]);
 
-  const byCategory = useMemo(() => {
-    const map: Record<string, Listing[]> = {};
-    for (const c of SECTION_CATEGORIES) {
-      map[c] = items.filter((i) => i.category === c).slice(0, 4);
-    }
-    return map;
-  }, [items]);
-
-  const nearYou = useMemo(
-    () => items.filter((i) => i.location).slice(0, 4),
-    [items],
-  );
-
-  const popular = useMemo(() => items.slice(0, 4), [items]);
-  const recentlyAdded = useMemo(() => [...items].reverse().slice(0, 4), [items]);
+  const nearYou = useMemo(() => items.filter((i) => i.location).slice(0, 6), [items]);
+  const showFiltered = category !== "All" || query.trim().length > 0;
 
   function openExperience(id: string) {
-    setParams({ open: id });
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("open", id);
+      return next;
+    });
   }
 
   function clearOpen() {
-    params.delete("open");
-    setParams(params);
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("open");
+      return next;
+    });
     setPending(null);
     setSession(null);
     setExtraPerms(null);
+  }
+
+  function selectCategory(id: string) {
+    setCategory(id);
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (id === "All") next.delete("category");
+      else next.set("category", id);
+      return next;
+    });
   }
 
   async function handlePermissionRequest(permissions: string[]) {
@@ -148,163 +149,133 @@ export function DiscoverPage() {
       const novel = requested.filter((p) => !alreadyGranted.includes(p));
       if (!novel.length) return;
       setExtraPerms({ requested: novel, alreadyGranted });
-    } catch (e) {
-      setError(userFacingMessage(e));
+    } catch {
+      setError("We couldn't update permissions. Try again.");
     }
   }
 
-  const showDirectory = category !== "All" || query.trim().length > 0;
-
   return (
     <div className="page">
-      <SectionHeader
-        title="Discover"
-        subtitle="Marketplace for TrustID ecosystem experiences"
-        action={
-          <Link to="/app/search" className="text-link">
-            Advanced
-          </Link>
-        }
-      />
+      <SectionHeader title="Discover" subtitle="Experiences across your trusted ecosystem" />
 
       {error ? <StatusBanner title={error} /> : null}
 
-      <label className="sr-only" htmlFor="discover-search">
-        Search experiences
-      </label>
-      <input
+      <SearchBar
         id="discover-search"
-        className="search-input"
-        type="search"
-        placeholder="Search hotels, restaurants, apartments…"
+        placeholder="What are you looking for?"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         autoComplete="off"
+        aria-label="Search experiences"
       />
 
       <div className="chip-row" role="tablist" aria-label="Categories">
-        {["All", ...categories].map((c) => (
+        {CATEGORY_CHIPS.map((c) => (
           <Chip
-            key={c}
-            active={category === c}
-            onClick={() => setCategory(c)}
+            key={c.id}
+            active={category === c.id}
+            onClick={() => selectCategory(c.id)}
             role="tab"
-            aria-selected={category === c}
+            aria-selected={category === c.id}
           >
-            {c}
+            {c.label}
           </Chip>
         ))}
       </div>
 
       {loading ? (
         <>
-          <Skeleton height={96} label="Loading featured" />
-          <Skeleton height={160} label="Loading directory" />
+          <Skeleton height={180} label="Loading experiences" />
+          <Skeleton height={180} />
         </>
-      ) : showDirectory ? (
+      ) : showFiltered ? (
         <>
           <SectionHeader
-            title={category === "All" ? "Results" : category}
-            subtitle={`${filtered.length} experience${filtered.length === 1 ? "" : "s"}`}
+            title={query.trim() ? "Results" : CATEGORY_CHIPS.find((c) => c.id === category)?.label || category}
+            subtitle={`${filtered.length} available`}
           />
           {filtered.length === 0 ? (
             <EmptyState
               title="No matches"
               detail="Try another category or clear your search."
+              action={
+                <button type="button" className="text-link" onClick={() => { setQuery(""); selectCategory("All"); }}>
+                  Clear filters
+                </button>
+              }
             />
           ) : (
-            <ul className="list">
+            <div className="exp-grid">
               {filtered.map((e) => (
-                <li key={e.id}>
-                  <button
-                    type="button"
-                    className="list-row clickable biz-card full-width-btn"
-                    onClick={() => openExperience(e.id)}
-                  >
-                    <div className="biz-row">
-                      <div className="biz-logo" aria-hidden>
-                        {e.displayName.slice(0, 1)}
-                      </div>
-                      <div>
-                        <strong>{e.displayName}</strong>
-                        <div className="muted small">
-                          {(e.metadata?.osLabel as string) ?? e.osType}
-                          {e.location ? ` · ${e.location}` : ""}
-                        </div>
-                        <div className="muted small">{e.description}</div>
-                      </div>
-                    </div>
-                    <div className="biz-meta">
-                      <span className="badge">{e.category}</span>
-                      <span className="muted small">{e.availability ?? "Open"}</span>
-                    </div>
-                  </button>
-                </li>
+                <ExperienceCard
+                  key={e.id}
+                  name={e.displayName}
+                  category={e.category}
+                  location={e.location}
+                  availability={e.availability ?? "Available now"}
+                  initial={e.icon ?? e.displayName}
+                  onClick={() => openExperience(e.id)}
+                />
               ))}
-            </ul>
+            </div>
           )}
         </>
       ) : (
         <>
-          <SectionHeader title="Featured" />
-          <div className="feature-rail">
+          <SectionHeader title="Recommended" />
+          <div className="exp-rail">
             {featured.map((e) => (
-              <BizTile key={e.id} e={e} onOpen={openExperience} />
+              <ExperienceCard
+                key={e.id}
+                name={e.displayName}
+                category={e.category}
+                location={e.location}
+                availability={e.availability ?? "Available now"}
+                initial={e.icon ?? e.displayName}
+                onClick={() => openExperience(e.id)}
+              />
             ))}
           </div>
-          {!featured.length ? <EmptyState title="No featured experiences." /> : null}
+          {!featured.length ? <EmptyState title="Nothing featured yet." /> : null}
 
-          <SectionHeader title="Near you" subtitle="Location-tagged listings" />
+          <SectionHeader title="Nearby" subtitle="Location-tagged experiences" />
           {nearYou.length === 0 ? (
-            <EmptyState title="Nothing nearby yet." />
+            <EmptyState title="Nothing nearby yet" detail="Experiences with locations will appear here." />
           ) : (
-            <div className="feature-rail">
+            <div className="exp-rail">
               {nearYou.map((e) => (
-                <BizTile key={e.id} e={e} onOpen={openExperience} />
+                <ExperienceCard
+                  key={e.id}
+                  name={e.displayName}
+                  category={e.category}
+                  location={e.location}
+                  availability={e.availability ?? "Available now"}
+                  initial={e.icon ?? e.displayName}
+                  onClick={() => openExperience(e.id)}
+                />
               ))}
             </div>
           )}
 
-          {SECTION_CATEGORIES.map((cat) =>
-            byCategory[cat]?.length ? (
-              <section key={cat}>
-                <SectionHeader
-                  title={cat}
-                  action={
-                    <button type="button" className="text-link" onClick={() => setCategory(cat)}>
-                      See all
-                    </button>
-                  }
-                />
-                <div className="feature-rail">
-                  {byCategory[cat].map((e) => (
-                    <BizTile key={e.id} e={e} onOpen={openExperience} />
-                  ))}
-                </div>
-              </section>
-            ) : null,
-          )}
-
-          <SectionHeader title="Popular" />
-          <div className="feature-rail">
-            {popular.map((e) => (
-              <BizTile key={e.id} e={e} onOpen={openExperience} />
-            ))}
-          </div>
-
-          <SectionHeader title="Recently added" />
-          <div className="feature-rail">
-            {recentlyAdded.map((e) => (
-              <BizTile key={e.id} e={e} onOpen={openExperience} />
-            ))}
-          </div>
-
-          <SectionHeader title="Categories" />
-          <div className="chip-row">
-            {categories.map((c) => (
-              <Chip key={c} onClick={() => setCategory(c)}>
-                {c}
-              </Chip>
+          <SectionHeader
+            title="All experiences"
+            action={
+              <Link to="/app/search" className="text-link">
+                Search
+              </Link>
+            }
+          />
+          <div className="exp-grid">
+            {items.map((e) => (
+              <ExperienceCard
+                key={e.id}
+                name={e.displayName}
+                category={e.category}
+                location={e.location}
+                availability={e.availability ?? "Available now"}
+                initial={e.icon ?? e.displayName}
+                onClick={() => openExperience(e.id)}
+              />
             ))}
           </div>
         </>

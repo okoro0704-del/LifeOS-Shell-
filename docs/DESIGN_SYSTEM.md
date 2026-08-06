@@ -71,10 +71,17 @@ Respect `prefers-reduced-motion`.
 | `Card` | Interactive or static surface |
 | `ListRow` | Keyboard-accessible row |
 | `Avatar` | `sm` / `md` / `lg` |
-| `StatusDot` | Live / connected status |
-| `Badge` | Compact labels (`accent` / `success`) |
+| `StatusDot` / `StatusBadge` | Live / connected / warning status |
+| `Badge` | Compact labels (`accent` / `success` / `warning`) |
 | `Chip` | Filters (`aria-pressed`) |
 | `ProgressBar` | Determinate progress |
+| `SearchBar` | Rounded search field |
+| `QuickAction` | Icon + label action |
+| `WalletCard` | Premium balance surface |
+| `ExperienceCard` | Ecosystem experience tile |
+| `ActivityRow` | Compact timeline row |
+| `ProfileRow` | Settings / control-centre row |
+| `SecurityCard` | Identity / TrustID CTA surface |
 | `Sheet` | Mobile-first modal panel |
 
 Prefer these over one-off CSS for buttons, chips, empty states, and skeletons.
