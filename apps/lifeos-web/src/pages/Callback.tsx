@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ApiError, authClient, userFacingMessage } from "../lib/api";
+import { ApiError, authClient, storeSessionToken, userFacingMessage } from "../lib/api";
 import { meService } from "../lib/services";
 import { useAuth } from "../hooks/useAuth";
 import { StatusBanner } from "../components/StatusBanner";
@@ -41,6 +41,7 @@ export function CallbackPage() {
         const tokens = await authClient.exchangeCode(code, state);
         setDetail("Creating your LifeOS session…");
         const data = await meService.createSession(tokens.access_token);
+        storeSessionToken(data.sessionToken);
         setUser(data.user);
         navigate("/app", { replace: true });
       } catch (err) {

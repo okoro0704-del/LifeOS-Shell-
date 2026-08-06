@@ -4,6 +4,8 @@ export const trustIdWeb = import.meta.env.VITE_TRUSTID_WEB ?? "http://localhost:
 export const trustIdApi = import.meta.env.VITE_TRUSTID_API ?? "http://localhost:8787";
 export const lifeosApiBase = import.meta.env.VITE_LIFEOS_API ?? "/api";
 
+const SESSION_STORAGE_KEY = "lifeos.session.token";
+
 export const authClient = createAuthClient({
   trustIdApi,
   clientId: import.meta.env.VITE_TRUSTID_CLIENT_ID ?? "lifeos_mock_public",
@@ -34,6 +36,23 @@ export class ApiError extends Error {
     this.name = "ApiError";
     this.status = status;
     this.code = code;
+  }
+}
+
+export function getStoredSessionToken(): string | null {
+  try {
+    return localStorage.getItem(SESSION_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function storeSessionToken(token: string | null) {
+  try {
+    if (token) localStorage.setItem(SESSION_STORAGE_KEY, token);
+    else localStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch {
+    /* private mode / blocked storage */
   }
 }
 
@@ -79,15 +98,21 @@ export function userFacingMessage(err: unknown): string {
 }
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  const sessionToken = getStoredSessionToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(init?.headers as Record<string, string> | undefined),
+  };
+  if (sessionToken) {
+    headers["X-LifeOS-Session"] = sessionToken;
+  }
+
   let res: Response;
   try {
     res = await fetch(`${lifeosApiBase}${path}`, {
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...(init?.headers ?? {}),
-      },
       ...init,
+      credentials: "include",
+      headers,
     });
   } catch {
     throw new ApiError("We couldn't load your LifeOS data.", 0, "lifeos_unavailable");
@@ -96,10 +121,14 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const raw = (data as { error?: string }).error;
+    const code = mapErrorCode(res.status, raw);
+    if (code === "unauthorized" || code === "session_expired") {
+      storeSessionToken(null);
+    }
     const message =
       (data as { message?: string }).message ||
-      userFacingMessage(new ApiError("Request failed", res.status, mapErrorCode(res.status, raw)));
-    throw new ApiError(message, res.status, mapErrorCode(res.status, raw));
+      userFacingMessage(new ApiError("Request failed", res.status, code));
+    throw new ApiError(message, res.status, code);
   }
   return data as T;
 }

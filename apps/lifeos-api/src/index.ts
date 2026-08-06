@@ -16,6 +16,7 @@ const app = Fastify({ logger: true });
 await app.register(cors, {
   origin: config.corsOrigins,
   credentials: true,
+  allowedHeaders: ["Content-Type", "Authorization", "X-LifeOS-Session"],
 });
 
 await app.register(cookie, {

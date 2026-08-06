@@ -7,6 +7,15 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  # Prefer same-origin API so session cookies are first-party
+  VITE_LIFEOS_API = "/api"
+
+# Proxy API to Railway BEFORE the SPA catch-all (first-party cookies)
+[[redirects]]
+  from = "/api/*"
+  to = "https://lifeos-shell-production.up.railway.app/:splat"
+  status = 200
+  force = true
 
 # SPA: serve index.html for client-side routes (/app/*, /callback, …)
 [[redirects]]

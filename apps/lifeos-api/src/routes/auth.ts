@@ -1,7 +1,14 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { AUDIT_EVENTS, DEFAULT_PREFERENCES } from "@lifeos/shared";
-import { requireSession, resolveAuthStatus, toPublicUser } from "../lib/auth.js";
+import {
+  clearSessionCookie,
+  extractSessionToken,
+  requireSession,
+  resolveAuthStatus,
+  setSessionCookie,
+  toPublicUser,
+} from "../lib/auth.js";
 import { config } from "../lib/config.js";
 import { hashSecret, randomToken } from "../lib/crypto.js";
 import { prisma } from "../lib/prisma.js";
@@ -124,8 +131,8 @@ async function ensureWelcomeContent(userId: string) {
 }
 
 export async function authRoutes(app: FastifyInstance) {
-  app.get("/auth/status", async (req) => {
-    const resolved = await resolveAuthStatus(req);
+  app.get("/auth/status", async (req, reply) => {
+    const resolved = await resolveAuthStatus(req, reply);
     return {
       status: resolved.status,
       authenticated: resolved.status === "authenticated",
@@ -186,19 +193,17 @@ export async function authRoutes(app: FastifyInstance) {
 
     await auditLog(AUDIT_EVENTS.SESSION_CREATED, { userId: user.id, detail: { trustId } });
 
-    reply.setCookie(config.sessionCookieName, rawToken, {
-      path: "/",
-      httpOnly: true,
-      sameSite: config.isDev ? "lax" : "none",
-      secure: !config.isDev,
-      expires: expiresAt,
-    });
+    setSessionCookie(reply, rawToken, expiresAt);
 
-    return { user: toPublicUser(user) };
+    return {
+      user: toPublicUser(user),
+      sessionToken: rawToken,
+      expiresAt: expiresAt.toISOString(),
+    };
   });
 
   app.post("/auth/logout", async (req, reply) => {
-    const token = req.cookies[config.sessionCookieName];
+    const token = extractSessionToken(req);
     if (token) {
       const session = await prisma.session.findUnique({
         where: { tokenHash: hashSecret(token) },
@@ -208,7 +213,7 @@ export async function authRoutes(app: FastifyInstance) {
         await auditLog(AUDIT_EVENTS.SESSION_REVOKED, { userId: session.userId });
       }
     }
-    reply.clearCookie(config.sessionCookieName, { path: "/" });
+    clearSessionCookie(reply);
     return { ok: true };
   });
 

@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import type { LifeOsUserPublic } from "@lifeos/shared";
-import { ApiError } from "../lib/api";
+import { ApiError, storeSessionToken } from "../lib/api";
 import { meService } from "../lib/services";
 
 export type ClientAuthStatus =
@@ -63,6 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       /* still clear local state */
     }
+    storeSessionToken(null);
     setUser(null);
     setStatus("unauthenticated");
   }, []);
