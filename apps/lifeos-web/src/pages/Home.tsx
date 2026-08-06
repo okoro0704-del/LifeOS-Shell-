@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type {
   AttentionItem,
@@ -62,6 +62,22 @@ function quickIcon(item: QuickAccessItem) {
   return <IconExplore size={20} />;
 }
 
+/** Default strip: life context + actions + categories — offerings behind See all. */
+function curateQuickAccess(items: QuickAccessItem[], expanded: boolean) {
+  if (expanded) return items;
+  const primary = items.filter(
+    (i) =>
+      i.pinned ||
+      !i.id.startsWith("qa_off_") ||
+      i.kind === "wallet" ||
+      i.kind === "action",
+  );
+  // Prefer non-offering first, then a few featured offerings
+  const withoutOfferings = primary.filter((i) => !i.id.startsWith("qa_off_"));
+  const fewOfferings = items.filter((i) => i.id.startsWith("qa_off_")).slice(0, 3);
+  return [...withoutOfferings, ...fewOfferings].slice(0, 12);
+}
+
 export function HomePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -72,6 +88,8 @@ export function HomePage() {
   const [forYou, setForYou] = useState<DiscoverableOffering[]>([]);
   const [recs, setRecs] = useState<RecommendationItem[]>([]);
   const [quick, setQuick] = useState<QuickAccessItem[]>([]);
+  const [quickExpanded, setQuickExpanded] = useState(false);
+  const [showMoreForYou, setShowMoreForYou] = useState(false);
   const [today, setToday] = useState<LifePlanItem[]>([]);
   const [upcoming, setUpcoming] = useState<LifePlanItem[]>([]);
   const [continueItems, setContinue] = useState<ContinueItem[]>([]);
@@ -91,14 +109,14 @@ export function HomePage() {
           commandService.quickAccess().catch(() => ({ items: [] as QuickAccessItem[] })),
           actionService.plans().catch(() => null),
         ]);
-        setForYou((disc.featuredOfferings ?? disc.offerings ?? []).slice(0, 4));
+        setForYou((disc.featuredOfferings ?? disc.offerings ?? []).slice(0, 6));
         setQuick(qa.items);
         if (plans) {
           setToday(plans.life?.today ?? []);
           setUpcoming((plans.life?.upcoming ?? []).slice(0, 4));
           setContinue(plans.continueItems ?? []);
           setAttention((plans.attention ?? []).slice(0, 3));
-          setRecs((plans.recommendations ?? []).slice(0, 4));
+          setRecs((plans.recommendations ?? []).slice(0, 6));
           if (plans.providerErrors?.length) {
             setProviderHint("Some live sources are unavailable — showing what we can.");
           }
@@ -116,6 +134,44 @@ export function HomePage() {
   }, []);
 
   const first = user?.firstName || user?.displayName?.split(" ")[0] || "there";
+  const quickVisible = useMemo(
+    () => curateQuickAccess(quick, quickExpanded),
+    [quick, quickExpanded],
+  );
+
+  const rightNow = useMemo(() => {
+    if (attention[0]) {
+      return {
+        kind: "attention" as const,
+        title: attention[0].title,
+        detail: attention[0].detail ?? "Needs your attention",
+        href: attention[0].href ?? "/app/plans",
+        cta: "Review",
+      };
+    }
+    if (today[0]) {
+      return {
+        kind: "today" as const,
+        title: today[0].title,
+        detail: [formatTime(today[0].startAt), today[0].subtitle].filter(Boolean).join(" · "),
+        href: today[0].action?.href ?? "/app/plans",
+        cta: today[0].action?.label ?? "Open",
+      };
+    }
+    if (continueItems[0]) {
+      return {
+        kind: "continue" as const,
+        title: continueItems[0].title,
+        detail: continueItems[0].subtitle ?? "Pick up where you left off",
+        href: continueItems[0].href,
+        cta: "Resume",
+      };
+    }
+    return null;
+  }, [attention, today, continueItems]);
+
+  const forYouPrimary = recs.length > 0 ? recs.slice(0, 2) : null;
+  const forYouRest = recs.slice(2);
 
   async function onQuick(item: QuickAccessItem) {
     if (["BOOK_SERVICE", "PAY_INVOICE", "CHECK_IN"].includes(item.actionId)) {
@@ -172,39 +228,68 @@ export function HomePage() {
         </p>
       </section>
 
+      {!loading && rightNow ? (
+        <section className="right-now" aria-label="Right now">
+          <SectionHeader title="Right now" subtitle="Your next best step" />
+          <button
+            type="button"
+            className="right-now__card"
+            onClick={() => navigate(rightNow.href)}
+          >
+            <div>
+              <strong>{rightNow.title}</strong>
+              <div className="muted small">{rightNow.detail}</div>
+            </div>
+            <span className="text-link">{rightNow.cta}</span>
+          </button>
+        </section>
+      ) : null}
+
       <section aria-label="Quick Access">
         <SectionHeader
           title="Quick Access"
-          subtitle={quick.length ? `${quick.length} services & shortcuts` : undefined}
+          subtitle="Shortcuts for what matters"
           action={
-            <button type="button" className="text-link" onClick={() => openCommand()}>
-              More
-            </button>
+            quick.length > quickVisible.length || !quickExpanded ? (
+              <button
+                type="button"
+                className="text-link"
+                onClick={() => setQuickExpanded((v) => !v)}
+              >
+                {quickExpanded ? "Show less" : "See all"}
+              </button>
+            ) : (
+              <button type="button" className="text-link" onClick={() => openCommand()}>
+                Ask
+              </button>
+            )
           }
         />
         {loading ? (
           <Skeleton height={72} label="Loading quick access" />
         ) : (
-          <div className="quick-row" role="list">
-            {quick.map((item) => (
-              <QuickAction
-                key={item.id}
-                icon={quickIcon(item)}
-                label={item.label}
-                onClick={() => void onQuick(item)}
-              />
+          <div className="quick-row">
+            {quickVisible.map((item) => (
+              <div key={item.id} role="listitem">
+                <QuickAction
+                  icon={quickIcon(item)}
+                  label={item.label}
+                  onClick={() => void onQuick(item)}
+                />
+              </div>
             ))}
           </div>
         )}
       </section>
 
       {preview ? (
-        <section aria-label="Action preview">
+        <section aria-label="Action confirmation" className="home-preview-section">
           <ActionPreview
             preview={preview}
             busy={confirmBusy}
             onCancel={() => setPreview(null)}
             onConfirm={() => void confirmHomePreview()}
+            asSection
           />
         </section>
       ) : null}
@@ -219,7 +304,7 @@ export function HomePage() {
                 <strong>{r.title}</strong>
                 {r.subtitle ? <span className="muted small">{r.subtitle}</span> : null}
                 <div className="row-actions">
-                  {r.actions.slice(0, 2).map((a) => (
+                  {r.actions.slice(0, 1).map((a) => (
                     <Button
                       key={a.id}
                       size="sm"
@@ -240,27 +325,6 @@ export function HomePage() {
                   ))}
                 </div>
               </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {attention.length > 0 ? (
-        <section>
-          <SectionHeader title="Needs attention" />
-          <div className="surface-block">
-            {attention.map((a) => (
-              <button
-                key={a.id}
-                type="button"
-                className="plan-row"
-                onClick={() => a.href && navigate(a.href)}
-              >
-                <div>
-                  <strong>{a.title}</strong>
-                  <div className="muted small">{a.detail}</div>
-                </div>
-              </button>
             ))}
           </div>
         </section>
@@ -362,6 +426,7 @@ export function HomePage() {
       <section>
         <SectionHeader
           title="For you"
+          subtitle="Based on your activity"
           action={
             <Link to="/app/discover" className="text-link">
               Explore
@@ -373,10 +438,9 @@ export function HomePage() {
             <Skeleton height={200} />
             <Skeleton height={200} />
           </div>
-        ) : recs.length > 0 ? (
+        ) : forYouPrimary ? (
           <div className="surface-block">
-            <p className="muted small pad-inline">Based on your activity</p>
-            {recs.map((r) => (
+            {forYouPrimary.map((r) => (
               <button
                 key={r.id}
                 type="button"
@@ -392,6 +456,35 @@ export function HomePage() {
                 <span className="mono">{r.priceFormatted}</span>
               </button>
             ))}
+            {forYouRest.length > 0 ? (
+              showMoreForYou ? (
+                forYouRest.map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    className="plan-row"
+                    onClick={() => navigate(`/app/discover?offering=${r.offeringId}`)}
+                  >
+                    <div>
+                      <strong>{r.name}</strong>
+                      <div className="muted small">
+                        {r.businessName} · {r.reason}
+                      </div>
+                    </div>
+                    <span className="mono">{r.priceFormatted}</span>
+                  </button>
+                ))
+              ) : (
+                <button
+                  type="button"
+                  className="text-link pad-inline"
+                  style={{ padding: "0.75rem 1rem" }}
+                  onClick={() => setShowMoreForYou(true)}
+                >
+                  More for you
+                </button>
+              )
+            ) : null}
           </div>
         ) : forYou.length === 0 ? (
           <EmptyState
@@ -404,7 +497,7 @@ export function HomePage() {
             }
           />
         ) : (
-          <div className="exp-rail">
+          <div className="exp-rail exp-rail--peek">
             {forYou.map((o) => (
               <OfferingCard
                 key={o.id}
@@ -418,6 +511,8 @@ export function HomePage() {
                 availability={o.availability}
                 badge={o.badge}
                 rating={o.rating}
+                image={o.image}
+                reason="Popular nearby"
                 onClick={() => navigate(`/app/discover?offering=${o.id}`)}
               />
             ))}

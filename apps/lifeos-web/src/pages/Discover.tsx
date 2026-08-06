@@ -353,6 +353,13 @@ export function DiscoverPage() {
     }
   }
 
+  const INTENT_CARDS = [
+    { id: "eat", label: "Eat tonight", detail: "Tables & meals nearby", category: "Eat", query: "restaurants tonight" },
+    { id: "reset", label: "Reset", detail: "Spa & wellness", category: "Wellness", query: "massage" },
+    { id: "stay", label: "Stay nearby", detail: "Rooms & hotels", category: "Stay", query: "hotel" },
+    { id: "fun", label: "Something fun", detail: "Cinema & events", category: "Cinema", query: "cinema tickets" },
+  ] as const;
+
   return (
     <div className="page">
       <SectionHeader title="Discover" subtitle="What can you do today?" />
@@ -360,6 +367,24 @@ export function DiscoverPage() {
       {error ? <StatusBanner title={error} /> : null}
 
       <AskLifeOSTrigger />
+
+      <section className="intent-grid" aria-label="Start with an intent">
+        {INTENT_CARDS.map((card) => (
+          <button
+            key={card.id}
+            type="button"
+            className="intent-card"
+            onClick={() => {
+              selectCategory(card.category);
+              setQuery("");
+              openCommand(card.query);
+            }}
+          >
+            <strong>{card.label}</strong>
+            <span className="muted small">{card.detail}</span>
+          </button>
+        ))}
+      </section>
 
       <SearchBar
         id="discover-search"
@@ -371,14 +396,12 @@ export function DiscoverPage() {
         style={{ marginTop: "0.75rem" }}
       />
 
-      <div className="chip-row" role="tablist" aria-label="Categories">
+      <div className="chip-row" role="group" aria-label="Categories">
         {CATEGORY_CHIPS.map((c) => (
           <Chip
             key={c.id}
             active={category === c.id}
             onClick={() => selectCategory(c.id)}
-            role="tab"
-            aria-selected={category === c.id}
           >
             {c.label}
           </Chip>
@@ -429,6 +452,7 @@ export function DiscoverPage() {
                   availability={o.availability}
                   badge={o.badge}
                   rating={o.rating}
+                  image={o.image}
                   onClick={() => openOffering(o.id)}
                 />
               ))}
@@ -452,6 +476,7 @@ export function DiscoverPage() {
                 availability={o.availability}
                 badge={o.badge}
                 rating={o.rating}
+                image={o.image}
                 onClick={() => openOffering(o.id)}
               />
             ))}
@@ -475,6 +500,7 @@ export function DiscoverPage() {
                   availability={o.availability}
                   badge={o.badge}
                   rating={o.rating}
+                  image={o.image}
                   onClick={() => openOffering(o.id)}
                 />
               ))}
@@ -577,6 +603,7 @@ export function DiscoverPage() {
                       availability={o.availability}
                       badge={o.badge}
                       rating={o.rating}
+                      image={o.image}
                       onClick={() => openOffering(o.id)}
                     />
                   ))}
@@ -623,6 +650,7 @@ export function DiscoverPage() {
                   availability={o.availability}
                   badge={o.badge}
                   rating={o.rating}
+                  image={o.image}
                   onClick={() => openOffering(o.id)}
                 />
               ))}

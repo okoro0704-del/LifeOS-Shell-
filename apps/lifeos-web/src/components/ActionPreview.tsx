@@ -12,15 +12,23 @@ export function ActionPreview({
   onCancel,
   onConfirm,
   error,
+  asSection = false,
 }: {
   preview: PreviewLike;
   busy?: boolean;
   onCancel: () => void;
   onConfirm: () => void;
   error?: string | null;
+  /** When nested in a page (not a modal), render as a labelled region. */
+  asSection?: boolean;
 }) {
   return (
-    <div className="action-preview" role="dialog" aria-labelledby="action-preview-title">
+    <div
+      className="action-preview"
+      role={asSection ? "region" : "dialog"}
+      aria-labelledby="action-preview-title"
+      {...(asSection ? {} : { "aria-modal": true })}
+    >
       <p className="action-preview__eyebrow">
         {/book|pay|purchase|cancel/i.test(preview.confirmLabel)
           ? "Review carefully — confirmation required"

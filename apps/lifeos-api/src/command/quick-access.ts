@@ -514,7 +514,19 @@ export class QuickAccessService {
       /* optional */
     }
 
-    // Apply order preference
+    // Apply order preference — curated priority:
+    // pinned → contextual life → base actions → categories → offerings
+    const tier = (item: QuickAccessItem) => {
+      if (item.pinned) return 0;
+      if (item.id.startsWith("qa_pc_") || item.id.startsWith("qa_cont_") || item.id.startsWith("qa_pay_") || item.id.startsWith("qa_plan_") || item.id.startsWith("qa_ctx_"))
+        return 1;
+      if (item.kind === "wallet" || item.kind === "action") return 2;
+      if (item.id.startsWith("qa_cat_")) return 3;
+      if (item.id.startsWith("qa_exp_")) return 4;
+      if (item.id.startsWith("qa_off_")) return 5;
+      return 4;
+    };
+
     items.sort((a, b) => {
       const ai = prefs.order.indexOf(a.id);
       const bi = prefs.order.indexOf(b.id);
@@ -523,12 +535,19 @@ export class QuickAccessService {
         if (bi === -1) return -1;
         return ai - bi;
       }
+      const ta = tier(a);
+      const tb = tier(b);
+      if (ta !== tb) return ta - tb;
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
       return b.score - a.score;
     });
 
-    // Return full service set (contextual + categories + all offerings). Cap only pathological growth.
-    return items.slice(0, 120);
+    // Soft-downrank offerings so the default strip stays curated; full list still returned
+    return items.map((item, index) =>
+      item.id.startsWith("qa_off_")
+        ? { ...item, score: item.score * 0.35 - index * 0.001 }
+        : item,
+    ).slice(0, 120);
   }
 
   async updatePrefs(

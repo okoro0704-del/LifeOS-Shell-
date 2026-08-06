@@ -11,6 +11,7 @@ import { COMMAND_SHORTCUTS } from "@lifeos/shared";
 import { Button, EmptyState, Skeleton } from "@lifeos/ui";
 import { commandService } from "../lib/services";
 import { useCommandLayer } from "../hooks/useCommandLayer";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import { ActionPreview } from "./ActionPreview";
 
 function applyOutcome(
@@ -50,6 +51,21 @@ function applyOutcome(
   }
 }
 
+function useIsMobile() {
+  const [mobile, setMobile] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(max-width: 720px)").matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 720px)");
+    const on = () => setMobile(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return mobile;
+}
+
+type PanelMode = "idle" | "results" | "preview";
+
 /** First-class Command Center — Ask LifeOS is the doorway into LifeOS. */
 export function CommandOverlay() {
   const {
@@ -66,6 +82,9 @@ export function CommandOverlay() {
     setSessionId,
   } = useCommandLayer();
   const navigate = useNavigate();
+  const mobile = useIsMobile();
+  const panelRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(open, panelRef);
   const inputRef = useRef<HTMLInputElement>(null);
   const listId = useId();
   const [message, setMessage] = useState<string | null>(null);
@@ -81,6 +100,9 @@ export function CommandOverlay() {
   const [error, setError] = useState<string | null>(null);
   const [canCompare, setCanCompare] = useState(false);
 
+  const displayResults = pendingResults.length ? pendingResults : liveResults;
+  const mode: PanelMode = preview ? "preview" : displayResults.length || message ? "results" : "idle";
+
   useEffect(() => {
     if (!open) return;
     const t = window.setTimeout(() => inputRef.current?.focus(), 30);
@@ -88,7 +110,7 @@ export function CommandOverlay() {
       .suggestions(query)
       .then((s) => {
         setRecent(s.recent);
-        setQuick(s.quickAccess);
+        setQuick(s.quickAccess.filter((i) => !i.id.startsWith("qa_off_")).slice(0, 6));
         if (s.shortcuts?.length) setShortcuts(s.shortcuts);
       })
       .catch(() => undefined);
@@ -98,8 +120,8 @@ export function CommandOverlay() {
   useEffect(() => {
     if (!open) return;
     const q = query.trim();
-    if (!q) {
-      setLiveResults([]);
+    if (!q || mode === "preview") {
+      if (!q) setLiveResults([]);
       return;
     }
     const handle = window.setTimeout(() => {
@@ -109,7 +131,7 @@ export function CommandOverlay() {
         .catch(() => undefined);
     }, 220);
     return () => window.clearTimeout(handle);
-  }, [query, open]);
+  }, [query, open, mode]);
 
   useEffect(() => {
     if (!open) return;
@@ -124,13 +146,12 @@ export function CommandOverlay() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, preview, closeCommand, setPreview]);
 
-  const displayResults = pendingResults.length ? pendingResults : liveResults;
   const flatItems = [
-    ...(!query.trim() ? quick.map((q) => ({ kind: "quick" as const, item: q })) : []),
-    ...(!query.trim()
+    ...(mode === "idle" && !query.trim() ? quick.map((q) => ({ kind: "quick" as const, item: q })) : []),
+    ...(mode === "idle" && !query.trim()
       ? recent.slice(0, 5).map((r) => ({ kind: "recent" as const, item: r }))
       : []),
-    ...displayResults.map((r) => ({ kind: "result" as const, item: r })),
+    ...(mode !== "preview" ? displayResults.map((r) => ({ kind: "result" as const, item: r })) : []),
   ];
 
   async function runCommand(text: string) {
@@ -197,24 +218,30 @@ export function CommandOverlay() {
 
   const grouped = {
     OFFERING: displayResults.filter((r) => r.type === "OFFERING"),
-    BUSINESS: displayResults.filter((r) => r.type === "BUSINESS"),
     PERSONAL: displayResults.filter((r) =>
       ["PERSONAL", "BOOKING", "TICKET", "ACTIVITY"].includes(r.type),
     ),
+    BUSINESS: displayResults.filter((r) => r.type === "BUSINESS"),
     OTHER: displayResults.filter(
       (r) => !["OFFERING", "BUSINESS", "PERSONAL", "BOOKING", "TICKET", "ACTIVITY"].includes(r.type),
     ),
   };
 
   return (
-    <div className="command-overlay" role="presentation">
+    <div className={`command-overlay${mobile ? " command-overlay--mobile" : ""}`} role="presentation">
       <button
         type="button"
         className="command-overlay__backdrop"
         aria-label="Close Command Center"
         onClick={closeCommand}
       />
-      <div className="command-panel command-panel--center" role="dialog" aria-modal="true" aria-label="Command Center">
+      <div
+        ref={panelRef}
+        className={`command-panel${mobile ? " command-panel--sheet" : " command-panel--center"}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command Center"
+      >
         <form
           className="command-panel__form"
           onSubmit={(e) => {
@@ -244,63 +271,49 @@ export function CommandOverlay() {
           <label className="command-panel__label" htmlFor="ask-lifeos-input">
             Command Center
           </label>
-          <div className="command-panel__input-row">
-            <input
-              id="ask-lifeos-input"
-              ref={inputRef}
-              className="command-panel__input"
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setPendingResults([]);
-                setMessage(null);
-                setActiveIndex(0);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "ArrowDown") {
-                  e.preventDefault();
-                  setActiveIndex((i) => Math.min(i + 1, Math.max(flatItems.length - 1, 0)));
-                } else if (e.key === "ArrowUp") {
-                  e.preventDefault();
-                  setActiveIndex((i) => Math.max(i - 1, 0));
-                }
-              }}
-              placeholder="Tell LifeOS what you need…"
-              autoComplete="off"
-              aria-autocomplete="list"
-              aria-controls={listId}
-              aria-activedescendant={flatItems[activeIndex] ? `${listId}-${activeIndex}` : undefined}
-            />
-            <button
-              type="button"
-              className="command-mic"
-              aria-label="Voice input coming soon"
-              title="Voice ready — recognition coming soon"
-              disabled
-            >
-              ⌄
-            </button>
-          </div>
+          <input
+            id="ask-lifeos-input"
+            ref={inputRef}
+            className="command-panel__input"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setPendingResults([]);
+              setMessage(null);
+              setActiveIndex(0);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setActiveIndex((i) => Math.min(i + 1, Math.max(flatItems.length - 1, 0)));
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setActiveIndex((i) => Math.max(i - 1, 0));
+              }
+            }}
+            placeholder="Tell LifeOS what you need…"
+            autoComplete="off"
+            aria-autocomplete="list"
+            aria-controls={listId}
+            aria-activedescendant={flatItems[activeIndex] ? `${listId}-${activeIndex}` : undefined}
+          />
           <span className="command-panel__hint muted small">
-            {busy ? "Understanding…" : "Enter to run · Esc to close · ↑↓ · Ctrl/⌘ K"}
+            {busy ? "Understanding…" : mobile ? "Enter to run · Esc to close" : "Enter · Esc · ↑↓ · Ctrl/⌘ K"}
           </span>
         </form>
 
         {error ? <p className="command-panel__error">{error}</p> : null}
-        {message ? <p className="command-panel__message">{message}</p> : null}
+        {message && mode !== "idle" ? <p className="command-panel__message">{message}</p> : null}
 
-        {canCompare && displayResults.length > 1 && !preview ? (
+        {canCompare && displayResults.length > 1 && mode === "results" ? (
           <div className="command-panel__toolbar">
             <Button size="sm" variant="soft" onClick={() => void runCommand("cheapest")}>
               Compare · cheapest
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => void runCommand("book it")}>
-              Book top result
-            </Button>
           </div>
         ) : null}
 
-        {preview ? (
+        {mode === "preview" && preview ? (
           <ActionPreview
             preview={preview}
             busy={confirmBusy}
@@ -309,13 +322,13 @@ export function CommandOverlay() {
           />
         ) : (
           <div id={listId} className="command-panel__body" role="listbox" aria-label="Command results">
-            {busy && !displayResults.length ? <Skeleton height={64} label="Loading" /> : null}
+            {busy && mode === "idle" ? <Skeleton height={64} label="Loading" /> : null}
 
-            {!query.trim() ? (
+            {mode === "idle" && !query.trim() ? (
               <section>
                 <h4 className="command-panel__section">Suggested</h4>
                 <div className="command-chips">
-                  {shortcuts.slice(0, 8).map((s) => (
+                  {shortcuts.slice(0, mobile ? 4 : 8).map((s) => (
                     <button
                       key={s.id}
                       type="button"
@@ -332,40 +345,35 @@ export function CommandOverlay() {
               </section>
             ) : null}
 
-            {!query.trim() && quick.length > 0 ? (
+            {mode === "idle" && !query.trim() && quick.length > 0 ? (
               <section>
                 <h4 className="command-panel__section">Quick Access</h4>
-                {quick.map((item, idx) => {
-                  const index = idx;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      id={`${listId}-${index}`}
-                      role="option"
-                      aria-selected={activeIndex === index}
-                      className={`command-row${activeIndex === index ? " active" : ""}`}
-                      onMouseEnter={() => setActiveIndex(index)}
-                      onClick={() => {
-                        if (item.navigateTo && !["BOOK_SERVICE", "PAY_INVOICE", "CHECK_IN"].includes(item.actionId)) {
-                          closeCommand();
-                          navigate(item.navigateTo);
-                        } else {
-                          void runAction(item.actionId, item.params, false);
-                        }
-                      }}
-                    >
-                      <span className="command-row__title">{item.label}</span>
-                      <span className="command-row__meta">
-                        {item.subtitle ?? (item.pinned ? "Pinned" : "Quick")}
-                      </span>
-                    </button>
-                  );
-                })}
+                {quick.map((item, idx) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    id={`${listId}-${idx}`}
+                    role="option"
+                    aria-selected={activeIndex === idx}
+                    className={`command-row${activeIndex === idx ? " active" : ""}`}
+                    onMouseEnter={() => setActiveIndex(idx)}
+                    onClick={() => {
+                      if (item.navigateTo && !["BOOK_SERVICE", "PAY_INVOICE", "CHECK_IN"].includes(item.actionId)) {
+                        closeCommand();
+                        navigate(item.navigateTo);
+                      } else {
+                        void runAction(item.actionId, item.params, false);
+                      }
+                    }}
+                  >
+                    <span className="command-row__title">{item.label}</span>
+                    <span className="command-row__meta">{item.subtitle ?? "Quick"}</span>
+                  </button>
+                ))}
               </section>
             ) : null}
 
-            {!query.trim() && recent.length > 0 ? (
+            {mode === "idle" && !query.trim() && recent.length > 0 ? (
               <section>
                 <div className="command-panel__section-row">
                   <h4 className="command-panel__section">Recent</h4>
@@ -401,12 +409,12 @@ export function CommandOverlay() {
               </section>
             ) : null}
 
-            {query.trim() ? (
+            {mode === "results" || (query.trim() && mode !== "preview") ? (
               <>
                 {(
                   [
                     ["OFFERING", "Offerings"],
-                    ["PERSONAL", "Your activity & plans"],
+                    ["PERSONAL", "Your plans"],
                     ["BUSINESS", "Businesses"],
                     ["OTHER", "More"],
                   ] as const
@@ -414,8 +422,20 @@ export function CommandOverlay() {
                   grouped[key].length ? (
                     <section key={key}>
                       <h4 className="command-panel__section">{label}</h4>
-                      {grouped[key].map((r) => (
-                        <div key={r.id} className="command-result" role="option">
+                      {grouped[key].map((r, i) => (
+                        <div
+                          key={r.id}
+                          id={`${listId}-r-${key}-${i}`}
+                          className="command-result"
+                          role="option"
+                          tabIndex={0}
+                          aria-selected={false}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && r.actions[0]) {
+                              void runAction(r.actions[0].actionId, r.actions[0].params, false);
+                            }
+                          }}
+                        >
                           <div className="command-result__main">
                             <span className="command-result__type">{r.type}</span>
                             <strong>{r.title}</strong>
@@ -423,7 +443,7 @@ export function CommandOverlay() {
                             {r.description ? <p className="muted small">{r.description}</p> : null}
                           </div>
                           <div className="command-result__actions">
-                            {r.actions.slice(0, 2).map((a) => (
+                            {r.actions.slice(0, 1).map((a) => (
                               <Button
                                 key={a.id}
                                 size="sm"

@@ -721,11 +721,40 @@ button.los-card:focus-visible {
   text-align: right;
 }
 
+.los-offering__reason {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--los-accent, #0f766e);
+  font-weight: 600;
+}
+
+.los-offering__initials {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.los-offering__media--photo {
+  background-size: cover;
+  background-position: center;
+}
+
+.los-offering__media-mark--soft {
+  background: color-mix(in srgb, #000 35%, transparent);
+  color: #fff;
+}
+
 .los-offering__cta {
+  display: inline-flex;
   margin-top: var(--los-space-2);
   color: var(--los-accent);
   font-size: var(--los-text-sm);
   font-weight: 650;
+}
+
+.los-wallet__action--soon {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 /* —— Activity row —— */
@@ -963,8 +992,11 @@ button.los-activity {
   .los-sheet-overlay,
   .los-sheet,
   .los-exp,
+  .los-offering,
   .los-quick,
-  .los-wallet__action {
+  .los-wallet__action,
+  .los-profile-row,
+  .page-enter {
     animation: none !important;
     transition: none !important;
   }

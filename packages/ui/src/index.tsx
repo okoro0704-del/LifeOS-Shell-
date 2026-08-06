@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
+import { useEffect, useId, useRef } from "react";
 import {
   IconActivity,
   IconEat,
@@ -426,6 +427,8 @@ export function OfferingCard({
   availability,
   badge,
   rating,
+  image,
+  reason,
   onClick,
 }: {
   name: string;
@@ -438,6 +441,8 @@ export function OfferingCard({
   availability?: string | null;
   badge?: string | null;
   rating?: number | null;
+  image?: string | null;
+  reason?: string | null;
   onClick?: () => void;
 }) {
   const tone = categoryTone(
@@ -454,19 +459,37 @@ export function OfferingCard({
   );
   const CategoryIcon =
     tone === "eat" ? IconEat : tone === "stay" ? IconStay : tone === "wellness" ? IconShield : IconExplore;
+  const mark = businessName
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
 
   return (
     <button type="button" className="los-offering" onClick={onClick}>
-      <div className={`los-offering__media los-exp__media--${tone}`} aria-hidden>
+      <div
+        className={`los-offering__media los-exp__media--${tone}${image ? " los-offering__media--photo" : ""}`}
+        aria-hidden
+        style={image ? { backgroundImage: `url(${image})` } : undefined}
+      >
         <div className="los-exp__media-glow" />
-        <div className="los-offering__media-mark">
-          <CategoryIcon size={20} />
-        </div>
+        {!image ? (
+          <div className="los-offering__media-mark">
+            <span className="los-offering__initials">{mark}</span>
+            <CategoryIcon size={16} />
+          </div>
+        ) : (
+          <div className="los-offering__media-mark los-offering__media-mark--soft">
+            <CategoryIcon size={18} />
+          </div>
+        )}
         {badge ? <span className="los-offering__badge">{badge}</span> : null}
       </div>
       <div className="los-offering__body">
         <p className="los-offering__name">{name}</p>
         <p className="los-offering__business">{businessName}</p>
+        {reason ? <p className="los-offering__reason">{reason}</p> : null}
         {metaBits.length ? <p className="los-offering__meta">{metaBits.join(" · ")}</p> : null}
         <div className="los-offering__foot">
           {rating != null ? <span className="los-offering__rating">★ {rating.toFixed(1)}</span> : <span />}
@@ -599,12 +622,62 @@ export function Sheet({
   children: ReactNode;
   onClose: () => void;
 }) {
+  const titleId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const container = panelRef.current;
+    const focusables = () =>
+      container
+        ? Array.from(
+            container.querySelectorAll<HTMLElement>(
+              'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+            ),
+          )
+        : [];
+    focusables()[0]?.focus();
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab" || !container) return;
+      const nodes = focusables();
+      if (!nodes.length) return;
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previouslyFocused?.focus?.();
+    };
+  }, [onClose]);
+
   return (
-    <div className="los-sheet-overlay" role="dialog" aria-modal="true" aria-label={title}>
+    <div
+      className="los-sheet-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+    >
       <button type="button" className="los-sheet-backdrop" aria-label="Close" onClick={onClose} />
-      <div className="los-sheet">
+      <div className="los-sheet" ref={panelRef}>
         <div className="los-sheet-head">
-          <h2 id="los-sheet-title">{title}</h2>
+          <h2 id={titleId}>{title}</h2>
           <button type="button" className="text-link" onClick={onClose}>
             Close
           </button>

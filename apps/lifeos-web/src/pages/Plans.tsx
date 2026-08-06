@@ -10,6 +10,7 @@ import type {
 import { Button, EmptyState, SectionHeader, Skeleton } from "@lifeos/ui";
 import { actionService } from "../lib/services";
 import { StatusBanner } from "../components/StatusBanner";
+import { AskLifeOSTrigger } from "../components/CommandOverlay";
 
 function formatWhen(iso?: string | null) {
   if (!iso) return "";
@@ -31,18 +32,20 @@ function formatTime(iso?: string | null) {
 function PlanRow({
   item,
   onOpen,
+  emphasize,
 }: {
   item: LifePlanItem;
   onOpen: (item: LifePlanItem) => void;
+  emphasize?: boolean;
 }) {
   return (
-    <div className="plan-row plan-row--actions">
+    <div className={`plan-row plan-row--actions${emphasize ? " plan-row--now" : ""}`}>
       <button type="button" className="plan-row__main" onClick={() => onOpen(item)}>
         <div className="plan-row__when">{formatTime(item.startAt) || formatWhen(item.startAt)}</div>
         <div>
           <strong>{item.title}</strong>
           <div className="muted small">
-            {[item.subtitle, item.type, item.status].filter(Boolean).join(" · ")}
+            {[item.subtitle, item.type].filter(Boolean).join(" · ")}
           </div>
         </div>
       </button>
@@ -67,6 +70,7 @@ export function PlansPage() {
   const [attention, setAttention] = useState<AttentionItem[]>([]);
   const [recommendations, setRecommendations] = useState<RecommendationItem[]>([]);
   const [view, setView] = useState<"list" | "timeline">("list");
+  const [showCompleted, setShowCompleted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [offline, setOffline] = useState(false);
@@ -102,11 +106,21 @@ export function PlansPage() {
     if (item.action?.href) navigate(item.action.href);
   }
 
+  const nowItem = today[0] ?? null;
+  const nextItems = [
+    ...today.slice(1),
+    ...tomorrow,
+  ];
+  const laterItems = [
+    ...thisWeek,
+    ...upcoming.filter((u) => !nextItems.find((n) => n.id === u.id) && !today.find((t) => t.id === u.id)),
+  ];
+
   return (
     <div className="page">
       <SectionHeader
         title="Today"
-        subtitle="What’s happening in your life"
+        subtitle="Now · Next · Later"
         action={
           <button
             type="button"
@@ -117,6 +131,7 @@ export function PlansPage() {
           </button>
         }
       />
+      <AskLifeOSTrigger />
       {offline ? (
         <StatusBanner title="You're offline. Some information may be outdated." />
       ) : null}
@@ -186,10 +201,10 @@ export function PlansPage() {
         </section>
       ) : (
         <>
-          <SectionHeader title="Today" />
-          {!loading && today.length === 0 ? (
+          <SectionHeader title="Now" subtitle="What's next on your day" />
+          {!loading && !nowItem ? (
             <EmptyState
-              title="Nothing scheduled today"
+              title="Nothing scheduled right now"
               detail="Discover something to do."
               action={
                 <Button variant="soft" size="sm" onClick={() => navigate("/app/discover")}>
@@ -197,49 +212,37 @@ export function PlansPage() {
                 </Button>
               }
             />
-          ) : (
+          ) : nowItem ? (
             <div className="surface-block">
-              {today.map((p) => (
-                <PlanRow key={p.id} item={p} onOpen={openItem} />
-              ))}
+              <PlanRow item={nowItem} onOpen={openItem} emphasize />
             </div>
-          )}
+          ) : null}
 
-          <SectionHeader title="Tomorrow" />
-          {!loading && tomorrow.length === 0 ? (
-            <p className="muted small pad-inline">Nothing tomorrow yet.</p>
+          <SectionHeader title="Next" subtitle="Coming up soon" />
+          {!loading && nextItems.length === 0 ? (
+            <p className="muted small pad-inline">Nothing else lined up for today or tomorrow.</p>
           ) : (
             <div className="surface-block">
-              {tomorrow.map((p) => (
-                <PlanRow key={p.id} item={p} onOpen={openItem} />
-              ))}
-            </div>
-          )}
-
-          <SectionHeader title="This week" />
-          {!loading && thisWeek.length === 0 ? (
-            <p className="muted small pad-inline">Nothing else this week.</p>
-          ) : (
-            <div className="surface-block">
-              {thisWeek.map((p) => (
+              {nextItems.map((p) => (
                 <PlanRow key={p.id} item={p} onOpen={openItem} />
               ))}
             </div>
           )}
 
           <SectionHeader
-            title="Upcoming"
+            title="Later"
+            subtitle="This week and beyond"
             action={
               <Link to="/app/discover" className="text-link">
                 Discover
               </Link>
             }
           />
-          {!loading && upcoming.length === 0 ? (
-            <EmptyState title="No upcoming plans" />
+          {!loading && laterItems.length === 0 ? (
+            <EmptyState title="No later plans yet" />
           ) : (
             <div className="surface-block">
-              {upcoming.map((p) => (
+              {laterItems.map((p) => (
                 <PlanRow key={p.id} item={p} onOpen={openItem} />
               ))}
             </div>
@@ -248,19 +251,27 @@ export function PlansPage() {
           <SectionHeader
             title="Completed"
             action={
-              <Link to="/app/activity" className="text-link">
-                Activity
-              </Link>
+              <button type="button" className="text-link" onClick={() => setShowCompleted((v) => !v)}>
+                {showCompleted ? "Hide" : "Show"}
+              </button>
             }
           />
-          {!loading && completed.length === 0 ? (
-            <p className="muted small pad-inline">No completed items yet.</p>
+          {showCompleted ? (
+            !loading && completed.length === 0 ? (
+              <p className="muted small pad-inline">No completed items yet.</p>
+            ) : (
+              <div className="surface-block">
+                {completed.slice(0, 8).map((p) => (
+                  <PlanRow key={p.id} item={p} onOpen={openItem} />
+                ))}
+              </div>
+            )
           ) : (
-            <div className="surface-block">
-              {completed.slice(0, 8).map((p) => (
-                <PlanRow key={p.id} item={p} onOpen={openItem} />
-              ))}
-            </div>
+            <p className="muted small pad-inline">
+              {completed.length
+                ? `${completed.length} completed — tap Show when you need them.`
+                : "Completed items stay tucked away."}
+            </p>
           )}
         </>
       )}

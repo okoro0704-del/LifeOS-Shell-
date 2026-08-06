@@ -190,11 +190,11 @@ export function WalletPage() {
         </div>
       ) : null}
 
-      <div className="chip-row" role="tablist" aria-label="Wallet type">
-        <Chip active={rail === "fiat"} onClick={() => setRail("fiat")} role="tab" aria-selected={rail === "fiat"}>
+      <div className="chip-row wallet-rail-switch" role="group" aria-label="Wallet type">
+        <Chip active={rail === "fiat"} onClick={() => setRail("fiat")}>
           Cash
         </Chip>
-        <Chip active={rail === "token"} onClick={() => setRail("token")} role="tab" aria-selected={rail === "token"}>
+        <Chip active={rail === "token"} onClick={() => setRail("token")}>
           Tokens
         </Chip>
       </div>
@@ -205,19 +205,34 @@ export function WalletPage() {
         <WalletCard
           variant="fiat"
           label="Cash"
-          subtitle={fiat?.label ?? "LifeOS Cash"}
+          subtitle={fiat?.label ?? "LifeOS Cash · Preview"}
           balance={fiat?.balance.formatted}
           mask={fiat?.accountMask}
           actions={
             <>
-              <button type="button" className="los-wallet__action" onClick={() => setMode("pay")}>
-                Pay
+              <button
+                type="button"
+                className="los-wallet__action los-wallet__action--soon"
+                disabled
+                title="Cash payments coming soon"
+              >
+                Pay · Soon
               </button>
-              <button type="button" className="los-wallet__action" onClick={() => setMode("send")}>
-                Send
+              <button
+                type="button"
+                className="los-wallet__action los-wallet__action--soon"
+                disabled
+                title="Cash transfers coming soon"
+              >
+                Send · Soon
               </button>
-              <button type="button" className="los-wallet__action" onClick={() => setMode("receive")}>
-                Add
+              <button
+                type="button"
+                className="los-wallet__action los-wallet__action--soon"
+                disabled
+                title="Cash top-up coming soon"
+              >
+                Add · Soon
               </button>
             </>
           }
@@ -245,8 +260,11 @@ export function WalletPage() {
         />
       )}
 
-      {rail === "fiat" && fiat?.notice ? (
-        <p className="muted small wallet-rail-note">{fiat.notice}</p>
+      {rail === "fiat" ? (
+        <p className="muted small wallet-rail-note">
+          {fiat?.notice ??
+            "Cash is a preview balance. Live pay, send, and top-up are coming soon — switch to Tokens for preview actions."}
+        </p>
       ) : null}
 
       {mode === "send" ? (
