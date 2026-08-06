@@ -496,14 +496,61 @@ button.los-card:focus-visible {
 }
 
 .los-exp__media {
-  height: 96px;
-  background: linear-gradient(135deg, var(--los-accent-soft), var(--los-surface-2));
+  position: relative;
+  height: 112px;
+  overflow: hidden;
   display: grid;
   place-items: center;
+  background: linear-gradient(145deg, #d8efe9 0%, #e8eef4 100%);
+}
+
+.los-exp__media-glow {
+  position: absolute;
+  inset: -30% -10% auto auto;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+}
+
+.los-exp__media-mark {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--los-accent-strong, var(--los-accent));
   font-family: var(--los-display);
-  font-size: 1.75rem;
+  font-size: 1.35rem;
   font-weight: 650;
-  color: var(--los-accent);
+}
+
+.los-exp__media--stay {
+  background: linear-gradient(145deg, #cfe8e3 0%, #d9e4f0 55%, #eef2f6 100%);
+}
+.los-exp__media--eat {
+  background: linear-gradient(145deg, #f0e0d4 0%, #efe6dc 55%, #f5f0ea 100%);
+  color: #8a5a3a;
+}
+.los-exp__media--eat .los-exp__media-mark {
+  color: #8a5a3a;
+}
+.los-exp__media--wellness {
+  background: linear-gradient(145deg, #d9ebe4 0%, #e3efe8 100%);
+}
+.los-exp__media--travel {
+  background: linear-gradient(145deg, #d6e4f2 0%, #e8eef6 100%);
+}
+.los-exp__media--finance {
+  background: linear-gradient(145deg, #d4ebe6 0%, #e8f2ef 100%);
+}
+.los-exp__media--shop {
+  background: linear-gradient(145deg, #e8dde8 0%, #f2eef2 100%);
+}
+.los-exp__media--other {
+  background: linear-gradient(145deg, #dce5ec 0%, #eef2f5 100%);
 }
 
 .los-exp__body {
@@ -513,16 +560,40 @@ button.los-card:focus-visible {
   gap: var(--los-space-1);
 }
 
+.los-exp__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--los-space-2);
+}
+
 .los-exp__name {
   font-weight: 700;
   font-size: var(--los-text-md);
   margin: 0;
 }
 
+.los-exp__connected {
+  flex-shrink: 0;
+  font-size: var(--los-text-xs);
+  font-weight: 650;
+  color: var(--los-success);
+  background: color-mix(in srgb, var(--los-success) 12%, transparent);
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--los-radius-full);
+}
+
 .los-exp__meta {
   color: var(--los-muted);
   font-size: var(--los-text-sm);
   margin: 0;
+}
+
+.los-exp__avail {
+  margin: 0.15rem 0 0;
+  font-size: var(--los-text-xs);
+  font-weight: 650;
+  color: var(--los-accent);
 }
 
 .los-exp__cta {

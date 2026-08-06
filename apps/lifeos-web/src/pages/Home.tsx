@@ -6,6 +6,12 @@ import {
   Button,
   EmptyState,
   ExperienceCard,
+  IconBook,
+  IconExplore,
+  IconPay,
+  IconReceive,
+  IconSend,
+  IconTicket,
   QuickAction,
   SectionHeader,
   Skeleton,
@@ -97,24 +103,27 @@ export function HomePage() {
 
   const first = user?.firstName || user?.displayName?.split(" ")[0] || "there";
   const todayItems = useMemo(
-    () => activities.filter((a) => isToday(a.createdAt)).slice(0, 4),
+    () => activities.filter((a) => isToday(a.createdAt)).slice(0, 3),
     [activities],
   );
-  const recentItems = useMemo(() => activities.slice(0, 5), [activities]);
+  /** Prefer today; otherwise show a short recent strip — never duplicate both. */
+  const activityStrip = useMemo(() => {
+    if (todayItems.length > 0) return { title: "Today", items: todayItems };
+    return { title: "Recent", items: activities.slice(0, 4) };
+  }, [todayItems, activities]);
 
   return (
     <div className="page home-page">
       <header className="home-greeting">
-        <p className="home-greeting__hello">{greeting()}</p>
-        <h1 className="home-greeting__name">{first}</h1>
+        <div className="home-greeting__text">
+          <p className="home-greeting__hello">{greeting()}</p>
+          <h1 className="home-greeting__name">{first}</h1>
+        </div>
         <StatusBadge label="Identity protected" tone="ok" />
       </header>
 
       {dataError ? (
-        <StatusBanner
-          title={dataError}
-          detail="Check your connection and refresh."
-        />
+        <StatusBanner title={dataError} detail="Check your connection and refresh." />
       ) : null}
 
       <section aria-label="Wallet">
@@ -147,20 +156,27 @@ export function HomePage() {
 
       <section aria-label="Quick actions">
         <div className="quick-row">
-          <QuickAction icon="◈" label="Pay" onClick={() => navigate("/app/wallet?action=pay")} />
-          <QuickAction icon="↑" label="Send" onClick={() => navigate("/app/wallet?action=send")} />
-          <QuickAction icon="↓" label="Receive" onClick={() => navigate("/app/wallet?action=receive")} />
-          <QuickAction icon="⌂" label="Book" onClick={() => navigate("/app/discover?category=Hotels")} />
-          <QuickAction icon="◎" label="Discover" onClick={() => navigate("/app/discover")} />
-          <QuickAction icon="☰" label="Tickets" onClick={() => navigate("/app/activity")} />
+          <QuickAction icon={<IconPay size={20} />} label="Pay" onClick={() => navigate("/app/wallet?action=pay")} />
+          <QuickAction icon={<IconSend size={20} />} label="Send" onClick={() => navigate("/app/wallet?action=send")} />
+          <QuickAction icon={<IconReceive size={20} />} label="Receive" onClick={() => navigate("/app/wallet?action=receive")} />
+          <QuickAction icon={<IconBook size={20} />} label="Book" onClick={() => navigate("/app/discover?category=Hotels")} />
+          <QuickAction icon={<IconExplore size={20} />} label="Discover" onClick={() => navigate("/app/discover")} />
+          <QuickAction icon={<IconTicket size={20} />} label="Activity" onClick={() => navigate("/app/activity")} />
         </div>
       </section>
 
       <section>
-        <SectionHeader title="Today" />
+        <SectionHeader
+          title={activityStrip.title}
+          action={
+            <Link to="/app/activity" className="text-link">
+              All
+            </Link>
+          }
+        />
         {loading ? (
-          <Skeleton height={88} label="Loading today" />
-        ) : todayItems.length === 0 ? (
+          <Skeleton height={88} label="Loading activity" />
+        ) : activityStrip.items.length === 0 ? (
           <EmptyState
             title="Nothing scheduled yet"
             detail="Discover something for today."
@@ -172,7 +188,7 @@ export function HomePage() {
           />
         ) : (
           <div className="surface-block">
-            {todayItems.map((a) => (
+            {activityStrip.items.map((a) => (
               <ActivityRow
                 key={a.id}
                 kind={a.kind}
@@ -189,17 +205,17 @@ export function HomePage() {
 
       <section>
         <SectionHeader
-          title="Recommended"
+          title="For you"
           action={
             <Link to="/app/discover" className="text-link">
-              See all
+              Explore
             </Link>
           }
         />
         {loading ? (
           <div className="exp-rail">
-            <Skeleton height={180} />
-            <Skeleton height={180} />
+            <Skeleton height={200} />
+            <Skeleton height={200} />
           </div>
         ) : featured.length === 0 ? (
           <EmptyState
@@ -223,36 +239,6 @@ export function HomePage() {
                 initial={e.icon ?? e.displayName}
                 connected={connectedIds.has(e.id)}
                 onClick={() => navigate(`/app/discover?open=${e.id}`)}
-              />
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section>
-        <SectionHeader
-          title="Recent activity"
-          action={
-            <Link to="/app/activity" className="text-link">
-              All
-            </Link>
-          }
-        />
-        {loading ? (
-          <Skeleton height={120} />
-        ) : recentItems.length === 0 ? (
-          <EmptyState title="No recent activity" detail="Events from connected experiences will appear here." />
-        ) : (
-          <div className="surface-block">
-            {recentItems.map((a) => (
-              <ActivityRow
-                key={a.id}
-                kind={a.kind}
-                title={a.title}
-                detail={a.detail}
-                time={formatTime(a.createdAt)}
-                amount={a.amount ?? undefined}
-                onClick={a.deepLink ? () => navigate(a.deepLink!) : undefined}
               />
             ))}
           </div>

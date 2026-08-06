@@ -1,15 +1,32 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentType, type SVGProps } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
+import {
+  IconActivity,
+  IconBell,
+  IconExplore,
+  IconHome,
+  IconLink,
+  IconProfile,
+  IconSearch,
+  IconWallet,
+} from "@lifeos/ui";
 import { useAuth } from "../hooks/useAuth";
 import { notificationService } from "../lib/services";
 
-const tabs = [
-  { to: "/app", end: true, label: "Home", icon: "⌂" },
-  { to: "/app/discover", label: "Explore", icon: "◎" },
-  { to: "/app/wallet", label: "Wallet", icon: "◈" },
-  { to: "/app/activity", label: "Activity", icon: "☰" },
-  { to: "/app/profile", label: "Profile", icon: "◉" },
-] as const;
+type IconComp = ComponentType<SVGProps<SVGSVGElement> & { size?: number }>;
+
+const tabs: {
+  to: string;
+  end?: boolean;
+  label: string;
+  Icon: IconComp;
+}[] = [
+  { to: "/app", end: true, label: "Home", Icon: IconHome },
+  { to: "/app/discover", label: "Explore", Icon: IconExplore },
+  { to: "/app/wallet", label: "Wallet", Icon: IconWallet },
+  { to: "/app/activity", label: "Activity", Icon: IconActivity },
+  { to: "/app/profile", label: "Profile", Icon: IconProfile },
+];
 
 export function AppShell() {
   const { user } = useAuth();
@@ -45,9 +62,6 @@ export function AppShell() {
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
-  const hideChromeHeader =
-    location.pathname === "/app" || location.pathname === "/app/";
-
   return (
     <div className="shell">
       <a href="#main-content" className="skip-link">
@@ -63,11 +77,11 @@ export function AppShell() {
             <NavLink
               key={t.to}
               to={t.to}
-              end={"end" in t ? t.end : undefined}
+              end={t.end}
               className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
             >
               <span className="nav-icon" aria-hidden>
-                {t.icon}
+                <t.Icon size={20} />
               </span>
               {t.label}
             </NavLink>
@@ -75,7 +89,7 @@ export function AppShell() {
           <div className="side-nav-divider" aria-hidden />
           <NavLink to="/app/search" className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}>
             <span className="nav-icon" aria-hidden>
-              ⌕
+              <IconSearch size={20} />
             </span>
             Search
           </NavLink>
@@ -84,7 +98,7 @@ export function AppShell() {
             className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
           >
             <span className="nav-icon" aria-hidden>
-              ✉
+              <IconBell size={20} />
             </span>
             Notifications
             {unread ? (
@@ -98,7 +112,7 @@ export function AppShell() {
             className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
           >
             <span className="nav-icon" aria-hidden>
-              ☍
+              <IconLink size={20} />
             </span>
             Connections
           </NavLink>
@@ -112,21 +126,21 @@ export function AppShell() {
       </aside>
 
       <div className="shell-main">
-        <header className={`app-header${hideChromeHeader ? " app-header--home" : ""}`}>
+        <header className="app-header">
           <div className="app-header__brand">
             <span className="brand-mark brand-mark--sm" aria-hidden />
             <span className="brand-name">LifeOS</span>
           </div>
           <div className="app-header__actions">
             <NavLink to="/app/search" className="icon-btn" aria-label="Search">
-              <span aria-hidden>⌕</span>
+              <IconSearch size={20} />
             </NavLink>
             <NavLink
               to="/app/notifications"
               className="icon-btn"
               aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}
             >
-              <span aria-hidden>✉</span>
+              <IconBell size={20} />
               {unread ? (
                 <span className="badge-dot" aria-hidden>
                   {unread > 9 ? "9+" : unread}
@@ -187,11 +201,11 @@ export function AppShell() {
             <NavLink
               key={t.to}
               to={t.to}
-              end={"end" in t ? t.end : undefined}
+              end={t.end}
               className={({ isActive }) => `bottom-item${isActive ? " active" : ""}`}
             >
               <span className="bottom-icon" aria-hidden>
-                {t.icon}
+                <t.Icon size={22} />
               </span>
               <span>{t.label}</span>
             </NavLink>

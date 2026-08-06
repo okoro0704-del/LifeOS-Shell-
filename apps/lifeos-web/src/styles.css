@@ -403,13 +403,65 @@ a {
 }
 
 .bottom-icon {
-  font-size: 1.15rem;
+  display: grid;
+  place-items: center;
   line-height: 1;
   transition: transform var(--los-duration-fast) var(--los-ease);
 }
 
 .bottom-item.active .bottom-icon {
   transform: translateY(-1px) scale(1.05);
+}
+
+/* Home */
+.home-greeting {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--los-space-3);
+  padding-top: 0.15rem;
+}
+
+.home-greeting__text {
+  min-width: 0;
+}
+
+.home-greeting__hello {
+  margin: 0;
+  font-size: var(--los-text-sm);
+  font-weight: 600;
+  color: var(--los-muted);
+}
+
+.home-greeting__name {
+  margin: 0.15rem 0 0;
+  font-size: clamp(1.55rem, 5.5vw, 1.85rem);
+  line-height: 1.15;
+}
+
+.page.home-page {
+  gap: var(--los-space-5);
+}
+
+.nav-icon {
+  width: var(--los-icon-md);
+  height: var(--los-icon-md);
+  display: grid;
+  place-items: center;
+  opacity: 0.9;
+}
+
+.nav-icon svg,
+.bottom-icon svg,
+.icon-btn svg,
+.los-quick__icon svg,
+.los-activity__icon svg,
+.los-search__icon svg {
+  display: block;
+}
+
+.los-quick__icon {
+  color: var(--los-accent);
 }
 
 @media (min-width: 900px) {
@@ -425,34 +477,34 @@ a {
   }
   .shell-main {
     padding-bottom: 0;
+    background:
+      radial-gradient(600px 280px at 100% 0%, var(--los-accent-glow), transparent 60%),
+      var(--los-bg);
   }
   .content {
-    width: min(var(--content-max-lg), 100%);
-    max-width: 720px;
-    padding: 2rem 2rem 3rem;
+    width: min(680px, 100%);
+    max-width: 680px;
+    margin: 0;
+    padding: 2.25rem 2.5rem 3.5rem;
+  }
+  .page.home-page {
+    gap: var(--los-space-6);
+  }
+  .exp-rail {
+    grid-auto-columns: minmax(260px, 42%);
+  }
+  .quick-row {
+    justify-content: flex-start;
+    gap: 0.35rem;
   }
 }
 
-/* Home */
-.home-greeting {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--los-space-2);
-  padding-top: 0.15rem;
-}
-
-.home-greeting__hello {
-  margin: 0;
-  font-size: var(--los-text-sm);
-  font-weight: 600;
-  color: var(--los-muted);
-}
-
-.home-greeting__name {
-  margin: 0;
-  font-size: clamp(1.65rem, 6vw, 2rem);
-  line-height: 1.15;
+@media (min-width: 1200px) {
+  .content {
+    width: min(720px, 100%);
+    max-width: 720px;
+    padding-left: 3rem;
+  }
 }
 
 .quick-row {

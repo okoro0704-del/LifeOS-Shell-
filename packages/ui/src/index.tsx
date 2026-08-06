@@ -1,4 +1,20 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
+import {
+  IconActivity,
+  IconEat,
+  IconExplore,
+  IconPay,
+  IconProfile,
+  IconReceive,
+  IconSearch,
+  IconSend,
+  IconShield,
+  IconStay,
+  IconTicket,
+  IconWallet,
+} from "./icons.js";
+
+export * from "./icons.js";
 
 export function Button({
   children,
@@ -238,7 +254,7 @@ export function SearchBar({
   return (
     <label className={`los-search ${className}`.trim()}>
       <span className="los-search__icon" aria-hidden>
-        ⌕
+        <IconSearch size={18} />
       </span>
       <input className="los-search__input" type="search" {...rest} />
     </label>
@@ -251,7 +267,7 @@ export function QuickAction({
   href,
   onClick,
 }: {
-  icon: string;
+  icon: ReactNode;
   label: string;
   href?: string;
   onClick?: () => void;
@@ -316,6 +332,23 @@ export function WalletCard({
   );
 }
 
+const CATEGORY_THEME: Record<string, string> = {
+  Hotels: "stay",
+  Apartments: "stay",
+  "Real Estate": "stay",
+  Restaurants: "eat",
+  Services: "wellness",
+  Transport: "travel",
+  Finance: "finance",
+  Shopping: "shop",
+  Other: "other",
+};
+
+function categoryTone(category?: string) {
+  if (!category) return "other";
+  return CATEGORY_THEME[category] ?? "other";
+}
+
 export function ExperienceCard({
   name,
   category,
@@ -336,16 +369,27 @@ export function ExperienceCard({
   href?: string;
 }) {
   const meta = [category, location].filter(Boolean).join(" · ");
+  const tone = categoryTone(category);
+  const letter = (initial || name).slice(0, 1).toUpperCase();
+  const CategoryIcon =
+    tone === "eat" ? IconEat : tone === "stay" ? IconStay : tone === "wellness" ? IconShield : IconExplore;
+
   const body = (
     <>
-      <div className="los-exp__media" aria-hidden>
-        {(initial || name).slice(0, 1).toUpperCase()}
+      <div className={`los-exp__media los-exp__media--${tone}`} aria-hidden>
+        <div className="los-exp__media-glow" />
+        <div className="los-exp__media-mark">
+          <CategoryIcon size={22} />
+          <span>{letter}</span>
+        </div>
       </div>
       <div className="los-exp__body">
-        <p className="los-exp__name">{name}</p>
+        <div className="los-exp__top">
+          <p className="los-exp__name">{name}</p>
+          {connected ? <span className="los-exp__connected">Connected</span> : null}
+        </div>
         {meta ? <p className="los-exp__meta">{meta}</p> : null}
-        {availability ? <p className="los-exp__meta">{availability}</p> : null}
-        {connected ? <p className="los-exp__meta">Connected</p> : null}
+        {availability ? <p className="los-exp__avail">{availability}</p> : null}
         <span className="los-exp__cta">View experience →</span>
       </div>
     </>
@@ -364,14 +408,14 @@ export function ExperienceCard({
   );
 }
 
-const ACTIVITY_ICONS: Record<string, string> = {
-  hotel_booking: "⌂",
-  payment: "◈",
-  restaurant_order: "◎",
-  wallet_transfer: "⇄",
-  account: "◉",
-  experience: "✦",
-  security: "⬡",
+const ACTIVITY_ICONS: Record<string, ReactNode> = {
+  hotel_booking: <IconStay size={18} />,
+  payment: <IconPay size={18} />,
+  restaurant_order: <IconEat size={18} />,
+  wallet_transfer: <IconWallet size={18} />,
+  account: <IconProfile size={18} />,
+  experience: <IconExplore size={18} />,
+  security: <IconShield size={18} />,
 };
 
 export function ActivityRow({
@@ -389,7 +433,7 @@ export function ActivityRow({
   kind?: string;
   onClick?: () => void;
 }) {
-  const icon = (kind && ACTIVITY_ICONS[kind]) || "•";
+  const icon = (kind && ACTIVITY_ICONS[kind]) || <IconTicket size={18} />;
   const body = (
     <>
       <span className="los-activity__icon" aria-hidden>

@@ -1,4 +1,4 @@
-export const LIFEOS_VERSION = "1.4.0";
+export const LIFEOS_VERSION = "1.4.1";
 
 export const OS_TYPES = [
   "hospitality",
