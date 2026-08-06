@@ -7,6 +7,7 @@ export const SEARCH_RESULT_TYPES = [
   "ACTIVITY",
   "TRANSACTION",
   "EXPERIENCE",
+  "OFFERING",
   "PERSONAL",
   "ACTION",
   "NOTIFICATION",
@@ -49,6 +50,7 @@ export const INTENT_KINDS = [
   "OPEN_EXPERIENCE",
   "ASK",
   "WALLET_QUERY",
+  "PERSONAL_CONTEXT",
   "UNKNOWN",
 ] as const;
 

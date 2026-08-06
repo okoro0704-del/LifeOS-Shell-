@@ -1,16 +1,23 @@
 import { Button } from "@lifeos/ui";
-import type { ActionPreviewPayload } from "@lifeos/shared";
+import type { ActionPreviewPayload, PaymentPreview } from "@lifeos/shared";
+
+type PreviewLike = ActionPreviewPayload & {
+  payment?: PaymentPreview;
+  policy?: string;
+};
 
 export function ActionPreview({
   preview,
   busy,
   onCancel,
   onConfirm,
+  error,
 }: {
-  preview: ActionPreviewPayload;
+  preview: PreviewLike;
   busy?: boolean;
   onCancel: () => void;
   onConfirm: () => void;
+  error?: string | null;
 }) {
   return (
     <div className="action-preview" role="dialog" aria-labelledby="action-preview-title">
@@ -25,9 +32,25 @@ export function ActionPreview({
           </div>
         ))}
       </dl>
-      {preview.amount ? (
+      {preview.payment ? (
+        <div className="payment-preview">
+          {preview.payment.lines.map((l) => (
+            <div key={l.label} className="payment-preview__row">
+              <span>{l.label}</span>
+              <span className="mono">{l.formatted}</span>
+            </div>
+          ))}
+          <div className="payment-preview__total">
+            <span>Total</span>
+            <strong className="mono">{preview.payment.totalFormatted}</strong>
+          </div>
+          <p className="muted small">Pay with {preview.payment.methodLabel}</p>
+        </div>
+      ) : preview.amount ? (
         <div className="action-preview__amount mono">{preview.amount}</div>
       ) : null}
+      {preview.policy ? <p className="muted small">{preview.policy}</p> : null}
+      {error ? <p className="action-preview__error">{error}</p> : null}
       <div className="row-actions">
         <Button type="button" variant="ghost" onClick={onCancel} disabled={busy}>
           Cancel

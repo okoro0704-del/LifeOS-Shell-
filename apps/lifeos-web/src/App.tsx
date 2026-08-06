@@ -25,6 +25,8 @@ const SearchPage = lazy(() => import("./pages/Search").then((m) => ({ default: m
 const ConnectionsPage = lazy(() =>
   import("./pages/Connections").then((m) => ({ default: m.ConnectionsPage })),
 );
+const PlansPage = lazy(() => import("./pages/Plans").then((m) => ({ default: m.PlansPage })));
+const SavedPage = lazy(() => import("./pages/Saved").then((m) => ({ default: m.SavedPage })));
 
 function PageFallback() {
   return (
@@ -114,6 +116,22 @@ function ThemedApp() {
                 element={
                   <Suspense fallback={<PageFallback />}>
                     <ConnectionsPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="plans"
+                element={
+                  <Suspense fallback={<PageFallback />}>
+                    <PlansPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="saved"
+                element={
+                  <Suspense fallback={<PageFallback />}>
+                    <SavedPage />
                   </Suspense>
                 }
               />

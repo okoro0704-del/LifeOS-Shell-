@@ -7,7 +7,9 @@ import {
 } from "@lifeos/shared";
 import { prisma } from "../lib/prisma.js";
 import { getExperienceProvider } from "../services/experience.js";
+import { getOfferingProvider } from "../services/offerings.js";
 import { ACTION_REGISTRY } from "./action-registry.js";
+import type { ActionId } from "@lifeos/shared";
 
 function parsePrefs(raw: string): LifeOsPreferences {
   try {
@@ -149,92 +151,335 @@ export class QuickAccessService {
       });
     }
 
-    // Contextual from activity
+    // Contextual from activity — offering-level where possible
     for (const a of activities.slice(0, 5)) {
-      if (/hotel|booking|check.?in/i.test(`${a.title} ${a.detail}`)) {
-        const id = `qa_ctx_checkin_${a.id}`;
-        if (hidden.has(id)) continue;
-        items.push({
-          id,
-          kind: "contextual",
-          label: "Check in",
-          subtitle: a.title,
-          actionId: "CHECK_IN",
-          params: { experienceId: a.experienceId, bookingId: a.id },
-          score: scoreQuickAccessItem({
-            frequency: 1,
-            recencyMs: Date.now() - a.createdAt.getTime(),
-            upcoming: true,
+      const blob = `${a.title} ${a.detail}`;
+      if (/hotel|room|booking|check.?in/i.test(blob)) {
+        const id = `qa_ctx_hotel_${a.id}`;
+        if (!hidden.has(id)) {
+          items.push({
+            id,
+            kind: "contextual",
+            label: "My Hotel Room",
+            subtitle: a.title,
+            actionId: "VIEW_BOOKINGS",
+            params: { activityId: a.id },
+            score: scoreQuickAccessItem({
+              frequency: 1,
+              recencyMs: Date.now() - a.createdAt.getTime(),
+              upcoming: true,
+              pinned: pinned.has(id),
+              contextual: true,
+            }),
             pinned: pinned.has(id),
             contextual: true,
-          }),
-          pinned: pinned.has(id),
-          contextual: true,
-        });
+            navigateTo: a.deepLink || "/app/activity?filter=bookings",
+          });
+        }
       }
-      if (/ticket|cinema/i.test(`${a.title} ${a.detail}`)) {
+      if (/spa|massage|appointment|treatment/i.test(blob)) {
+        const id = `qa_ctx_spa_${a.id}`;
+        if (!hidden.has(id)) {
+          items.push({
+            id,
+            kind: "contextual",
+            label: "My Spa Appointment",
+            subtitle: a.title,
+            actionId: "VIEW_APPOINTMENT",
+            params: { activityId: a.id },
+            score: scoreQuickAccessItem({
+              frequency: 1,
+              recencyMs: Date.now() - a.createdAt.getTime(),
+              upcoming: true,
+              pinned: pinned.has(id),
+              contextual: true,
+            }),
+            pinned: pinned.has(id),
+            contextual: true,
+            navigateTo: a.deepLink || "/app/discover?category=Wellness",
+          });
+        }
+      }
+      if (/gym|class|fitness|training/i.test(blob)) {
+        const id = `qa_ctx_gym_${a.id}`;
+        if (!hidden.has(id)) {
+          items.push({
+            id,
+            kind: "contextual",
+            label: "My Gym Class",
+            subtitle: a.title,
+            actionId: "OPEN_EXPERIENCE",
+            params: { experienceId: a.experienceId || "exp_peak_fitness" },
+            score: scoreQuickAccessItem({
+              frequency: 1,
+              recencyMs: Date.now() - a.createdAt.getTime(),
+              upcoming: true,
+              pinned: pinned.has(id),
+              contextual: true,
+            }),
+            pinned: pinned.has(id),
+            contextual: true,
+            navigateTo: "/app/discover?category=Fitness",
+          });
+        }
+      }
+      if (/ticket|cinema|movie/i.test(blob)) {
         const id = `qa_ctx_ticket_${a.id}`;
-        if (hidden.has(id)) continue;
-        items.push({
-          id,
-          kind: "contextual",
-          label: "View ticket",
-          subtitle: a.title,
-          actionId: "VIEW_TICKETS",
-          score: scoreQuickAccessItem({
-            frequency: 1,
-            recencyMs: Date.now() - a.createdAt.getTime(),
-            upcoming: true,
+        if (!hidden.has(id)) {
+          items.push({
+            id,
+            kind: "contextual",
+            label: "My Cinema Ticket",
+            subtitle: a.title,
+            actionId: "VIEW_TICKETS",
+            score: scoreQuickAccessItem({
+              frequency: 1,
+              recencyMs: Date.now() - a.createdAt.getTime(),
+              upcoming: true,
+              pinned: pinned.has(id),
+              contextual: true,
+            }),
             pinned: pinned.has(id),
             contextual: true,
-          }),
-          pinned: pinned.has(id),
-          contextual: true,
-          navigateTo: "/app/activity?filter=tickets",
-        });
+            navigateTo: "/app/activity?filter=tickets",
+          });
+        }
       }
-      if (/spa|appointment|massage/i.test(`${a.title} ${a.detail}`)) {
-        const id = `qa_ctx_appt_${a.id}`;
-        if (hidden.has(id)) continue;
-        items.push({
-          id,
-          kind: "contextual",
-          label: "View appointment",
-          subtitle: a.title,
-          actionId: "VIEW_APPOINTMENT",
-          params: { activityId: a.id },
-          score: scoreQuickAccessItem({
-            frequency: 1,
-            recencyMs: Date.now() - a.createdAt.getTime(),
-            upcoming: true,
+      if (/restaurant|dinner|reservation|meal/i.test(blob)) {
+        const id = `qa_ctx_rest_${a.id}`;
+        if (!hidden.has(id)) {
+          items.push({
+            id,
+            kind: "contextual",
+            label: "My Restaurant Reservation",
+            subtitle: a.title,
+            actionId: "VIEW_BOOKINGS",
+            score: scoreQuickAccessItem({
+              frequency: 1,
+              recencyMs: Date.now() - a.createdAt.getTime(),
+              upcoming: true,
+              pinned: pinned.has(id),
+              contextual: true,
+            }),
             pinned: pinned.has(id),
             contextual: true,
-          }),
-          pinned: pinned.has(id),
-          contextual: true,
-        });
+            navigateTo: a.deepLink || "/app/discover?category=Eat",
+          });
+        }
       }
-      if (/invoice|unpaid|bill/i.test(`${a.title} ${a.detail}`)) {
+      if (/event|concert|invoice|unpaid|bill/i.test(blob)) {
         const id = `qa_ctx_pay_${a.id}`;
+        if (!hidden.has(id) && /invoice|unpaid|bill/i.test(blob)) {
+          items.push({
+            id,
+            kind: "contextual",
+            label: "Pay invoice",
+            subtitle: a.title,
+            actionId: "PAY_INVOICE",
+            params: { merchant: a.title, amount: 1, reference: a.id },
+            score: scoreQuickAccessItem({
+              frequency: 1,
+              recencyMs: Date.now() - a.createdAt.getTime(),
+              upcoming: true,
+              pinned: pinned.has(id),
+              contextual: true,
+            }),
+            pinned: pinned.has(id),
+            contextual: true,
+          });
+        } else if (!hidden.has(id) && /event|concert/i.test(blob)) {
+          items.push({
+            id: `qa_ctx_event_${a.id}`,
+            kind: "contextual",
+            label: "My Event Ticket",
+            subtitle: a.title,
+            actionId: "VIEW_TICKETS",
+            score: scoreQuickAccessItem({
+              frequency: 1,
+              recencyMs: Date.now() - a.createdAt.getTime(),
+              upcoming: true,
+              pinned: pinned.has(id),
+              contextual: true,
+            }),
+            pinned: pinned.has(id),
+            contextual: true,
+            navigateTo: "/app/discover?category=Events",
+          });
+        }
+      }
+    }
+
+    // Prefer PersonalContextService for contextual Quick Access
+    try {
+      const { personalContextService } = await import("../services/personal-context.js");
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (user) {
+        const snap = await personalContextService.getSnapshot(userId, user.trustId);
+        for (const item of [...snap.today, ...snap.upcoming].slice(0, 6)) {
+          const id = `qa_pc_${item.id}`;
+          if (hidden.has(id)) continue;
+          const label =
+            item.type === "STAY"
+              ? "Hotel Stay"
+              : item.type === "TICKET" || item.type === "EVENT"
+                ? item.startAt && new Date(item.startAt).getHours() >= 17
+                  ? "Tonight's Movie"
+                  : "Ticket"
+                : item.type === "APPOINTMENT"
+                  ? "Spa Appointment"
+                  : item.type === "CLASS"
+                    ? "Gym Class"
+                    : item.type === "PAYMENT"
+                      ? "Pay Invoice"
+                      : item.title;
+          items.push({
+            id,
+            kind: "contextual",
+            label: label.slice(0, 28),
+            subtitle: item.subtitle ?? item.title,
+            actionId: (item.action?.actionId as ActionId) || "VIEW_BOOKINGS",
+            params: {
+              offeringId: item.offeringId,
+              experienceId: item.experienceId,
+            },
+            score: scoreQuickAccessItem({
+              frequency: 3,
+              recencyMs: 0,
+              upcoming: true,
+              pinned: pinned.has(id),
+              contextual: true,
+            }),
+            pinned: pinned.has(id),
+            contextual: true,
+            navigateTo: item.action?.href || "/app/plans",
+          });
+        }
+        for (const c of snap.continueItems.slice(0, 2)) {
+          const id = `qa_cont_${c.id}`;
+          if (hidden.has(id)) continue;
+          items.push({
+            id,
+            kind: "contextual",
+            label: c.title.slice(0, 28),
+            subtitle: c.subtitle ?? "Continue",
+            actionId: "OPEN_EXPERIENCE",
+            params: { offeringId: c.offeringId, experienceId: c.experienceId },
+            score: scoreQuickAccessItem({
+              frequency: 2,
+              recencyMs: 0,
+              upcoming: true,
+              pinned: pinned.has(id),
+              contextual: true,
+            }),
+            pinned: pinned.has(id),
+            contextual: true,
+            navigateTo: c.href,
+          });
+        }
+        for (const p of snap.wallet?.upcomingPayments.slice(0, 1) ?? []) {
+          const id = `qa_pay_${p.id}`;
+          if (hidden.has(id)) continue;
+          items.push({
+            id,
+            kind: "contextual",
+            label: "Pay Invoice",
+            subtitle: p.title,
+            actionId: "PAY_INVOICE",
+            params: { merchant: p.title, amount: 1, reference: p.id },
+            score: scoreQuickAccessItem({
+              frequency: 2,
+              recencyMs: 0,
+              upcoming: true,
+              pinned: pinned.has(id),
+              contextual: true,
+            }),
+            pinned: pinned.has(id),
+            contextual: true,
+            navigateTo: p.href,
+          });
+        }
+      }
+    } catch {
+      /* PersonalContext optional */
+    }
+
+    // Upcoming action records for Quick Access
+    try {
+      const upcoming = await prisma.actionRecord.findMany({
+        where: {
+          userId,
+          status: "SUCCESS",
+          scheduledAt: { gte: new Date() },
+        },
+        orderBy: { scheduledAt: "asc" },
+        take: 4,
+      });
+      for (const r of upcoming) {
+        const id = `qa_plan_${r.id}`;
         if (hidden.has(id)) continue;
         items.push({
           id,
           kind: "contextual",
-          label: "Pay invoice",
-          subtitle: a.title,
-          actionId: "PAY_INVOICE",
-          params: { merchant: a.title, amount: 1, reference: a.id },
+          label: r.message.split("·")[0]?.trim() || "Upcoming",
+          subtitle: r.scheduledAt
+            ? new Date(r.scheduledAt).toLocaleString(undefined, {
+                weekday: "short",
+                hour: "numeric",
+                minute: "2-digit",
+              })
+            : "Upcoming",
+          actionId: "OPEN_EXPERIENCE",
+          params: {
+            offeringId: r.offeringId,
+            experienceId: r.experienceId,
+          },
           score: scoreQuickAccessItem({
-            frequency: 1,
-            recencyMs: Date.now() - a.createdAt.getTime(),
+            frequency: 2,
+            recencyMs: 0,
             upcoming: true,
             pinned: pinned.has(id),
             contextual: true,
           }),
           pinned: pinned.has(id),
           contextual: true,
+          navigateTo: r.offeringId
+            ? `/app/discover?offering=${r.offeringId}`
+            : "/app/plans",
         });
       }
+    } catch {
+      /* ActionRecord may be missing before migrate */
+    }
+
+    // Featured offering shortcuts
+    try {
+      const featured = (await getOfferingProvider().list({}))
+        .filter((o) => o.featured)
+        .slice(0, 2);
+      for (const o of featured) {
+        const id = `qa_off_${o.id}`;
+        if (hidden.has(id)) continue;
+        items.push({
+          id,
+          kind: "contextual",
+          label: o.name,
+          subtitle: o.businessName,
+          actionId: "OPEN_EXPERIENCE",
+          params: { offeringId: o.id, experienceId: o.experienceId },
+          score: scoreQuickAccessItem({
+            frequency: 0,
+            recencyMs: 86400000 * 3,
+            upcoming: false,
+            pinned: pinned.has(id),
+            contextual: true,
+          }),
+          pinned: pinned.has(id),
+          contextual: true,
+          navigateTo: `/app/discover?offering=${o.id}`,
+        });
+      }
+    } catch {
+      /* optional */
     }
 
     // Apply order preference

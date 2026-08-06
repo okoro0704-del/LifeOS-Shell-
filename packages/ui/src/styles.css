@@ -618,6 +618,116 @@ button.los-card:focus-visible {
   font-weight: 650;
 }
 
+/* —— Offering card (service-first hero) —— */
+.los-offering {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+  border: none;
+  border-radius: var(--los-radius-lg);
+  background: var(--los-surface);
+  color: inherit;
+  font: inherit;
+  overflow: hidden;
+  box-shadow: var(--los-shadow-sm);
+  cursor: pointer;
+  transition: transform var(--los-duration-fast) var(--los-ease), box-shadow var(--los-duration-fast) ease;
+}
+
+.los-offering:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--los-shadow);
+}
+
+.los-offering:focus-visible {
+  outline: 2px solid var(--los-accent);
+  outline-offset: 2px;
+}
+
+.los-offering__media {
+  position: relative;
+  height: 120px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.los-offering__media-mark {
+  position: relative;
+  z-index: 1;
+  color: var(--los-accent-strong, var(--los-accent));
+}
+
+.los-offering__badge {
+  position: absolute;
+  top: 0.55rem;
+  left: 0.55rem;
+  z-index: 2;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 32, 0.72);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.los-offering__body {
+  padding: var(--los-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.los-offering__name {
+  margin: 0;
+  font-family: var(--los-display);
+  font-size: 1.05rem;
+  font-weight: 650;
+  letter-spacing: var(--los-tracking-tight);
+  line-height: 1.25;
+}
+
+.los-offering__business {
+  margin: 0;
+  color: var(--los-muted);
+  font-size: var(--los-text-sm);
+  font-weight: 550;
+}
+
+.los-offering__meta {
+  margin: 0.2rem 0 0;
+  font-size: var(--los-text-sm);
+  font-weight: 650;
+}
+
+.los-offering__foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+  font-size: var(--los-text-xs);
+}
+
+.los-offering__rating {
+  font-weight: 650;
+}
+
+.los-offering__avail {
+  color: var(--los-accent);
+  font-weight: 650;
+  text-align: right;
+}
+
+.los-offering__cta {
+  margin-top: var(--los-space-2);
+  color: var(--los-accent);
+  font-size: var(--los-text-sm);
+  font-weight: 650;
+}
+
 /* —— Activity row —— */
 .los-activity {
   display: flex;

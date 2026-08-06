@@ -13,6 +13,9 @@ import { getAIProvider } from "./ai-provider.js";
 import { classifyIntent } from "./intent.js";
 import { getUniversalSearch } from "./search/engine.js";
 import { getCommandWalletProvider } from "./wallet-adapter.js";
+import { personalContextService } from "../services/personal-context.js";
+import { recommendationProvider } from "../services/recommendations.js";
+import { getOfferingProvider } from "../services/offerings.js";
 
 function sanitizeHistoryQuery(q: string): string {
   // Never persist secrets / credentials-looking material
@@ -69,15 +72,15 @@ export function buildActionPreview(
   if (actionId === "BOOK_SERVICE") {
     return {
       actionId,
-      title: "Book service",
-      subtitle: String(params.service ?? params.experienceId ?? "Service"),
+      title: "Book offering",
+      subtitle: String(params.service ?? params.offeringName ?? "Service"),
       lines: [
-        { label: "Experience", value: String(params.experienceId ?? "—") },
-        { label: "Service", value: String(params.service ?? "—") },
+        { label: "Offering", value: String(params.service ?? params.offeringName ?? "—") },
+        { label: "Provider", value: String(params.businessName ?? params.experienceId ?? "—") },
         { label: "When", value: String(params.when ?? "Tomorrow afternoon") },
-        { label: "Price", value: String(params.amount ?? "₦35,000") },
+        { label: "Price", value: String(params.amount ?? "—") },
       ],
-      amount: String(params.amount ?? "₦35,000"),
+      amount: params.amount != null ? String(params.amount) : undefined,
       params,
       confirmLabel: "Confirm booking",
     };
@@ -146,6 +149,21 @@ export async function runCommand(input: {
   ) {
     const action = getAction(intent.suggestedActionId);
     if (action?.navigateTo && !action.requiresConfirmation) {
+      // Enrich SHOW_BOOKINGS with personal context answer
+      if (intent.kind === "SHOW_BOOKINGS") {
+        try {
+          const snap = await personalContextService.getSnapshot(input.userId, input.trustId);
+          const safe = personalContextService.toAiSafe(snap);
+          return {
+            type: "navigate",
+            path: action.navigateTo!,
+            message: `Today: ${safe.todaySummary}`,
+            intent,
+          };
+        } catch {
+          /* fall through to navigate */
+        }
+      }
       return {
         type: "navigate",
         path: action.navigateTo,
@@ -155,7 +173,91 @@ export async function runCommand(input: {
     }
   }
 
-  // Consequential — preview only
+  // Personal context Q&A — structured, user-scoped, no unrestricted DB
+  if (intent.kind === "PERSONAL_CONTEXT") {
+    const snap = await personalContextService.getSnapshot(input.userId, input.trustId);
+    const safe = personalContextService.toAiSafe(snap);
+    const q = intent.query.toLowerCase();
+
+    if (
+      /nothing planned/.test(q) ||
+      (/what can i do/.test(q) && /(saturday|weekend|today|tonight)/.test(q))
+    ) {
+      const recs = await recommendationProvider.recommend({
+        signals: snap.signals,
+        limit: 4,
+      });
+      const results: SearchResult[] = [];
+      for (const r of recs) {
+        const o = await getOfferingProvider().getById(r.offeringId);
+        if (!o) continue;
+        results.push({
+          id: `ctx_rec_${o.id}`,
+          type: "OFFERING",
+          title: o.name,
+          subtitle: o.businessName,
+          description: r.reason,
+          actions: [
+            {
+              id: `book_${o.id}`,
+              label: "Select",
+              actionId: "BOOK_SERVICE",
+              params: {
+                offeringId: o.id,
+                experienceId: o.experienceId,
+                service: o.name,
+                businessName: o.businessName,
+                amount: o.priceFormatted,
+              },
+              requiresConfirmation: true,
+            },
+          ],
+          source: "personal-context",
+          score: r.score,
+        });
+      }
+      return {
+        type: "results",
+        message:
+          "Here are a few options based on your interests and availability. Select one and I’ll prepare the action.",
+        results,
+        intent,
+      };
+    }
+
+    let message = safe.todaySummary;
+    if (/weekend|coming up/.test(q)) message = `Coming up: ${safe.upcomingSummary}`;
+    else if (/booked recently|did i book/.test(q)) message = `Recent: ${safe.recentBookingsSummary}`;
+    else if (/saved/.test(q)) message = safe.savedSpasSummary;
+    else if (/tonight|where am i going/.test(q)) message = `Tonight: ${safe.tonightSummary}`;
+    else if (/pay/.test(q)) message = safe.paymentAttentionSummary;
+    else if (/yesterday/.test(q)) message = `Yesterday: ${safe.yesterdaySummary}`;
+    else if (/today|doing/.test(q)) message = `Today: ${safe.todaySummary}`;
+    else if (/hotel|ticket|appointment|plan/.test(q)) {
+      const filtered = safe.items.filter((i) => {
+        if (/hotel/.test(q)) return i.type === "STAY";
+        if (/ticket/.test(q)) return i.type === "TICKET" || i.type === "EVENT";
+        if (/appointment/.test(q)) return i.type === "APPOINTMENT";
+        return true;
+      });
+      message =
+        filtered.length > 0
+          ? filtered.map((i) => i.title).join("; ")
+          : "Nothing matching in your personal context.";
+    }
+
+    return {
+      type: "answer",
+      message,
+      suggestions: [
+        { id: "open_today", label: "Open Today", actionId: "VIEW_BOOKINGS" },
+        { id: "discover", label: "Discover", actionId: "DISCOVER_BUSINESSES" },
+      ],
+      intent,
+    };
+  }
+
+  // Consequential — preview only; enrich BOOK with offering search
   if (intent.kind === "BOOK" || intent.kind === "PAY") {
     const actionId = (intent.suggestedActionId ||
       (intent.kind === "BOOK" ? "BOOK_SERVICE" : "PAY_INVOICE")) as ActionId;
@@ -167,6 +269,19 @@ export async function runCommand(input: {
     if (intent.kind === "BOOK") {
       params.service = intent.slots.service || intent.query;
       params.when = intent.slots.when || "Tomorrow afternoon";
+      try {
+        const { getOfferingProvider } = await import("../services/offerings.js");
+        const matches = await getOfferingProvider().search(String(params.service));
+        if (matches[0]) {
+          params.offeringId = matches[0].id;
+          params.experienceId = matches[0].experienceId;
+          params.businessName = matches[0].businessName;
+          params.service = matches[0].name;
+          params.amount = matches[0].priceFormatted;
+        }
+      } catch {
+        /* offering enrichment optional */
+      }
     }
     return {
       type: "preview",
@@ -289,6 +404,8 @@ export async function executeConfirmedAction(input: {
 
   if (input.actionId === "BOOK_SERVICE" || input.actionId === "CHECK_IN") {
     const title = input.actionId === "CHECK_IN" ? "Check-in confirmed" : "Booking prepared";
+    const offeringId = input.params.offeringId ? String(input.params.offeringId) : null;
+    const experienceId = input.params.experienceId ? String(input.params.experienceId) : null;
     const activity = await prisma.activity.create({
       data: {
         userId: input.userId,
@@ -296,16 +413,18 @@ export async function executeConfirmedAction(input: {
         title,
         detail: String(input.params.service ?? input.params.bookingId ?? action.name),
         source: "command-layer",
-        experienceId: input.params.experienceId ? String(input.params.experienceId) : null,
-        deepLink: input.params.experienceId
-          ? `/app/discover?open=${input.params.experienceId}`
-          : "/app/activity",
+        experienceId,
+        deepLink: offeringId
+          ? `/app/discover?offering=${offeringId}`
+          : experienceId
+            ? `/app/discover?open=${experienceId}`
+            : "/app/activity",
         metadata: JSON.stringify({ actionId: input.actionId, params: input.params }),
       },
     });
     await auditLog(AUDIT_EVENTS.ACTION_CONFIRMED, {
       userId: input.userId,
-      detail: { actionId: input.actionId },
+      detail: { actionId: input.actionId, offeringId },
     });
     return {
       type: "executed",
@@ -321,12 +440,28 @@ export async function executeConfirmedAction(input: {
     return { type: "navigate", path: action.navigateTo, message: action.name };
   }
 
-  if (input.actionId === "OPEN_EXPERIENCE" && input.params.experienceId) {
-    return {
-      type: "navigate",
-      path: `/app/discover?open=${encodeURIComponent(String(input.params.experienceId))}`,
-      message: "Opening experience",
-    };
+  if (input.actionId === "OPEN_EXPERIENCE") {
+    if (input.params.offeringId) {
+      return {
+        type: "navigate",
+        path: `/app/discover?offering=${encodeURIComponent(String(input.params.offeringId))}`,
+        message: "Opening offering",
+      };
+    }
+    if (input.params.businessId) {
+      return {
+        type: "navigate",
+        path: `/app/discover?business=${encodeURIComponent(String(input.params.businessId))}`,
+        message: "Opening business",
+      };
+    }
+    if (input.params.experienceId) {
+      return {
+        type: "navigate",
+        path: `/app/discover?open=${encodeURIComponent(String(input.params.experienceId))}`,
+        message: "Opening experience",
+      };
+    }
   }
 
   const activity = await prisma.activity.create({
@@ -357,6 +492,34 @@ export async function resolveActionPath(
       type: "preview",
       message: "This action needs your confirmation.",
       preview: buildActionPreview(actionId as ActionId, params),
+    };
+  }
+  if (actionId === "OPEN_EXPERIENCE" && params.offeringId) {
+    return {
+      type: "navigate",
+      path: `/app/discover?offering=${encodeURIComponent(String(params.offeringId))}`,
+      message: action.name,
+    };
+  }
+  if (actionId === "OPEN_EXPERIENCE" && params.businessId) {
+    return {
+      type: "navigate",
+      path: `/app/discover?business=${encodeURIComponent(String(params.businessId))}`,
+      message: action.name,
+    };
+  }
+  if (actionId === "OPEN_EXPERIENCE" && params.offeringId) {
+    return {
+      type: "navigate",
+      path: `/app/discover?offering=${encodeURIComponent(String(params.offeringId))}`,
+      message: action.name,
+    };
+  }
+  if (actionId === "OPEN_EXPERIENCE" && params.businessId) {
+    return {
+      type: "navigate",
+      path: `/app/discover?business=${encodeURIComponent(String(params.businessId))}`,
+      message: action.name,
     };
   }
   if (actionId === "OPEN_EXPERIENCE" && params.experienceId) {

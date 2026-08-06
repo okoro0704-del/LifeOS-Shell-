@@ -1,9 +1,12 @@
 import type { QuickAccessPreferences } from "./command.js";
 import { DEFAULT_QUICK_ACCESS_PREFS } from "./command.js";
 
-export const LIFEOS_VERSION = "1.5.0";
+export const LIFEOS_VERSION = "1.8.0";
 
 export * from "./command.js";
+export * from "./offering.js";
+export * from "./actions.js";
+export * from "./personal-context.js";
 
 export const OS_TYPES = [
   "hospitality",
@@ -205,4 +208,6 @@ export const AUDIT_EVENTS = {
   EXPERIENCE_TOKEN_REPLAY: "experience.token.replay_detected",
   COMMAND_EXECUTED: "lifeos.command.executed",
   ACTION_CONFIRMED: "lifeos.action.confirmed",
+  ACTION_FAILED: "lifeos.action.failed",
+  OFFERING_SAVED: "lifeos.offering.saved",
 } as const;

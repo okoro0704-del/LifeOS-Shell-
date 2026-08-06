@@ -41,6 +41,8 @@ export class LifeOSSearchProvider implements SearchProvider {
       { title: "My profile", subtitle: "Personal", actionId: "VIEW_PROFILE", path: "/app/profile" },
       { title: "My wallet", subtitle: "Cash & Tokens", actionId: "OPEN_WALLET", path: "/app/wallet" },
       { title: "My activity", subtitle: "Personal", actionId: "VIEW_ACTIVITY", path: "/app/activity" },
+      { title: "Today & Plans", subtitle: "Personal", actionId: "VIEW_BOOKINGS", path: "/app/plans" },
+      { title: "Saved offerings", subtitle: "Personal", actionId: "DISCOVER_BUSINESSES", path: "/app/saved" },
     ];
     for (const p of personal) {
       const score = scoreMatch(`${p.title} ${p.subtitle}`, ctx.query);

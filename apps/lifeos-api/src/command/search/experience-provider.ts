@@ -1,8 +1,69 @@
 import type { SearchResult, SearchResultAction } from "@lifeos/shared";
-import { prisma } from "../../lib/prisma.js";
 import { getBusinessDirectory } from "../../services/directory.js";
+import { getOfferingProvider } from "../../services/offerings.js";
+import { prisma } from "../../lib/prisma.js";
 import type { SearchContext, SearchProvider } from "./types.js";
 import { scoreMatch } from "./types.js";
+
+/** Offering-first search — action queries return treatments/meals/rooms before businesses. */
+export class OfferingSearchProvider implements SearchProvider {
+  readonly id = "offering";
+
+  async search(ctx: SearchContext): Promise<SearchResult[]> {
+    const offerings = await getOfferingProvider().search(ctx.query);
+    return offerings.slice(0, 16).map((o) => {
+      const score = Math.max(
+        scoreMatch(o.name, ctx.query),
+        scoreMatch(o.description, ctx.query),
+        scoreMatch(o.category, ctx.query),
+        scoreMatch(o.type, ctx.query),
+        scoreMatch(o.businessName, ctx.query) * 0.5,
+      );
+      const actions: SearchResultAction[] = [
+        {
+          id: `view_off_${o.id}`,
+          label: "View",
+          actionId: "OPEN_EXPERIENCE",
+          params: { experienceId: o.experienceId, offeringId: o.id },
+        },
+      ];
+      if (o.bookingCapability) {
+        actions.push({
+          id: `book_off_${o.id}`,
+          label: "Book",
+          actionId: "BOOK_SERVICE",
+          params: {
+            experienceId: o.experienceId,
+            offeringId: o.id,
+            service: o.name,
+            amount: o.priceFormatted,
+          },
+          requiresConfirmation: true,
+        });
+      }
+      return {
+        id: `offering_${o.id}`,
+        type: "OFFERING" as const,
+        title: o.name,
+        subtitle: o.businessName,
+        description: [o.duration, o.priceFormatted, o.availability].filter(Boolean).join(" · "),
+        icon: o.image ?? undefined,
+        metadata: {
+          offeringId: o.id,
+          experienceId: o.experienceId,
+          businessId: o.businessId,
+          type: o.type,
+          category: o.category,
+          price: o.price,
+          navigateTo: `/app/discover?offering=${o.id}`,
+        },
+        actions,
+        source: this.id,
+        score: Math.max(score, 0.45),
+      } satisfies SearchResult;
+    });
+  }
+}
 
 export class ExperienceSearchProvider implements SearchProvider {
   readonly id = "experience";
@@ -10,7 +71,9 @@ export class ExperienceSearchProvider implements SearchProvider {
   async search(ctx: SearchContext): Promise<SearchResult[]> {
     const directory = getBusinessDirectory();
     const items = await directory.search(ctx.query);
-    return items.map((e) => {
+    const businesses = await getOfferingProvider().listBusinesses(ctx.query);
+
+    const experienceResults: SearchResult[] = items.map((e) => {
       const connected = ctx.connectedExperienceIds.has(e.id);
       const score = Math.max(
         scoreMatch(e.displayName, ctx.query),
@@ -33,14 +96,6 @@ export class ExperienceSearchProvider implements SearchProvider {
           actionId: "OPEN_EXPERIENCE",
           params: { experienceId: e.id },
         });
-      } else {
-        actions.push({
-          id: `book_${e.id}`,
-          label: "Book",
-          actionId: "BOOK_SERVICE",
-          params: { experienceId: e.id, service: e.displayName },
-          requiresConfirmation: true,
-        });
       }
       return {
         id: `exp_${e.id}`,
@@ -54,12 +109,38 @@ export class ExperienceSearchProvider implements SearchProvider {
           category: e.category,
           location: e.location,
           connected,
+          navigateTo: `/app/discover?business=${e.businessId}`,
         },
         actions,
         source: this.id,
-        score: score || 0.4,
+        score: score || 0.35,
       } satisfies SearchResult;
     });
+
+    const businessResults: SearchResult[] = businesses.map((b) => ({
+      id: `biz_${b.businessId}`,
+      type: "BUSINESS" as const,
+      title: b.businessName,
+      subtitle: b.category,
+      description: b.description,
+      actions: [
+        {
+          id: `biz_view_${b.businessId}`,
+          label: "View",
+          actionId: "OPEN_EXPERIENCE",
+          params: { experienceId: b.experienceId, businessId: b.businessId },
+        },
+      ],
+      source: this.id,
+      score: Math.max(scoreMatch(b.businessName, ctx.query), 0.5),
+      metadata: {
+        businessId: b.businessId,
+        experienceId: b.experienceId,
+        navigateTo: `/app/discover?business=${b.businessId}`,
+      },
+    }));
+
+    return [...experienceResults, ...businessResults];
   }
 }
 

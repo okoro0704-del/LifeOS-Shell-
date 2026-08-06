@@ -2,8 +2,13 @@ import type { SearchResult, SearchResultType } from "@lifeos/shared";
 import { prisma } from "../../lib/prisma.js";
 import { getExperienceProvider } from "../../services/experience.js";
 import { ActivitySearchProvider, NotificationSearchProvider } from "./activity-provider.js";
-import { BookingSearchProvider, ExperienceSearchProvider } from "./experience-provider.js";
+import {
+  BookingSearchProvider,
+  ExperienceSearchProvider,
+  OfferingSearchProvider,
+} from "./experience-provider.js";
 import { LifeOSSearchProvider } from "./lifeos-provider.js";
+import { PersonalContextSearchProvider } from "./personal-context-provider.js";
 import type { SearchContext, SearchProvider } from "./types.js";
 import { WalletSearchProvider } from "./wallet-provider.js";
 
@@ -45,12 +50,20 @@ export class UniversalSearchEngine {
     );
 
     let results = batches.flat().sort((a, b) => b.score - a.score);
+
+    // Action-oriented queries: boost OFFERING above EXPERIENCE/BUSINESS
+    if (isActionOrientedQuery(q)) {
+      results = results.map((r) =>
+        r.type === "OFFERING" ? { ...r, score: r.score + 0.35 } : r,
+      );
+      results.sort((a, b) => b.score - a.score);
+    }
+
     if (input.types?.length) {
       const allow = new Set(input.types);
       results = results.filter((r) => allow.has(r.type));
     }
 
-    // Dedupe by id
     const seen = new Set<string>();
     results = results.filter((r) => {
       if (seen.has(r.id)) return false;
@@ -66,7 +79,6 @@ export class UniversalSearchEngine {
       (groups[r.type] ??= []).push(r);
     }
 
-    // Privacy-conscious metric — no raw query
     const topType = results[0]?.type ?? "none";
     void prisma.searchMetric
       .create({
@@ -82,11 +94,19 @@ export class UniversalSearchEngine {
   }
 }
 
+function isActionOrientedQuery(q: string): boolean {
+  return /\b(massage|spa|pizza|jollof|room|suite|gym|class|movie|ticket|dinner|breakfast|pass|training|facial|concert|event)\b/i.test(
+    q,
+  );
+}
+
 let engine: UniversalSearchEngine | null = null;
 
 export function getUniversalSearch(): UniversalSearchEngine {
   if (!engine) {
     engine = new UniversalSearchEngine([
+      new PersonalContextSearchProvider(),
+      new OfferingSearchProvider(),
       new LifeOSSearchProvider(),
       new ExperienceSearchProvider(),
       new BookingSearchProvider(),

@@ -3,11 +3,13 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   IconActivity,
   IconBell,
+  IconBook,
   IconExplore,
   IconHome,
   IconLink,
   IconProfile,
   IconSearch,
+  IconTicket,
   IconWallet,
 } from "@lifeos/ui";
 import { useAuth } from "../hooks/useAuth";
@@ -125,6 +127,18 @@ export function AppShell() {
               <IconLink size={20} />
             </span>
             Connections
+          </NavLink>
+          <NavLink to="/app/plans" className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}>
+            <span className="nav-icon" aria-hidden>
+              <IconTicket size={20} />
+            </span>
+            Today
+          </NavLink>
+          <NavLink to="/app/saved" className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}>
+            <span className="nav-icon" aria-hidden>
+              <IconBook size={20} />
+            </span>
+            Saved
           </NavLink>
         </nav>
         {user ? (

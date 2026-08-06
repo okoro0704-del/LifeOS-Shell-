@@ -26,6 +26,9 @@ model User {
   experienceSessions ExperienceSession[]
   auditEvents   AuditEvent[]
   commandHistory CommandHistory[]
+  savedOfferings SavedOffering[]
+  actionRecords  ActionRecord[]
+  personalPlans  PersonalPlan[]
 }
 
 model Session {
@@ -179,4 +182,57 @@ model AuditEvent {
 
   @@index([userId, createdAt])
   @@index([event])
+}
+
+/// User-scoped saved offerings — not bookings.
+model SavedOffering {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  offeringId String
+  snapshot   String   @default("{}")
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, offeringId])
+  @@index([userId, createdAt])
+}
+
+/// Lightweight action history — references external systems; not a booking ledger.
+model ActionRecord {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action            String
+  status            String
+  offeringId        String?
+  businessId        String?
+  experienceId      String?
+  externalReference String?
+  bookingId         String?
+  paymentId         String?
+  receiptId         String?
+  message           String   @default("")
+  scheduledAt       DateTime?
+  metadata          String   @default("{}")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([userId, status])
+  @@index([userId, scheduledAt])
+}
+
+/// Lightweight personal plan grouping — references only; not a second booking system.
+model PersonalPlan {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  status    String   @default("ACTIVE")
+  /// JSON array of LifePlanItem-shaped references (source/sourceId/experienceId/…).
+  itemsJson String   @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
 }

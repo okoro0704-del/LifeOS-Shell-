@@ -11,6 +11,7 @@ import { experienceProtocolRoutes } from "./routes/experience-protocol.js";
 import { activityRoutes } from "./routes/activity.js";
 import { notificationRoutes } from "./routes/notifications.js";
 import { commandRoutes } from "./command/routes.js";
+import { actionRoutes } from "./routes/actions.js";
 
 const app = Fastify({ logger: true });
 
@@ -39,6 +40,7 @@ await connectionRoutes(app);
 await activityRoutes(app);
 await notificationRoutes(app);
 await commandRoutes(app);
+await actionRoutes(app);
 
 await app.listen({ port: config.port, host: config.host });
 console.log(`LifeOS API listening on http://${config.host}:${config.port}`);

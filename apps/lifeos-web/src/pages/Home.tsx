@@ -1,26 +1,33 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import type { ActivityItem, ExperienceRecord, QuickAccessItem, SearchResult } from "@lifeos/shared";
+import type {
+  AttentionItem,
+  ContinueItem,
+  DiscoverableOffering,
+  LifePlanItem,
+  QuickAccessItem,
+  RecommendationItem,
+  SearchResult,
+} from "@lifeos/shared";
 import {
-  ActivityRow,
   Button,
   EmptyState,
-  ExperienceCard,
   IconActivity,
   IconBell,
   IconBook,
   IconExplore,
   IconTicket,
   IconWallet,
+  OfferingCard,
   QuickAction,
   SectionHeader,
   Skeleton,
   StatusBadge,
 } from "@lifeos/ui";
 import {
+  actionService,
   activityService,
   commandService,
-  connectionService,
   discoverService,
 } from "../lib/services";
 import { useAuth } from "../hooks/useAuth";
@@ -36,7 +43,8 @@ function greeting() {
   return "Good evening";
 }
 
-function formatTime(iso: string) {
+function formatTime(iso?: string | null) {
+  if (!iso) return "";
   return new Date(iso).toLocaleTimeString(undefined, {
     hour: "numeric",
     minute: "2-digit",
@@ -54,47 +62,53 @@ function quickIcon(item: QuickAccessItem) {
   return <IconExplore size={20} />;
 }
 
-function isToday(iso: string) {
-  const d = new Date(iso);
-  const now = new Date();
-  return d.toDateString() === now.toDateString();
-}
-
 export function HomePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { openCommand, setPreview, preview } = useCommandLayer();
   const [dataError, setDataError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const [featured, setFeatured] = useState<(ExperienceRecord & { availability?: string })[]>([]);
-  const [connectedIds, setConnectedIds] = useState<Set<string>>(new Set());
+  const [offline, setOffline] = useState(false);
+  const [forYou, setForYou] = useState<DiscoverableOffering[]>([]);
+  const [recs, setRecs] = useState<RecommendationItem[]>([]);
   const [quick, setQuick] = useState<QuickAccessItem[]>([]);
+  const [today, setToday] = useState<LifePlanItem[]>([]);
+  const [upcoming, setUpcoming] = useState<LifePlanItem[]>([]);
+  const [continueItems, setContinue] = useState<ContinueItem[]>([]);
+  const [attention, setAttention] = useState<AttentionItem[]>([]);
   const [aiResults, setAiResults] = useState<SearchResult[]>([]);
   const [aiMessage, setAiMessage] = useState<string | null>(null);
   const [confirmBusy, setConfirmBusy] = useState(false);
+  const [providerHint, setProviderHint] = useState<string | null>(null);
 
   useEffect(() => {
+    const offlineNow = typeof navigator !== "undefined" && !navigator.onLine;
+    setOffline(offlineNow);
     void (async () => {
       try {
-        const [act, disc, conns, qa] = await Promise.all([
-          activityService.list(),
+        const [disc, qa, plans] = await Promise.all([
           discoverService.get(),
-          connectionService.list().catch(() => ({ connections: [] })),
           commandService.quickAccess().catch(() => ({ items: [] as QuickAccessItem[] })),
+          actionService.plans().catch(() => null),
         ]);
-        setActivities(act.activities);
-        setFeatured((disc.featured as typeof featured).slice(0, 4));
-        setConnectedIds(
-          new Set(
-            conns.connections
-              .filter((c) => c.status === "connected")
-              .map((c) => c.experienceId),
-          ),
-        );
+        setForYou((disc.featuredOfferings ?? disc.offerings ?? []).slice(0, 4));
         setQuick(qa.items.slice(0, 8));
+        if (plans) {
+          setToday(plans.life?.today ?? []);
+          setUpcoming((plans.life?.upcoming ?? []).slice(0, 4));
+          setContinue(plans.continueItems ?? []);
+          setAttention((plans.attention ?? []).slice(0, 3));
+          setRecs((plans.recommendations ?? []).slice(0, 4));
+          if (plans.providerErrors?.length) {
+            setProviderHint("Some live sources are unavailable — showing what we can.");
+          }
+        }
       } catch {
-        setDataError("We couldn't load your home feed. Try again.");
+        setDataError(
+          offlineNow
+            ? "You're offline. Some information may be outdated."
+            : "We couldn't load your home feed. Try again.",
+        );
       } finally {
         setLoading(false);
       }
@@ -102,10 +116,6 @@ export function HomePage() {
   }, []);
 
   const first = user?.firstName || user?.displayName?.split(" ")[0] || "there";
-  const todayItems = useMemo(
-    () => activities.filter((a) => isToday(a.createdAt)).slice(0, 4),
-    [activities],
-  );
 
   async function onQuick(item: QuickAccessItem) {
     if (["BOOK_SERVICE", "PAY_INVOICE", "CHECK_IN"].includes(item.actionId)) {
@@ -130,8 +140,7 @@ export function HomePage() {
       setPreview(null);
       if (outcome.type === "navigate") navigate(outcome.path);
       if (outcome.type === "executed") {
-        const act = await activityService.list();
-        setActivities(act.activities);
+        await activityService.list();
       }
     } finally {
       setConfirmBusy(false);
@@ -148,13 +157,19 @@ export function HomePage() {
         <StatusBadge label="Identity protected" tone="ok" />
       </header>
 
-      {dataError ? (
-        <StatusBanner title={dataError} detail="Check your connection and refresh." />
+      {offline || dataError ? (
+        <StatusBanner
+          title={dataError ?? "You're offline. Some information may be outdated."}
+          detail="Cached Today and Saved may still appear when available."
+        />
       ) : null}
+      {providerHint ? <StatusBanner title={providerHint} /> : null}
 
       <section className="home-command" aria-label="Ask LifeOS">
         <AskLifeOSTrigger />
-        <p className="muted small home-command__hint">Search, navigate, or ask — LifeOS understands intent.</p>
+        <p className="muted small home-command__hint">
+          Ask what’s on today, or find something for the weekend.
+        </p>
       </section>
 
       <section aria-label="Quick Access">
@@ -229,43 +244,119 @@ export function HomePage() {
         </section>
       ) : null}
 
+      {attention.length > 0 ? (
+        <section>
+          <SectionHeader title="Needs attention" />
+          <div className="surface-block">
+            {attention.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                className="plan-row"
+                onClick={() => a.href && navigate(a.href)}
+              >
+                <div>
+                  <strong>{a.title}</strong>
+                  <div className="muted small">{a.detail}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       <section>
         <SectionHeader
           title="Today"
           action={
-            <Link to="/app/activity" className="text-link">
-              All
+            <Link to="/app/plans" className="text-link">
+              Plans
             </Link>
           }
         />
         {loading ? (
           <Skeleton height={88} label="Loading today" />
-        ) : todayItems.length === 0 ? (
+        ) : today.length === 0 ? (
           <EmptyState
             title="Nothing on for today"
-            detail="Ask LifeOS to find something, or explore the ecosystem."
+            detail="Ask LifeOS what you can do next."
             action={
-              <Button variant="soft" size="sm" onClick={() => openCommand("Find a spa")}>
+              <Button variant="soft" size="sm" onClick={() => openCommand("What can I do tonight?")}>
                 Ask LifeOS →
               </Button>
             }
           />
         ) : (
           <div className="surface-block">
-            {todayItems.map((a) => (
-              <ActivityRow
+            {today.map((a) => (
+              <button
                 key={a.id}
-                kind={a.kind}
-                title={a.title}
-                detail={a.detail}
-                time={formatTime(a.createdAt)}
-                amount={a.amount ?? undefined}
-                onClick={a.deepLink ? () => navigate(a.deepLink!) : undefined}
-              />
+                type="button"
+                className="plan-row plan-row--actions"
+                onClick={() => a.action?.href && navigate(a.action.href)}
+              >
+                <div className="plan-row__when">{formatTime(a.startAt)}</div>
+                <div>
+                  <strong>{a.title}</strong>
+                  <div className="muted small">{a.subtitle}</div>
+                </div>
+                {a.action ? <span className="text-link">{a.action.label}</span> : null}
+              </button>
             ))}
           </div>
         )}
       </section>
+
+      <section>
+        <SectionHeader
+          title="Upcoming"
+          action={
+            <Link to="/app/plans" className="text-link">
+              All
+            </Link>
+          }
+        />
+        {loading ? (
+          <Skeleton height={64} label="Loading upcoming" />
+        ) : upcoming.length === 0 ? (
+          <p className="muted small pad-inline">Nothing upcoming — explore when you’re ready.</p>
+        ) : (
+          <div className="surface-block">
+            {upcoming.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                className="plan-row"
+                onClick={() => a.action?.href && navigate(a.action.href)}
+              >
+                <div>
+                  <strong>{a.title}</strong>
+                  <div className="muted small">
+                    {[a.subtitle, a.startAt && formatTime(a.startAt)].filter(Boolean).join(" · ")}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {continueItems.length > 0 ? (
+        <section>
+          <SectionHeader title="Continue where you left off" />
+          <div className="surface-block">
+            {continueItems.slice(0, 3).map((c) => (
+              <button key={c.id} type="button" className="plan-row" onClick={() => navigate(c.href)}>
+                <div>
+                  <strong>{c.title}</strong>
+                  <div className="muted small">{c.subtitle}</div>
+                </div>
+                <span className="text-link">Resume</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section>
         <SectionHeader
@@ -281,28 +372,52 @@ export function HomePage() {
             <Skeleton height={200} />
             <Skeleton height={200} />
           </div>
-        ) : featured.length === 0 ? (
+        ) : recs.length > 0 ? (
+          <div className="surface-block">
+            <p className="muted small pad-inline">Based on your activity</p>
+            {recs.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                className="plan-row"
+                onClick={() => navigate(`/app/discover?offering=${r.offeringId}`)}
+              >
+                <div>
+                  <strong>{r.name}</strong>
+                  <div className="muted small">
+                    {r.businessName} · {r.reason}
+                  </div>
+                </div>
+                <span className="mono">{r.priceFormatted}</span>
+              </button>
+            ))}
+          </div>
+        ) : forYou.length === 0 ? (
           <EmptyState
-            title="No experiences yet"
-            detail="Browse the ecosystem when businesses are available."
+            title="No offerings yet"
+            detail="Discover things you can do across the ecosystem."
             action={
               <Button variant="soft" size="sm" onClick={() => navigate("/app/discover")}>
-                Open Explore
+                Open Discover
               </Button>
             }
           />
         ) : (
           <div className="exp-rail">
-            {featured.map((e) => (
-              <ExperienceCard
-                key={e.id}
-                name={e.displayName}
-                category={e.category}
-                location={e.location}
-                availability={e.availability ?? "Available now"}
-                initial={e.icon ?? e.displayName}
-                connected={connectedIds.has(e.id)}
-                onClick={() => navigate(`/app/discover?open=${e.id}`)}
+            {forYou.map((o) => (
+              <OfferingCard
+                key={o.id}
+                name={o.name}
+                businessName={o.businessName}
+                category={o.category}
+                price={o.priceFormatted}
+                priceUnit={o.priceUnit}
+                duration={o.duration}
+                location={o.location}
+                availability={o.availability}
+                badge={o.badge}
+                rating={o.rating}
+                onClick={() => navigate(`/app/discover?offering=${o.id}`)}
               />
             ))}
           </div>

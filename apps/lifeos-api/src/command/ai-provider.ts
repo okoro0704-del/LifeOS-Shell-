@@ -38,6 +38,9 @@ export class MockAIProvider implements AIProvider {
     if (intent.kind === "SHOW_WALLET" || intent.kind === "WALLET_QUERY") {
       return "Here’s your wallet. Cash is for everyday money; Tokens are for the ecosystem.";
     }
+    if (intent.kind === "PERSONAL_CONTEXT" || intent.kind === "SHOW_BOOKINGS") {
+      return "Here’s what’s on your personal timeline.";
+    }
     if (intent.kind === "BOOK" || intent.kind === "PAY") {
       return "I can prepare that for you — confirm before anything is charged or booked.";
     }

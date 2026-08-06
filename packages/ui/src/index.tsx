@@ -415,6 +415,69 @@ export function ExperienceCard({
   );
 }
 
+export function OfferingCard({
+  name,
+  businessName,
+  category,
+  price,
+  priceUnit,
+  duration,
+  location,
+  availability,
+  badge,
+  rating,
+  onClick,
+}: {
+  name: string;
+  businessName: string;
+  category?: string;
+  price?: string;
+  priceUnit?: string | null;
+  duration?: string | null;
+  location?: string | null;
+  availability?: string | null;
+  badge?: string | null;
+  rating?: number | null;
+  onClick?: () => void;
+}) {
+  const tone = categoryTone(
+    category === "Stay"
+      ? "Hotels"
+      : category === "Eat"
+        ? "Restaurants"
+        : category === "Wellness" || category === "Fitness"
+          ? "Services"
+          : category,
+  );
+  const metaBits = [duration, price && priceUnit ? `${price} / ${priceUnit}` : price, location].filter(
+    Boolean,
+  );
+  const CategoryIcon =
+    tone === "eat" ? IconEat : tone === "stay" ? IconStay : tone === "wellness" ? IconShield : IconExplore;
+
+  return (
+    <button type="button" className="los-offering" onClick={onClick}>
+      <div className={`los-offering__media los-exp__media--${tone}`} aria-hidden>
+        <div className="los-exp__media-glow" />
+        <div className="los-offering__media-mark">
+          <CategoryIcon size={20} />
+        </div>
+        {badge ? <span className="los-offering__badge">{badge}</span> : null}
+      </div>
+      <div className="los-offering__body">
+        <p className="los-offering__name">{name}</p>
+        <p className="los-offering__business">{businessName}</p>
+        {metaBits.length ? <p className="los-offering__meta">{metaBits.join(" · ")}</p> : null}
+        <div className="los-offering__foot">
+          {rating != null ? <span className="los-offering__rating">★ {rating.toFixed(1)}</span> : <span />}
+          {availability ? <span className="los-offering__avail">{availability}</span> : null}
+        </div>
+        <span className="los-offering__cta">View</span>
+      </div>
+    </button>
+  );
+}
+
 const ACTIVITY_ICONS: Record<string, ReactNode> = {
   hotel_booking: <IconStay size={18} />,
   payment: <IconPay size={18} />,

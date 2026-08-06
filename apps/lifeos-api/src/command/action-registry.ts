@@ -23,7 +23,7 @@ export const ACTION_REGISTRY: Record<ActionId, ActionDefinition> = {
     parameters: [],
     requiresConfirmation: false,
     source: "lifeos",
-    navigateTo: "/app/activity?filter=bookings",
+    navigateTo: "/app/plans",
   },
   VIEW_ACTIVITY: {
     id: "VIEW_ACTIVITY",
