@@ -487,7 +487,7 @@ export class QuickAccessService {
       // Category shortcuts so every service vertical is one tap away
       const categories = await getOfferingProvider().categories();
       for (const cat of categories) {
-        if (cat === "More" || cat === "All") continue;
+        if (cat === "More") continue;
         const id = `qa_cat_${cat.toLowerCase()}`;
         if (hidden.has(id)) continue;
         if (items.some((i) => i.id === id)) continue;
