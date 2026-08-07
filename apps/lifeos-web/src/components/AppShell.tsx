@@ -1,13 +1,13 @@
 import { useEffect, useState, type ComponentType, type SVGProps } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
+  Avatar,
   IconActivity,
   IconBell,
   IconBook,
   IconExplore,
   IconHome,
   IconLink,
-  IconProfile,
   IconSearch,
   IconTicket,
   IconWallet,
@@ -15,10 +15,11 @@ import {
 import { useAuth } from "../hooks/useAuth";
 import { useCommandLayer } from "../hooks/useCommandLayer";
 import { notificationService } from "../lib/services";
-import { CommandOverlay, AskLifeOSTrigger } from "./CommandOverlay";
+import { CommandOverlay } from "./CommandOverlay";
 
 type IconComp = ComponentType<SVGProps<SVGSVGElement> & { size?: number }>;
 
+/** Primary tabs — Profile lives on the header avatar, not here. */
 const tabs: {
   to: string;
   end?: boolean;
@@ -29,12 +30,12 @@ const tabs: {
   { to: "/app/discover", label: "Explore", Icon: IconExplore },
   { to: "/app/wallet", label: "Wallet", Icon: IconWallet },
   { to: "/app/activity", label: "Activity", Icon: IconActivity },
-  { to: "/app/profile", label: "Profile", Icon: IconProfile },
 ];
 
 export function AppShell() {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const { openCommand } = useCommandLayer();
   const [unread, setUnread] = useState(0);
   const [offline, setOffline] = useState(!navigator.onLine);
@@ -142,10 +143,18 @@ export function AppShell() {
           </NavLink>
         </nav>
         {user ? (
-          <div className="side-foot">
-            <div className="side-foot-name">{user.displayName}</div>
-            <div className="mono muted small">{user.trustId}</div>
-          </div>
+          <button
+            type="button"
+            className="side-foot side-foot--btn"
+            onClick={() => navigate("/app/profile")}
+            aria-label="Open profile"
+          >
+            <Avatar name={user.displayName} size="sm" />
+            <div className="side-foot__text">
+              <div className="side-foot-name">{user.displayName}</div>
+              <div className="mono muted small">{user.trustId}</div>
+            </div>
+          </button>
         ) : null}
       </aside>
 
@@ -156,8 +165,12 @@ export function AppShell() {
             <span className="brand-name">LifeOS</span>
           </div>
           <div className="app-header__actions">
-            <AskLifeOSTrigger compact mode="ask" className="ask-lifeos-trigger--header" />
-            <button type="button" className="icon-btn" aria-label="Ask LifeOS" onClick={() => openCommand(undefined, "ask")}>
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label="Search"
+              onClick={() => openCommand(undefined, "ask")}
+            >
               <IconSearch size={20} />
             </button>
             <NavLink
@@ -172,6 +185,15 @@ export function AppShell() {
                 </span>
               ) : null}
             </NavLink>
+            <button
+              type="button"
+              className="header-avatar"
+              aria-label="Open profile"
+              onClick={() => navigate("/app/profile")}
+            >
+              <Avatar name={user?.displayName || "You"} size="sm" />
+              <span className="header-avatar__dot" aria-hidden />
+            </button>
           </div>
         </header>
 
@@ -223,8 +245,29 @@ export function AppShell() {
 
         <CommandOverlay />
 
-        <nav className="bottom-nav" aria-label="Primary">
-          {tabs.map((t) => (
+        <nav className="bottom-nav bottom-nav--fab" aria-label="Primary">
+          {tabs.slice(0, 2).map((t) => (
+            <NavLink
+              key={t.to}
+              to={t.to}
+              end={t.end}
+              className={({ isActive }) => `bottom-item${isActive ? " active" : ""}`}
+            >
+              <span className="bottom-icon" aria-hidden>
+                <t.Icon size={22} />
+              </span>
+              <span>{t.label}</span>
+            </NavLink>
+          ))}
+          <button
+            type="button"
+            className="bottom-fab"
+            aria-label="Ask or Tell LifeOS"
+            onClick={() => openCommand(undefined, "ask")}
+          >
+            <span aria-hidden>+</span>
+          </button>
+          {tabs.slice(2).map((t) => (
             <NavLink
               key={t.to}
               to={t.to}

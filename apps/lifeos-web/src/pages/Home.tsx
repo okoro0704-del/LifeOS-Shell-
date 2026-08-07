@@ -11,7 +11,15 @@ import type {
 import {
   Button,
   EmptyState,
-  OfferingCard,
+  IconActivity,
+  IconBell,
+  IconBook,
+  IconEat,
+  IconExplore,
+  IconPay,
+  IconStay,
+  IconTicket,
+  IconWallet,
   SectionHeader,
   Skeleton,
   StatusBadge,
@@ -21,11 +29,12 @@ import {
   activityService,
   commandService,
   discoverService,
+  walletService,
 } from "../lib/services";
+import { SERVICE_VERTICALS } from "../lib/serviceCatalog";
 import { useAuth } from "../hooks/useAuth";
 import { useCommandLayer } from "../hooks/useCommandLayer";
 import { StatusBanner } from "../components/StatusBanner";
-import { AskLifeOSTrigger } from "../components/CommandOverlay";
 import { ActionPreview } from "../components/ActionPreview";
 
 function greeting() {
@@ -52,6 +61,24 @@ function roomInitials(o: DiscoverableOffering) {
     .toUpperCase();
 }
 
+const QUICK_LINKS = [
+  { id: "bookings", label: "Bookings", href: "/app/activity?filter=bookings", Icon: IconBook },
+  { id: "wallet", label: "Wallet", href: "/app/wallet", Icon: IconWallet },
+  { id: "activity", label: "Activity", href: "/app/activity", Icon: IconActivity },
+  { id: "payments", label: "Payments", href: "/app/wallet", Icon: IconPay },
+  { id: "messages", label: "Messages", href: "/app/notifications", Icon: IconBell },
+  { id: "more", label: "More", href: "/app/services", Icon: IconExplore },
+] as const;
+
+const CATEGORY_PILLS = [
+  { id: "Stay", label: "Hotels", Icon: IconStay, href: "/app/services/Stay/feed" },
+  { id: "Wellness", label: "Spa", Icon: IconExplore, href: "/app/services/Wellness" },
+  { id: "Eat", label: "Dining", Icon: IconEat, href: "/app/services/Eat" },
+  { id: "Events", label: "Events", Icon: IconTicket, href: "/app/services/Events" },
+  { id: "Fitness", label: "Fitness", Icon: IconActivity, href: "/app/services/Fitness" },
+  { id: "More", label: "More", Icon: IconExplore, href: "/app/services" },
+] as const;
+
 export function HomePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -62,7 +89,6 @@ export function HomePage() {
   const [forYou, setForYou] = useState<DiscoverableOffering[]>([]);
   const [homeRooms, setHomeRooms] = useState<DiscoverableOffering[]>([]);
   const [recs, setRecs] = useState<RecommendationItem[]>([]);
-  const [showMoreForYou, setShowMoreForYou] = useState(false);
   const [today, setToday] = useState<LifePlanItem[]>([]);
   const [upcoming, setUpcoming] = useState<LifePlanItem[]>([]);
   const [continueItems, setContinue] = useState<ContinueItem[]>([]);
@@ -71,27 +97,33 @@ export function HomePage() {
   const [aiMessage, setAiMessage] = useState<string | null>(null);
   const [confirmBusy, setConfirmBusy] = useState(false);
   const [providerHint, setProviderHint] = useState<string | null>(null);
+  const [walletBalance, setWalletBalance] = useState<string | null>(null);
+  const [balanceHidden, setBalanceHidden] = useState(false);
 
   useEffect(() => {
     const offlineNow = typeof navigator !== "undefined" && !navigator.onLine;
     setOffline(offlineNow);
     void (async () => {
       try {
-        const [disc, rooms, plans] = await Promise.all([
+        const [disc, rooms, plans, wallet] = await Promise.all([
           discoverService.get(),
           discoverService
             .offerings({ category: "Stay" })
             .catch(() => ({ offerings: [] as DiscoverableOffering[] })),
           actionService.plans().catch(() => null),
+          walletService.get().catch(() => null),
         ]);
-        setForYou((disc.featuredOfferings ?? disc.offerings ?? []).slice(0, 6));
+        setForYou((disc.featuredOfferings ?? disc.offerings ?? []).slice(0, 8));
         const roomList = rooms.offerings
           .filter((o) => o.type === "ROOM" || o.category === "Stay")
           .sort((a, b) => {
             if (Boolean(a.featured) !== Boolean(b.featured)) return a.featured ? -1 : 1;
             return (a.distanceKm ?? 99) - (b.distanceKm ?? 99);
           });
-        setHomeRooms(roomList.slice(0, 6));
+        setHomeRooms(roomList.slice(0, 8));
+        const fiat = wallet?.fiat?.balance?.formatted;
+        const token = wallet?.token?.balance?.formatted ?? wallet?.balance?.formatted;
+        setWalletBalance(fiat ?? token ?? null);
         if (plans) {
           setToday(plans.life?.today ?? []);
           setUpcoming((plans.life?.upcoming ?? []).slice(0, 4));
@@ -116,44 +148,15 @@ export function HomePage() {
 
   const first = user?.firstName || user?.displayName?.split(" ")[0] || "there";
 
-  const rightNow = useMemo(() => {
-    if (attention[0]) {
-      return {
-        kind: "attention" as const,
-        title: attention[0].title,
-        detail: attention[0].detail ?? "Needs your attention",
-        href: attention[0].href ?? "/app/plans",
-        cta: "Review",
-      };
-    }
-    if (today[0]) {
-      return {
-        kind: "today" as const,
-        title: today[0].title,
-        detail: [formatTime(today[0].startAt), today[0].subtitle].filter(Boolean).join(" · "),
-        href: today[0].action?.href ?? "/app/plans",
-        cta: today[0].action?.label ?? "Open",
-      };
-    }
-    if (continueItems[0]) {
-      return {
-        kind: "continue" as const,
-        title: continueItems[0].title,
-        detail: continueItems[0].subtitle ?? "Pick up where you left off",
-        href: continueItems[0].href,
-        cta: "Resume",
-      };
-    }
-    return null;
-  }, [attention, today, continueItems]);
+  const recommended = useMemo(() => {
+    if (homeRooms.length) return homeRooms;
+    return forYou.slice(0, 6);
+  }, [homeRooms, forYou]);
 
-  const forYouPrimary = recs.length > 0 ? recs.slice(0, 2) : null;
-  const forYouRest = recs.slice(2);
-
-  function openRoomFeed(roomId?: string) {
-    const qs = roomId ? `?focus=${encodeURIComponent(roomId)}` : "";
-    navigate(`/app/services/Stay/feed${qs}`);
-  }
+  const glance = useMemo(() => {
+    const items = [...today, ...upcoming].slice(0, 6);
+    return items;
+  }, [today, upcoming]);
 
   async function confirmHomePreview() {
     if (!preview) return;
@@ -170,12 +173,28 @@ export function HomePage() {
     }
   }
 
+  function openRoomFeed(roomId?: string) {
+    const qs = roomId ? `?focus=${encodeURIComponent(roomId)}` : "";
+    navigate(`/app/services/Stay/feed${qs}`);
+  }
+
+  function openOffering(o: DiscoverableOffering) {
+    if (o.type === "ROOM" || o.category === "Stay") {
+      openRoomFeed(o.id);
+      return;
+    }
+    navigate(`/app/discover?offering=${o.id}`);
+  }
+
   return (
-    <div className="page home-page">
-      <header className="home-greeting">
+    <div className="page home-page home-page--mock">
+      <header className="home-greeting home-greeting--mock">
         <div className="home-greeting__text">
-          <p className="home-greeting__hello">{greeting()}</p>
-          <h1 className="home-greeting__name">{first}</h1>
+          <h1 className="home-greeting__title">
+            {greeting()}, {first}{" "}
+            <span aria-hidden>👋</span>
+          </h1>
+          <p className="home-greeting__tagline">Let&apos;s make today amazing.</p>
         </div>
         <StatusBadge label="Identity protected" tone="ok" />
       </header>
@@ -188,32 +207,59 @@ export function HomePage() {
       ) : null}
       {providerHint ? <StatusBanner title={providerHint} /> : null}
 
-      <section className="home-command" aria-label="LifeOS AI">
-        <div className="home-command__duo">
-          <AskLifeOSTrigger mode="ask" />
-          <AskLifeOSTrigger mode="tell" />
-        </div>
-        <p className="muted small home-command__hint">
-          Ask to search · Tell to get things done
-        </p>
+      <section className="home-ask-bar" aria-label="Ask or Tell LifeOS">
+        <button
+          type="button"
+          className="home-ask-bar__btn"
+          onClick={() => openCommand(undefined, "ask")}
+        >
+          <span className="home-ask-bar__spark" aria-hidden>
+            ✦
+          </span>
+          <span className="home-ask-bar__copy">
+            <strong>Ask or tell LifeOS anything...</strong>
+            <span>Search, plan, book, pay, and more</span>
+          </span>
+        </button>
       </section>
 
-      <section aria-label="Services">
+      <section aria-label="Quick access" className="home-quick">
+        <div className="home-quick__row" role="list">
+          {QUICK_LINKS.map((q) => (
+            <button
+              key={q.id}
+              type="button"
+              role="listitem"
+              className="home-quick__item"
+              onClick={() => navigate(q.href)}
+            >
+              <span className="home-quick__icon" aria-hidden>
+                <q.Icon size={22} />
+              </span>
+              <span className="home-quick__label">{q.label}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section aria-label="Recommended for you">
         <SectionHeader
-          title="Services"
-          subtitle="Rooms available around you"
+          title="Recommended for you"
           action={
             <button type="button" className="text-link" onClick={() => openRoomFeed()}>
-              More
+              See all
             </button>
           }
         />
         {loading ? (
-          <Skeleton height={160} label="Loading rooms" />
-        ) : homeRooms.length === 0 ? (
+          <div className="home-reco-rail">
+            <Skeleton height={240} />
+            <Skeleton height={240} />
+          </div>
+        ) : recommended.length === 0 ? (
           <EmptyState
-            title="No rooms yet"
-            detail="Open More to browse hotel rooms nearby."
+            title="Nothing recommended yet"
+            detail="Browse hotel rooms nearby."
             action={
               <Button variant="soft" size="sm" onClick={() => openRoomFeed()}>
                 Browse rooms
@@ -221,52 +267,125 @@ export function HomePage() {
             }
           />
         ) : (
-          <div className="services-pictorial services-pictorial--rooms" role="list">
-            {homeRooms.map((o) => (
+          <div className="home-reco-rail" role="list">
+            {recommended.map((o) => (
               <button
                 key={o.id}
                 type="button"
                 role="listitem"
-                className="services-tile services-tile--stay services-tile--room"
-                onClick={() => openRoomFeed(o.id)}
+                className="home-reco-card"
+                onClick={() => openOffering(o)}
               >
-                <span className="services-tile__media" aria-hidden>
+                <div className={`home-reco-card__media home-reco-card__media--${o.category.toLowerCase()}`}>
                   {o.image ? (
-                    <img src={o.image} alt="" className="services-tile__photo" />
+                    <img src={o.image} alt="" />
                   ) : (
-                    <span className="services-tile__initials">{roomInitials(o)}</span>
+                    <span className="home-reco-card__initials">{roomInitials(o)}</span>
                   )}
-                </span>
-                <span className="services-tile__copy">
-                  <span className="services-tile__label">{o.name}</span>
-                  <span className="services-tile__sub">{o.businessName}</span>
-                  <span className="services-tile__price">
-                    {o.priceFormatted}
-                    {o.availability ? ` · ${o.availability}` : ""}
-                  </span>
-                </span>
+                  {o.badge ? <span className="home-reco-card__badge">{o.badge}</span> : null}
+                  <span className="home-reco-card__cat">{o.category === "Stay" ? "Rooms" : o.category}</span>
+                </div>
+                <div className="home-reco-card__body">
+                  <strong>{o.name}</strong>
+                  <span className="muted small">{o.businessName}</span>
+                  <div className="home-reco-card__meta">
+                    {o.rating != null ? <span>★ {o.rating.toFixed(1)}</span> : null}
+                    <span className="home-reco-card__price">
+                      {o.priceFormatted}
+                      {o.priceUnit ? ` / ${o.priceUnit}` : ""}
+                    </span>
+                  </div>
+                  {o.availability ? (
+                    <span className="home-reco-card__avail">{o.availability}</span>
+                  ) : null}
+                </div>
               </button>
             ))}
           </div>
         )}
       </section>
 
-      {!loading && rightNow ? (
-        <section className="right-now" aria-label="Right now">
-          <SectionHeader title="Right now" subtitle="Your next best step" />
-          <button
-            type="button"
-            className="right-now__card"
-            onClick={() => navigate(rightNow.href)}
-          >
-            <div>
-              <strong>{rightNow.title}</strong>
-              <div className="muted small">{rightNow.detail}</div>
-            </div>
-            <span className="text-link">{rightNow.cta}</span>
-          </button>
-        </section>
-      ) : null}
+      <section aria-label="Today at a glance">
+        <SectionHeader
+          title="Today at a glance"
+          action={
+            <Link to="/app/plans" className="text-link">
+              View all
+            </Link>
+          }
+        />
+        {loading ? (
+          <Skeleton height={120} label="Loading today" />
+        ) : glance.length === 0 ? (
+          <EmptyState
+            title="Nothing on for today"
+            detail="Ask LifeOS what you can do next."
+            action={
+              <Button variant="soft" size="sm" onClick={() => openCommand("What can I do tonight?", "ask")}>
+                Ask LifeOS →
+              </Button>
+            }
+          />
+        ) : (
+          <div className="home-glance-rail" role="list">
+            {glance.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                role="listitem"
+                className="home-glance-card"
+                onClick={() => a.action?.href && navigate(a.action.href)}
+              >
+                <span className="home-glance-card__icon" aria-hidden>
+                  <IconTicket size={18} />
+                </span>
+                <span className="home-glance-card__when">{formatTime(a.startAt) || "Soon"}</span>
+                <strong>{a.title}</strong>
+                <span className="muted small">{a.subtitle}</span>
+                <span className="home-glance-card__tag">Upcoming</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section aria-label="Wallet overview" className="home-wallet">
+        <div className="home-wallet__head">
+          <span>Wallet overview</span>
+          <Link to="/app/wallet" className="home-wallet__link">
+            View all
+          </Link>
+        </div>
+        <button type="button" className="home-wallet__card" onClick={() => navigate("/app/wallet")}>
+          <div className="home-wallet__balance-row">
+            <span className="home-wallet__label">
+              Total balance
+              <button
+                type="button"
+                className="home-wallet__eye"
+                aria-label={balanceHidden ? "Show balance" : "Hide balance"}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setBalanceHidden((v) => !v);
+                }}
+              >
+                {balanceHidden ? "Show" : "Hide"}
+              </button>
+            </span>
+          </div>
+          <strong className="home-wallet__amount">
+            {loading
+              ? "—"
+              : balanceHidden
+                ? "••••••"
+                : walletBalance ?? "₦0.00"}
+          </strong>
+          <div className="home-wallet__foot">
+            <span>Cash & tokens</span>
+            <span className="home-wallet__add">+ Add money</span>
+          </div>
+        </button>
+      </section>
 
       {preview ? (
         <section aria-label="Action confirmation" className="home-preview-section">
@@ -316,117 +435,42 @@ export function HomePage() {
         </section>
       ) : null}
 
-      <section>
-        <SectionHeader
-          title="Today"
-          action={
-            <Link to="/app/plans" className="text-link">
-              Plans
-            </Link>
-          }
-        />
-        {loading ? (
-          <Skeleton height={88} label="Loading today" />
-        ) : today.length === 0 ? (
-          <EmptyState
-            title="Nothing on for today"
-            detail="Ask LifeOS what you can do next."
-            action={
-              <Button variant="soft" size="sm" onClick={() => openCommand("What can I do tonight?", "ask")}>
-                Ask LifeOS →
-              </Button>
-            }
-          />
-        ) : (
-          <div className="surface-block">
-            {today.map((a) => (
-              <button
-                key={a.id}
-                type="button"
-                className="plan-row plan-row--actions"
-                onClick={() => a.action?.href && navigate(a.action.href)}
-              >
-                <div className="plan-row__when">{formatTime(a.startAt)}</div>
-                <div>
-                  <strong>{a.title}</strong>
-                  <div className="muted small">{a.subtitle}</div>
-                </div>
-                {a.action ? <span className="text-link">{a.action.label}</span> : null}
-              </button>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section>
-        <SectionHeader
-          title="Upcoming"
-          action={
-            <Link to="/app/plans" className="text-link">
-              All
-            </Link>
-          }
-        />
-        {loading ? (
-          <Skeleton height={64} label="Loading upcoming" />
-        ) : upcoming.length === 0 ? (
-          <p className="muted small pad-inline">Nothing upcoming — explore when you’re ready.</p>
-        ) : (
-          <div className="surface-block">
-            {upcoming.map((a) => (
-              <button
-                key={a.id}
-                type="button"
-                className="plan-row"
-                onClick={() => a.action?.href && navigate(a.action.href)}
-              >
-                <div>
-                  <strong>{a.title}</strong>
-                  <div className="muted small">
-                    {[a.subtitle, a.startAt && formatTime(a.startAt)].filter(Boolean).join(" · ")}
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {continueItems.length > 0 ? (
-        <section>
-          <SectionHeader title="Continue where you left off" />
-          <div className="surface-block">
-            {continueItems.slice(0, 3).map((c) => (
-              <button key={c.id} type="button" className="plan-row" onClick={() => navigate(c.href)}>
-                <div>
-                  <strong>{c.title}</strong>
-                  <div className="muted small">{c.subtitle}</div>
-                </div>
-                <span className="text-link">Resume</span>
-              </button>
-            ))}
-          </div>
+      {attention[0] || continueItems[0] ? (
+        <section className="right-now" aria-label="Needs attention">
+          <SectionHeader title="Needs attention" />
+          {attention[0] ? (
+            <button
+              type="button"
+              className="right-now__card"
+              onClick={() => navigate(attention[0].href ?? "/app/plans")}
+            >
+              <div>
+                <strong>{attention[0].title}</strong>
+                <div className="muted small">{attention[0].detail ?? "Review"}</div>
+              </div>
+              <span className="text-link">Review</span>
+            </button>
+          ) : continueItems[0] ? (
+            <button
+              type="button"
+              className="right-now__card"
+              onClick={() => navigate(continueItems[0].href)}
+            >
+              <div>
+                <strong>{continueItems[0].title}</strong>
+                <div className="muted small">{continueItems[0].subtitle}</div>
+              </div>
+              <span className="text-link">Resume</span>
+            </button>
+          ) : null}
         </section>
       ) : null}
 
-      <section>
-        <SectionHeader
-          title="For you"
-          subtitle="Based on your activity"
-          action={
-            <Link to="/app/discover" className="text-link">
-              Explore
-            </Link>
-          }
-        />
-        {loading ? (
-          <div className="exp-rail">
-            <Skeleton height={200} />
-            <Skeleton height={200} />
-          </div>
-        ) : forYouPrimary ? (
+      {recs.length > 0 ? (
+        <section>
+          <SectionHeader title="Based on your activity" />
           <div className="surface-block">
-            {forYouPrimary.map((r) => (
+            {recs.slice(0, 3).map((r) => (
               <button
                 key={r.id}
                 type="button"
@@ -442,68 +486,28 @@ export function HomePage() {
                 <span className="mono">{r.priceFormatted}</span>
               </button>
             ))}
-            {forYouRest.length > 0 ? (
-              showMoreForYou ? (
-                forYouRest.map((r) => (
-                  <button
-                    key={r.id}
-                    type="button"
-                    className="plan-row"
-                    onClick={() => navigate(`/app/discover?offering=${r.offeringId}`)}
-                  >
-                    <div>
-                      <strong>{r.name}</strong>
-                      <div className="muted small">
-                        {r.businessName} · {r.reason}
-                      </div>
-                    </div>
-                    <span className="mono">{r.priceFormatted}</span>
-                  </button>
-                ))
-              ) : (
-                <button
-                  type="button"
-                  className="text-link pad-inline"
-                  style={{ padding: "0.75rem 1rem" }}
-                  onClick={() => setShowMoreForYou(true)}
-                >
-                  More for you
-                </button>
-              )
-            ) : null}
           </div>
-        ) : forYou.length === 0 ? (
-          <EmptyState
-            title="No offerings yet"
-            detail="Discover things you can do across the ecosystem."
-            action={
-              <Button variant="soft" size="sm" onClick={() => navigate("/app/discover")}>
-                Open Discover
-              </Button>
-            }
-          />
-        ) : (
-          <div className="exp-rail exp-rail--peek">
-            {forYou.map((o) => (
-              <OfferingCard
-                key={o.id}
-                name={o.name}
-                businessName={o.businessName}
-                category={o.category}
-                price={o.priceFormatted}
-                priceUnit={o.priceUnit}
-                duration={o.duration}
-                location={o.location}
-                availability={o.availability}
-                badge={o.badge}
-                rating={o.rating}
-                image={o.image}
-                reason="Popular nearby"
-                onClick={() => navigate(`/app/discover?offering=${o.id}`)}
-              />
-            ))}
-          </div>
-        )}
+        </section>
+      ) : null}
+
+      <section aria-label="Browse categories" className="home-cats">
+        <div className="home-cats__row" role="list">
+          {CATEGORY_PILLS.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              role="listitem"
+              className="home-cats__pill"
+              onClick={() => navigate(c.href)}
+            >
+              <c.Icon size={16} />
+              {c.label}
+            </button>
+          ))}
+        </div>
+        <p className="muted small home-cats__hint">
+          {SERVICE_VERTICALS.length} service verticals · swipe rooms like a feed
+        </p>
       </section>
     </div>
   );
