@@ -29,7 +29,6 @@ import {
   activityService,
   commandService,
   discoverService,
-  walletService,
 } from "../lib/services";
 import { SERVICE_VERTICALS } from "../lib/serviceCatalog";
 import { useAuth } from "../hooks/useAuth";
@@ -97,21 +96,18 @@ export function HomePage() {
   const [aiMessage, setAiMessage] = useState<string | null>(null);
   const [confirmBusy, setConfirmBusy] = useState(false);
   const [providerHint, setProviderHint] = useState<string | null>(null);
-  const [walletBalance, setWalletBalance] = useState<string | null>(null);
-  const [balanceHidden, setBalanceHidden] = useState(false);
 
   useEffect(() => {
     const offlineNow = typeof navigator !== "undefined" && !navigator.onLine;
     setOffline(offlineNow);
     void (async () => {
       try {
-        const [disc, rooms, plans, wallet] = await Promise.all([
+        const [disc, rooms, plans] = await Promise.all([
           discoverService.get(),
           discoverService
             .offerings({ category: "Stay" })
             .catch(() => ({ offerings: [] as DiscoverableOffering[] })),
           actionService.plans().catch(() => null),
-          walletService.get().catch(() => null),
         ]);
         setForYou((disc.featuredOfferings ?? disc.offerings ?? []).slice(0, 8));
         const roomList = rooms.offerings
@@ -121,9 +117,6 @@ export function HomePage() {
             return (a.distanceKm ?? 99) - (b.distanceKm ?? 99);
           });
         setHomeRooms(roomList.slice(0, 8));
-        const fiat = wallet?.fiat?.balance?.formatted;
-        const token = wallet?.token?.balance?.formatted ?? wallet?.balance?.formatted;
-        setWalletBalance(fiat ?? token ?? null);
         if (plans) {
           setToday(plans.life?.today ?? []);
           setUpcoming((plans.life?.upcoming ?? []).slice(0, 4));
@@ -195,8 +188,10 @@ export function HomePage() {
             <span aria-hidden>👋</span>
           </h1>
           <p className="home-greeting__tagline">Let&apos;s make today amazing.</p>
+          <div className="home-greeting__badge">
+            <StatusBadge label="Identity protected" tone="ok" />
+          </div>
         </div>
-        <StatusBadge label="Identity protected" tone="ok" />
       </header>
 
       {offline || dataError ? (
@@ -347,44 +342,6 @@ export function HomePage() {
             ))}
           </div>
         )}
-      </section>
-
-      <section aria-label="Wallet overview" className="home-wallet">
-        <div className="home-wallet__head">
-          <span>Wallet overview</span>
-          <Link to="/app/wallet" className="home-wallet__link">
-            View all
-          </Link>
-        </div>
-        <button type="button" className="home-wallet__card" onClick={() => navigate("/app/wallet")}>
-          <div className="home-wallet__balance-row">
-            <span className="home-wallet__label">
-              Total balance
-              <button
-                type="button"
-                className="home-wallet__eye"
-                aria-label={balanceHidden ? "Show balance" : "Hide balance"}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setBalanceHidden((v) => !v);
-                }}
-              >
-                {balanceHidden ? "Show" : "Hide"}
-              </button>
-            </span>
-          </div>
-          <strong className="home-wallet__amount">
-            {loading
-              ? "—"
-              : balanceHidden
-                ? "••••••"
-                : walletBalance ?? "₦0.00"}
-          </strong>
-          <div className="home-wallet__foot">
-            <span>Cash & tokens</span>
-            <span className="home-wallet__add">+ Add money</span>
-          </div>
-        </button>
       </section>
 
       {preview ? (

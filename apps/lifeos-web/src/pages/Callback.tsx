@@ -4,6 +4,7 @@ import { ApiError, authClient, storeSessionToken, userFacingMessage } from "../l
 import { meService } from "../lib/services";
 import { useAuth } from "../hooks/useAuth";
 import { StatusBanner } from "../components/StatusBanner";
+import { saveReturningIdentity } from "../lib/returningIdentity";
 
 export function CallbackPage() {
   const [params] = useSearchParams();
@@ -40,8 +41,17 @@ export function CallbackPage() {
         setDetail("Exchanging authorization code…");
         const tokens = await authClient.exchangeCode(code, state);
         setDetail("Creating your LifeOS session…");
+        let phone: string | null = null;
+        try {
+          const info = await authClient.fetchUserInfo(tokens.access_token);
+          phone =
+            info.contacts?.find((c) => c.type === "phone" || c.type === "tel")?.value ?? null;
+        } catch {
+          /* optional enrichment */
+        }
         const data = await meService.createSession(tokens.access_token);
         if (data.sessionToken) storeSessionToken(data.sessionToken);
+        saveReturningIdentity(data.user, { phone });
         setUser(data.user);
         navigate("/app", { replace: true });
       } catch (err) {

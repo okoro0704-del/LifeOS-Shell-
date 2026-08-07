@@ -28,6 +28,7 @@ const prefsBody = z.object({
   language: z.string().min(2).max(12).optional(),
   tokenDisplay: z.string().min(1).max(12).optional(),
   openExperiencesIn: z.enum(["embed", "external"]).optional(),
+  avatarUrl: z.union([z.string().max(900_000), z.null()]).optional(),
 });
 
 export async function profileRoutes(app: FastifyInstance) {

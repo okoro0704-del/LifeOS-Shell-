@@ -137,6 +137,8 @@ export interface LifeOsPreferences {
   tokenDisplay: string;
   openExperiencesIn: "embed" | "external";
   quickAccess: QuickAccessPreferences;
+  /** Optional profile photo as a data URL (client-uploaded). */
+  avatarUrl?: string | null;
 }
 
 export const DEFAULT_PREFERENCES: LifeOsPreferences = {
@@ -147,6 +149,7 @@ export const DEFAULT_PREFERENCES: LifeOsPreferences = {
   tokenDisplay: "TOK",
   openExperiencesIn: "embed",
   quickAccess: { ...DEFAULT_QUICK_ACCESS_PREFS },
+  avatarUrl: null,
 };
 
 export type ActivityKind =

@@ -36,6 +36,9 @@ const ServiceCategoryPage = lazy(() =>
 const OfferingFeedPage = lazy(() =>
   import("./pages/OfferingFeed").then((m) => ({ default: m.OfferingFeedPage })),
 );
+const MessagesPage = lazy(() =>
+  import("./pages/Messages").then((m) => ({ default: m.MessagesPage })),
+);
 
 function PageFallback() {
   return (
@@ -109,6 +112,14 @@ function ThemedApp() {
                 element={
                   <Suspense fallback={<PageFallback />}>
                     <NotificationsPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="messages"
+                element={
+                  <Suspense fallback={<PageFallback />}>
+                    <MessagesPage />
                   </Suspense>
                 }
               />

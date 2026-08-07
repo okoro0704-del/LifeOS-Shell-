@@ -170,6 +170,14 @@ export function IconShield(p: IconProps) {
   );
 }
 
+export function IconMessage(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7A2.5 2.5 0 0 1 17.5 16H9l-4 3.5V6.5z" />
+    </Svg>
+  );
+}
+
 export const NAV_ICONS = {
   home: IconHome,
   explore: IconExplore,
@@ -179,6 +187,7 @@ export const NAV_ICONS = {
   search: IconSearch,
   bell: IconBell,
   link: IconLink,
+  message: IconMessage,
 } as const;
 
 export type NavIconName = keyof typeof NAV_ICONS;

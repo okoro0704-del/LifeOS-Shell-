@@ -52,7 +52,16 @@ export function createAuthClient(config: AuthClientConfig) {
   const storageKey = config.storageKey ?? DEFAULT_STORAGE;
 
   return {
-    async beginLogin() {
+    async beginLogin(opts?: {
+      /** Pre-fill TrustID identity (email / TrustID). */
+      loginHint?: string;
+      /** OIDC prompt — use "login" when switching accounts. */
+      prompt?: string;
+      /** Prefer passkey path on TrustID when supported. */
+      preferPasskey?: boolean;
+      phone?: string | null;
+      deviceName?: string | null;
+    }) {
       const verifier = randomString(64);
       const challenge = b64url(await sha256(verifier));
       const state = randomString(24);
@@ -69,6 +78,14 @@ export function createAuthClient(config: AuthClientConfig) {
       url.searchParams.set("state", state);
       url.searchParams.set("code_challenge", challenge);
       url.searchParams.set("code_challenge_method", "S256");
+      if (opts?.loginHint) url.searchParams.set("login_hint", opts.loginHint);
+      if (opts?.prompt) url.searchParams.set("prompt", opts.prompt);
+      if (opts?.preferPasskey) {
+        url.searchParams.set("auth_mode", "passkey");
+        url.searchParams.set("lifeos_returning", "1");
+      }
+      if (opts?.phone) url.searchParams.set("phone_hint", opts.phone);
+      if (opts?.deviceName) url.searchParams.set("device_name", opts.deviceName);
       window.location.href = url.toString();
     },
 
