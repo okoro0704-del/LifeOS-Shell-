@@ -179,11 +179,29 @@ export type BridgeMessage =
   | { type: "lifeos.ready" }
   | { type: "lifeos.close" }
   | { type: "lifeos.navigate"; path: string }
+  | { type: "lifeos.booking.updated"; bookingId: string; status: string }
   | { type: "experience.ready" }
   | { type: "experience.error"; code: string; message: string }
   | {
       type: "experience.request_permission";
       permissions: ExperiencePermission[];
+    }
+  | {
+      type: "experience.request_payment";
+      bookingId: string;
+      amount?: number;
+      currency?: string;
+      title?: string;
+    }
+  | {
+      type: "experience.booking.created";
+      bookingId: string;
+      status: string;
+    }
+  | {
+      type: "experience.booking.updated";
+      bookingId: string;
+      status: string;
     };
 
 export function createExperienceBridge(opts: {

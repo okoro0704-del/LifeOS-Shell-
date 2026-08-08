@@ -3,25 +3,44 @@ import {
   buildSecureLaunchUrl,
   createExperienceBridge,
   validateExperienceOrigin,
+  type BridgeMessage,
 } from "@lifeos/experience-sdk";
 import type { ExperienceRecord, ExperienceSessionPublic } from "@lifeos/shared";
 import { Button, Skeleton } from "@lifeos/ui";
+
+export type ExperiencePaymentRequest = {
+  bookingId: string;
+  amount?: number;
+  currency?: string;
+  title?: string;
+};
 
 type Props = {
   experience: ExperienceRecord;
   session: ExperienceSessionPublic;
   onClose: () => void;
   onPermissionRequest?: (permissions: string[]) => void;
+  onPaymentRequest?: (req: ExperiencePaymentRequest) => void;
+  /** Notify iframe after shell confirms a booking. */
+  bookingUpdate?: { bookingId: string; status: string } | null;
 };
 
 /**
  * Loads an independently deployed business experience via secure handoff URL.
  * Never passes TrustID tokens or LifeOS cookies into the iframe.
  */
-export function ExperienceViewer({ experience, session, onClose, onPermissionRequest }: Props) {
+export function ExperienceViewer({
+  experience,
+  session,
+  onClose,
+  onPermissionRequest,
+  onPaymentRequest,
+  bookingUpdate,
+}: Props) {
   const [frameReady, setFrameReady] = useState(false);
   const [frameError, setFrameError] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const bridgeRef = useRef<ReturnType<typeof createExperienceBridge> | null>(null);
 
   const validation = useMemo(
     () => validateExperienceOrigin(experience.experienceUrl, experience.approvedOrigin),
@@ -39,7 +58,6 @@ export function ExperienceViewer({ experience, session, onClose, onPermissionReq
     }
   }, [session.launchUrl, validation.ok]);
 
-  // Remount iframe cleanly whenever a new handoff session is issued (e.g. after Allow).
   useEffect(() => {
     setFrameReady(false);
     setFrameError(null);
@@ -52,22 +70,44 @@ export function ExperienceViewer({ experience, session, onClose, onPermissionReq
     const bridge = createExperienceBridge({
       targetOrigin: experience.approvedOrigin,
       targetWindow: win,
-      onMessage(msg) {
+      onMessage(msg: BridgeMessage) {
         if (msg.type === "experience.request_permission") {
           onPermissionRequest?.(msg.permissions);
         }
+        if (msg.type === "experience.request_payment") {
+          onPaymentRequest?.({
+            bookingId: msg.bookingId,
+            amount: msg.amount,
+            currency: msg.currency,
+            title: msg.title,
+          });
+        }
       },
     });
+    bridgeRef.current = bridge;
     bridge.post({ type: "lifeos.ready" });
-    return () => bridge.destroy();
+    return () => {
+      bridge.destroy();
+      bridgeRef.current = null;
+    };
   }, [
     experience.approvedOrigin,
     onPermissionRequest,
+    onPaymentRequest,
     validation.ok,
     launchUrl,
     frameReady,
     session.sessionId,
   ]);
+
+  useEffect(() => {
+    if (!bookingUpdate || !bridgeRef.current) return;
+    bridgeRef.current.post({
+      type: "lifeos.booking.updated",
+      bookingId: bookingUpdate.bookingId,
+      status: bookingUpdate.status,
+    });
+  }, [bookingUpdate]);
 
   if (!validation.ok) {
     return (

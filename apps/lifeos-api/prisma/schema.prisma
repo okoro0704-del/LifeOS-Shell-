@@ -29,6 +29,7 @@ model User {
   savedOfferings SavedOffering[]
   actionRecords  ActionRecord[]
   personalPlans  PersonalPlan[]
+  bookings       Booking[]
 }
 
 model Session {
@@ -194,6 +195,38 @@ model SavedOffering {
   createdAt  DateTime @default(now())
 
   @@unique([userId, offeringId])
+  @@index([userId, createdAt])
+}
+
+/// Shared booking ledger — single source of truth for LifeOS shell and business PWAs.
+model Booking {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessId        String
+  experienceId      String
+  offeringId        String
+  slotId            String?
+  status            String
+  amount            Int       @default(0)
+  currency          String    @default("NGN")
+  quantity          Int       @default(1)
+  externalReference String    @unique
+  actionRecordId    String?
+  paymentId         String?
+  receiptId         String?
+  idempotencyKey    String?   @unique
+  hospitalityRoomId String?
+  title             String
+  scheduledAt       DateTime?
+  heldUntil         DateTime?
+  metadata          String    @default("{}")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([userId, experienceId, status])
+  @@index([experienceId, status])
+  @@index([offeringId, slotId, status])
   @@index([userId, createdAt])
 }
 

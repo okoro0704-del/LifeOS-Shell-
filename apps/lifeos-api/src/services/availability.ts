@@ -16,6 +16,25 @@ export interface AvailabilityProvider {
   getSlots(offeringId: string, query?: AvailabilityQuery): Promise<AvailabilitySlot[]>;
   checkAvailability(offeringId: string, slotId: string): Promise<{ available: boolean; reason?: string; slot?: AvailabilitySlot }>;
   slotPickerConfig(offering: DiscoverableOffering): SlotPickerConfig;
+  /** Soft-lock a slot for a booking hold/confirm. Returns false if owned by another booking. */
+  lockSlot?(offeringId: string, slotId: string, bookingId: string, ttlMs: number): boolean;
+  releaseSlot?(offeringId: string, slotId: string, bookingId: string): void;
+  isSlotLockedBy?(offeringId: string, slotId: string, bookingId: string): boolean;
+}
+
+type SlotLock = { bookingId: string; expiresAt: number };
+
+const slotLocks = new Map<string, SlotLock>();
+
+function lockKey(offeringId: string, slotId: string) {
+  return `${offeringId}::${slotId}`;
+}
+
+function purgeExpiredLocks() {
+  const now = Date.now();
+  for (const [key, lock] of slotLocks) {
+    if (lock.expiresAt < now) slotLocks.delete(key);
+  }
 }
 
 function dayIso(offsetDays: number, hour: number, minute = 0): string {
@@ -52,6 +71,7 @@ export class MockAvailabilityProvider implements AvailabilityProvider {
   }
 
   async getSlots(offeringId: string, query: AvailabilityQuery = {}) {
+    purgeExpiredLocks();
     const offering = await getOfferingProvider().getById(offeringId);
     if (!offering) return [];
     const day = query.date ? new Date(query.date) : new Date();
@@ -61,59 +81,96 @@ export class MockAvailabilityProvider implements AvailabilityProvider {
         ? 1
         : 0;
 
+    let slots: AvailabilitySlot[] = [];
     if (offering.type === "ROOM") {
-      return [
+      slots = [
         slot(`room_in_${baseOffset}`, `Check-in · ${labelDay(baseOffset)}`, dayIso(Math.max(baseOffset, 0), 14), true, 3, offering.priceFormatted),
         slot(`room_in_${baseOffset + 1}`, `Check-in · ${labelDay(baseOffset + 1)}`, dayIso(baseOffset + 1, 14), true, 2, offering.priceFormatted),
         slot(`room_in_${baseOffset + 2}`, `Check-in · ${labelDay(baseOffset + 2)}`, dayIso(baseOffset + 2, 14), false, 0, offering.priceFormatted),
       ];
-    }
-    if (offering.type === "TREATMENT" || offering.type === "SERVICE" || offering.type === "PACKAGE") {
-      return [
+    } else if (offering.type === "TREATMENT" || offering.type === "SERVICE" || offering.type === "PACKAGE") {
+      slots = [
         slot(`t_15`, `${labelDay(baseOffset)} · 3:00 PM`, dayIso(baseOffset, 15), true, 2, offering.priceFormatted),
         slot(`t_16`, `${labelDay(baseOffset)} · 4:00 PM`, dayIso(baseOffset, 16), true, 1, offering.priceFormatted),
         slot(`t_17`, `${labelDay(baseOffset)} · 5:00 PM`, dayIso(baseOffset, 17), false, 0, offering.priceFormatted),
         slot(`t_next`, `${labelDay(baseOffset + 1)} · 11:00 AM`, dayIso(baseOffset + 1, 11), true, 3, offering.priceFormatted),
       ];
-    }
-    if (offering.type === "CLASS") {
-      return [
+    } else if (offering.type === "CLASS") {
+      slots = [
         slot(`c_1`, `Saturday · 10:00 AM`, dayIso(nextWeekday(6), 10), true, 8, offering.priceFormatted),
         slot(`c_2`, `Tonight · 7:00 PM`, dayIso(0, 19), true, 4, offering.priceFormatted),
         slot(`c_3`, `Sunday · 9:00 AM`, dayIso(nextWeekday(0), 9), true, 12, offering.priceFormatted),
       ];
-    }
-    if (offering.type === "TICKET" || offering.type === "SHOWTIME" || offering.type === "EVENT") {
-      return [
+    } else if (offering.type === "TICKET" || offering.type === "SHOWTIME" || offering.type === "EVENT") {
+      slots = [
         slot(`show_1`, `Tonight · 8:15 PM`, dayIso(0, 20, 15), true, 40, offering.priceFormatted),
         slot(`show_2`, `Tonight · 10:30 PM`, dayIso(0, 22, 30), true, 22, offering.priceFormatted),
         slot(`show_3`, `Tomorrow · 6:00 PM`, dayIso(1, 18), false, 0, offering.priceFormatted),
       ];
-    }
-    if (offering.type === "MEAL") {
+    } else if (offering.type === "MEAL") {
       const qty = query.quantity ?? 2;
-      return [
+      slots = [
         slot(`meal_1`, `Tonight · 7:00 PM · party ${qty}`, dayIso(0, 19), true, 5, offering.priceFormatted),
         slot(`meal_2`, `Tonight · 8:30 PM · party ${qty}`, dayIso(0, 20, 30), true, 3, offering.priceFormatted),
         slot(`meal_3`, `Tomorrow · 1:00 PM · party ${qty}`, dayIso(1, 13), true, 6, offering.priceFormatted),
       ];
+    } else {
+      slots = [
+        slot(`gen_1`, `Tomorrow · 2:00 PM`, dayIso(1, 14), true, 2, offering.priceFormatted),
+        slot(`gen_2`, `Tomorrow · 4:00 PM`, dayIso(1, 16), true, 1, offering.priceFormatted),
+      ];
     }
-    return [
-      slot(`gen_1`, `Tomorrow · 2:00 PM`, dayIso(1, 14), true, 2, offering.priceFormatted),
-      slot(`gen_2`, `Tomorrow · 4:00 PM`, dayIso(1, 16), true, 1, offering.priceFormatted),
-    ];
+
+    return slots.map((s) => {
+      const lock = slotLocks.get(lockKey(offeringId, s.id));
+      if (lock && lock.expiresAt > Date.now()) {
+        return { ...s, available: false, remaining: 0 };
+      }
+      return s;
+    });
   }
 
   async checkAvailability(offeringId: string, slotId: string) {
+    purgeExpiredLocks();
     const slots = await this.getSlots(offeringId);
     const found = slots.find((s) => s.id === slotId);
     if (!found) return { available: false, reason: "That time is no longer listed." };
+    const lock = slotLocks.get(lockKey(offeringId, slotId));
+    if (lock && lock.expiresAt > Date.now()) {
+      return {
+        available: false,
+        reason: "That time was just taken.",
+        slot: { ...found, available: false },
+      };
+    }
     if (!found.available) return { available: false, reason: "That time was just taken.", slot: found };
-    // Simulate rare conflict for a reserved id
     if (slotId.endsWith("_conflict")) {
       return { available: false, reason: "That time was just taken.", slot: { ...found, available: false } };
     }
     return { available: true, slot: found };
+  }
+
+  lockSlot(offeringId: string, slotId: string, bookingId: string, ttlMs: number): boolean {
+    purgeExpiredLocks();
+    const key = lockKey(offeringId, slotId);
+    const existing = slotLocks.get(key);
+    if (existing && existing.expiresAt > Date.now() && existing.bookingId !== bookingId) {
+      return false;
+    }
+    slotLocks.set(key, { bookingId, expiresAt: Date.now() + ttlMs });
+    return true;
+  }
+
+  releaseSlot(offeringId: string, slotId: string, bookingId: string): void {
+    const key = lockKey(offeringId, slotId);
+    const existing = slotLocks.get(key);
+    if (existing && existing.bookingId === bookingId) slotLocks.delete(key);
+  }
+
+  isSlotLockedBy(offeringId: string, slotId: string, bookingId: string): boolean {
+    purgeExpiredLocks();
+    const existing = slotLocks.get(lockKey(offeringId, slotId));
+    return Boolean(existing && existing.bookingId === bookingId && existing.expiresAt > Date.now());
   }
 
   slotPickerConfig(offering: DiscoverableOffering): SlotPickerConfig {

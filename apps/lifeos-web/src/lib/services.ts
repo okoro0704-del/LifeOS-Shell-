@@ -411,3 +411,25 @@ export const actionService = {
   unsave: (offeringId: string) =>
     api<{ ok: boolean; saved: boolean }>(`/offerings/${offeringId}/save`, { method: "DELETE" }),
 };
+
+export const bookingService = {
+  list: (experienceId?: string) => {
+    const qs = experienceId ? `?experienceId=${encodeURIComponent(experienceId)}` : "";
+    return api<{ bookings: import("@lifeos/shared").BookingPublic[] }>(`/bookings${qs}`);
+  },
+  get: (id: string) =>
+    api<{ booking: import("@lifeos/shared").BookingPublic }>(`/bookings/${id}`),
+  confirm: (id: string, body?: { authorizationToken?: string; idempotencyKey?: string }) =>
+    api<{ booking: import("@lifeos/shared").BookingPublic; actionRecordId?: string }>(
+      `/bookings/${id}/confirm`,
+      {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
+      },
+    ),
+  cancel: (id: string) =>
+    api<{ booking: import("@lifeos/shared").BookingPublic }>(`/bookings/${id}/cancel`, {
+      method: "POST",
+      body: "{}",
+    }),
+};

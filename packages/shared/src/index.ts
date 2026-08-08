@@ -8,6 +8,7 @@ export * from "./command-center.js";
 export * from "./offering.js";
 export * from "./actions.js";
 export * from "./personal-context.js";
+export * from "./booking.js";
 
 export const OS_TYPES = [
   "hospitality",

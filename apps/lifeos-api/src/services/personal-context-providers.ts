@@ -127,6 +127,59 @@ export async function ActivityProvider(userId: string): Promise<LifePlanItem[]> 
 }
 
 export async function BookingProvider(userId: string): Promise<LifePlanItem[]> {
+  const bookings = await prisma.booking.findMany({
+    where: {
+      userId,
+      status: { in: ["held", "confirmed"] },
+    },
+    orderBy: [{ scheduledAt: "asc" }, { createdAt: "desc" }],
+    take: 50,
+  });
+
+  if (bookings.length) {
+    const items: LifePlanItem[] = [];
+    for (const b of bookings) {
+      const offering = await getOfferingProvider().getById(b.offeringId);
+      const type = mapType("BOOK", offering?.type);
+      const status: LifePlanItemStatus =
+        b.status === "held"
+          ? "ATTENTION"
+          : b.scheduledAt && b.scheduledAt < new Date()
+            ? "COMPLETED"
+            : "UPCOMING";
+      const base = {
+        offeringId: b.offeringId,
+        experienceId: b.experienceId,
+        status,
+      };
+      items.push({
+        id: b.id,
+        type,
+        title: b.title,
+        subtitle: offering?.businessName ?? null,
+        source: "booking-ledger",
+        sourceId: b.id,
+        experienceId: b.experienceId,
+        offeringId: b.offeringId,
+        businessId: b.businessId,
+        startAt: b.scheduledAt?.toISOString() ?? b.createdAt.toISOString(),
+        status,
+        location: offering?.location ?? null,
+        image: offering?.image ?? null,
+        action: contextualAction(type, base),
+        amountFormatted: offering?.priceFormatted ?? null,
+        metadata: {
+          bookingId: b.id,
+          externalReference: b.externalReference,
+          bookingStatus: b.status,
+          paymentId: b.paymentId ? "[ref]" : undefined,
+        },
+      });
+    }
+    return items;
+  }
+
+  // Fallback for legacy ActionRecords before ledger migration
   const records = await prisma.actionRecord.findMany({
     where: { userId },
     orderBy: [{ scheduledAt: "asc" }, { createdAt: "desc" }],

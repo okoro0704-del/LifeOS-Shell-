@@ -33,9 +33,9 @@ export function LifeOsAuthPage() {
     (async () => {
       try {
         clearLocalSession();
-        const { claims } = await exchangeHandoff(handoff, experienceId);
+        const { claims, token } = await exchangeHandoff(handoff, experienceId);
         if (cancelled) return;
-        createLocalSession(claims, returnUrl);
+        createLocalSession(claims, returnUrl, token);
         navigate(returnPath, { replace: true });
       } catch (err) {
         if (!cancelled) {

@@ -3,10 +3,9 @@ import { verifyExperienceToken } from "@lifeos/experience-sdk";
 
 /**
  * Resolve LifeOS API base to an absolute URL.
- * Relative `/api` works for fetch, but jose JWKS requires an absolute URL —
- * without this, handoff succeeds and token verify fails after Allow.
+ * Relative `/api` works for fetch, but jose JWKS requires an absolute URL.
  */
-function lifeosApiBase(): string {
+export function lifeosApiBase(): string {
   const raw = (import.meta.env.VITE_LIFEOS_API ?? "http://localhost:8790").replace(/\/$/, "");
   if (/^https?:\/\//i.test(raw)) return raw;
   const path = raw.startsWith("/") ? raw : `/${raw}`;
@@ -16,6 +15,7 @@ function lifeosApiBase(): string {
 
 const EXPERIENCE_ID = import.meta.env.VITE_EXPERIENCE_ID ?? "exp_sunrise_hotel";
 const SESSION_KEY = "hos.session";
+const TOKEN_KEY = "hos.accessToken";
 
 export type HosSession = {
   sessionId: string;
@@ -24,6 +24,7 @@ export type HosSession = {
   displayName: string;
   scopes: string[];
   experienceId: string;
+  businessId: string;
   expiresAt: string;
   returnUrl: string;
 };
@@ -76,6 +77,7 @@ export async function exchangeHandoff(handoff: string, experienceId = EXPERIENCE
 export function createLocalSession(
   claims: ExperienceTokenClaims,
   returnUrl: string,
+  accessToken: string,
 ): HosSession {
   const session: HosSession = {
     sessionId: claims.sid,
@@ -84,11 +86,17 @@ export function createLocalSession(
     displayName: claims.display_name ?? "Guest",
     scopes: claims.scopes,
     experienceId: claims.experience_id,
+    businessId: claims.business_id,
     expiresAt: new Date(claims.exp * 1000).toISOString(),
     returnUrl,
   };
   sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  sessionStorage.setItem(TOKEN_KEY, accessToken);
   return session;
+}
+
+export function getAccessToken(): string | null {
+  return sessionStorage.getItem(TOKEN_KEY);
 }
 
 export function getLocalSession(): HosSession | null {
@@ -108,7 +116,7 @@ export function getLocalSession(): HosSession | null {
 
 export async function assertSessionActive(): Promise<HosSession | null> {
   const session = getLocalSession();
-  if (!session) return null;
+  if (!session || !getAccessToken()) return null;
   try {
     const intro = await fetch(`${lifeosApiBase()}/experience-sessions/introspect`, {
       method: "POST",
@@ -128,10 +136,31 @@ export async function assertSessionActive(): Promise<HosSession | null> {
 
 export function clearLocalSession() {
   sessionStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
 }
 
 /** Query params must never authenticate. */
 export function rejectQueryAuth() {
   const params = new URLSearchParams(window.location.search);
   return Boolean(params.get("user") || params.get("trustId") || params.get("permissions"));
+}
+
+export async function experienceFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getAccessToken();
+  if (!token) throw new Error("Missing experience session. Reopen from LifeOS.");
+  const res = await fetch(`${lifeosApiBase()}${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      ...(init?.headers ?? {}),
+    },
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const err = new Error(data.message || data.error || "Request failed");
+    (err as Error & { code: string }).code = data.error || "request_failed";
+    throw err;
+  }
+  return data as T;
 }

@@ -24,8 +24,9 @@ import { PermissionRequestSheet } from "../components/PermissionRequestSheet";
 import { StatusBanner } from "../components/StatusBanner";
 import { ActionPreview } from "../components/ActionPreview";
 import { SlotPicker } from "../components/SlotPicker";
-import { actionService, discoverService } from "../lib/services";
+import { actionService, bookingService, discoverService } from "../lib/services";
 import { ApiError } from "../lib/api";
+import type { ExperiencePaymentRequest } from "../components/ExperienceViewer";
 
 type Listing = ExperienceRecord & { loadable: boolean; availability?: string };
 
@@ -95,6 +96,12 @@ export function BusinessPage() {
     requested: ExperiencePermission[];
     alreadyGranted: ExperiencePermission[];
   } | null>(null);
+  const [pwaPayment, setPwaPayment] = useState<ExperiencePaymentRequest | null>(null);
+  const [pwaPayBusy, setPwaPayBusy] = useState(false);
+  const [pwaPayError, setPwaPayError] = useState<string | null>(null);
+  const [bookingUpdate, setBookingUpdate] = useState<{ bookingId: string; status: string } | null>(
+    null,
+  );
 
   const cover = useMemo(() => {
     if (!business) return COVERS.Stay;
@@ -240,11 +247,31 @@ export function BusinessPage() {
     setPending(null);
     setSession(null);
     setExtraPerms(null);
+    setPwaPayment(null);
+    setPwaPayError(null);
+    setBookingUpdate(null);
     setParams((prev) => {
       const next = new URLSearchParams(prev);
       next.delete("open");
       return next;
     });
+  }
+
+  async function confirmPwaPayment() {
+    if (!pwaPayment) return;
+    setPwaPayBusy(true);
+    setPwaPayError(null);
+    try {
+      const { booking } = await bookingService.confirm(pwaPayment.bookingId, {
+        idempotencyKey: `ui-confirm:${pwaPayment.bookingId}`,
+      });
+      setBookingUpdate({ bookingId: booking.id, status: booking.status });
+      setPwaPayment(null);
+    } catch (err) {
+      setPwaPayError(err instanceof Error ? err.message : "Payment failed.");
+    } finally {
+      setPwaPayBusy(false);
+    }
   }
 
   async function startAction(action: OrchestratedAction) {
@@ -544,7 +571,38 @@ export function BusinessPage() {
           session={session.session}
           onClose={clearExperience}
           onPermissionRequest={(p) => void handlePermissionRequest(p)}
+          onPaymentRequest={(req) => {
+            setPwaPayment(req);
+            setPwaPayError(null);
+          }}
+          bookingUpdate={bookingUpdate}
         />
+      ) : null}
+
+      {pwaPayment ? (
+        <div className="experience-overlay" style={{ zIndex: 95 }} role="dialog" aria-modal="true">
+          <div className="experience-panel">
+            <h2>Confirm payment</h2>
+            <p>
+              {pwaPayment.title ?? "Booking"} ·{" "}
+              {pwaPayment.amount != null
+                ? `${pwaPayment.currency ?? "NGN"} ${pwaPayment.amount.toLocaleString()}`
+                : "Amount from hold"}
+            </p>
+            <p className="muted small">
+              Pay in LifeOS so this reservation syncs to Activity and the business app.
+            </p>
+            {pwaPayError ? <p className="error">{pwaPayError}</p> : null}
+            <div className="row-actions">
+              <Button onClick={() => void confirmPwaPayment()} disabled={pwaPayBusy}>
+                {pwaPayBusy ? "Confirming…" : "Confirm & pay"}
+              </Button>
+              <Button variant="ghost" onClick={() => setPwaPayment(null)} disabled={pwaPayBusy}>
+                Not now
+              </Button>
+            </div>
+          </div>
+        </div>
       ) : null}
 
       {session && extraPerms ? (

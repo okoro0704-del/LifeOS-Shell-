@@ -83,12 +83,26 @@ LifeOS must not leave a long-lived business session that can be reused without r
 Business OS → `experience.request_permission` (postMessage) → LifeOS consent UI →
 Grant (updates connection + new session) or Deny (audit only). Never auto-grant.
 
+## Shared bookings (unified ledger)
+
+Business OS calls LifeOS with the experience JWT:
+
+- `GET /experience/bookings` — list holds/confirmed for this guest + experience
+- `POST /experience/bookings/hold` — create hold + soft-lock slot
+- Shell `POST /bookings/:id/confirm` — pay in LifeOS and confirm
+
+Bridge messages for commerce sync (still no tokens in postMessage):
+
+- `experience.request_payment` — PWA asks shell to pay a hold
+- `experience.booking.created` / `experience.booking.updated`
+- `lifeos.booking.updated` — shell notifies PWA after confirm
+
 ## postMessage bridge
 
 `createExperienceBridge({ targetOrigin })` — messages only accepted from the registered
 `approvedOrigin`. Never use `*`. Safe message types only (`lifeos.ready`, `experience.ready`,
-`experience.request_permission`, …). No tokens or secrets in postMessage.
-
+`experience.request_permission`, `experience.request_payment`, `lifeos.booking.updated`, …).
+No tokens or secrets in postMessage.
 ## Error codes
 
 | Code | Meaning | User-facing |

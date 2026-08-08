@@ -10,6 +10,7 @@ import { prisma } from "../lib/prisma.js";
 import { auditLog } from "./audit.js";
 import { getAvailabilityProvider } from "./availability.js";
 import { getAuthorizationProvider } from "./authorization.js";
+import { getBookingLedger } from "./booking-ledger.js";
 import { getOfferingProvider } from "./offerings.js";
 import { getPaymentAdapter } from "./payment-adapter.js";
 
@@ -252,8 +253,19 @@ export class ActionOrchestrator {
     }
 
     const scheduledAt = preview.slot?.startsAt ? new Date(preview.slot.startsAt) : null;
-    const bookingId = `bk_${Date.now().toString(36)}`;
-    const externalReference = `hos_${bookingId}`;
+
+    const booking = await getBookingLedger().createConfirmed({
+      userId,
+      offeringId: offering.id,
+      slotId: body.slotId,
+      quantity: typeof preview.params.quantity === "number" ? preview.params.quantity : 1,
+      displayName,
+      paymentId: paymentId ?? null,
+      receiptId: receiptId ?? null,
+      idempotencyKey: body.authorizationToken
+        ? `confirm:${userId}:${offering.id}:${body.slotId ?? "none"}:${body.authorizationToken}`
+        : undefined,
+    });
 
     const record = await prisma.actionRecord.create({
       data: {
@@ -263,8 +275,8 @@ export class ActionOrchestrator {
         offeringId: offering.id,
         businessId: offering.businessId,
         experienceId: offering.experienceId,
-        externalReference,
-        bookingId,
+        externalReference: booking.externalReference,
+        bookingId: booking.id,
         paymentId: paymentId ?? null,
         receiptId: receiptId ?? null,
         message: `${titleFor(body.action)} · ${offering.name}`,
@@ -274,8 +286,14 @@ export class ActionOrchestrator {
           quantity: preview.params.quantity,
           displayName,
           total: preview.serverQuotedTotal,
+          bookingStatus: booking.status,
         }),
       },
+    });
+
+    await prisma.booking.update({
+      where: { id: booking.id },
+      data: { actionRecordId: record.id },
     });
 
     const activity = await prisma.activity.create({
@@ -288,11 +306,12 @@ export class ActionOrchestrator {
         status: "completed",
         amount: preview.amount ?? null,
         experienceId: offering.experienceId,
-        deepLink: `/app/discover?offering=${offering.id}`,
+        deepLink: `/app/business/${offering.businessId}?offering=${offering.id}`,
         metadata: JSON.stringify({
           actionRecordId: record.id,
           offeringId: offering.id,
-          bookingId,
+          bookingId: booking.id,
+          externalReference: booking.externalReference,
           paymentId,
           action: body.action,
         }),
@@ -310,13 +329,14 @@ export class ActionOrchestrator {
         actionParams: JSON.stringify({
           experienceId: offering.experienceId,
           offeringId: offering.id,
+          bookingId: booking.id,
         }),
       },
     });
 
     await auditLog(AUDIT_EVENTS.ACTION_CONFIRMED, {
       userId,
-      detail: { action: body.action, offeringId: offering.id, bookingId, paymentId },
+      detail: { action: body.action, offeringId: offering.id, bookingId: booking.id, paymentId },
     });
 
     return {
@@ -326,11 +346,11 @@ export class ActionOrchestrator {
       offeringId: offering.id,
       businessId: offering.businessId,
       experienceId: offering.experienceId,
-      externalReference,
-      bookingId,
+      externalReference: booking.externalReference,
+      bookingId: booking.id,
       paymentId: paymentId ?? null,
       receiptId: receiptId ?? null,
-      message: "Action completed. Open the experience to finish any provider-side steps.",
+      message: "Booking confirmed on LifeOS and visible in the business experience.",
       timestamp: record.createdAt.toISOString(),
       launchExperienceId: offering.experienceId,
       activityId: activity.id,

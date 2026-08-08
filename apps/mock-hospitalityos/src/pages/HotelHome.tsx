@@ -1,10 +1,40 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import type { BookingPublic } from "@lifeos/shared";
 import { HOTEL_NAME, ROOMS } from "../lib/data";
+import { listMyBookings } from "../lib/bookings";
 import { lifeosDiscoverUrl, lifeosWebOrigin } from "../lib/lifeos";
 import { logoutHos, useHosSession } from "../components/RequireHosSession";
 
 export function HotelHome() {
   const session = useHosSession();
+  const [bookings, setBookings] = useState<BookingPublic[]>([]);
+
+  useEffect(() => {
+    if (!session) return;
+    let cancelled = false;
+    void listMyBookings()
+      .then((res) => {
+        if (!cancelled) setBookings(res.bookings);
+      })
+      .catch(() => undefined);
+
+    function onMessage(event: MessageEvent) {
+      const data = event.data as { type?: string };
+      if (data?.type === "lifeos.booking.updated") {
+        void listMyBookings()
+          .then((res) => {
+            if (!cancelled) setBookings(res.bookings);
+          })
+          .catch(() => undefined);
+      }
+    }
+    window.addEventListener("message", onMessage);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("message", onMessage);
+    };
+  }, [session]);
 
   return (
     <div className="hos">
@@ -51,6 +81,24 @@ export function HotelHome() {
           Request wallet.view from LifeOS
         </button>
       </section>
+
+      {bookings.length > 0 ? (
+        <section>
+          <h2>Your stays</h2>
+          <ul className="hos-list">
+            {bookings.map((b) => (
+              <li key={b.id}>
+                <div>
+                  <strong>{b.title}</strong>
+                  <span>
+                    {b.status} · {b.externalReference}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section>
         <h2>Rooms</h2>
