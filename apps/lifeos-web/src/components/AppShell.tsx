@@ -191,15 +191,15 @@ export function AppShell() {
             <div className="app-header__greeting">
               <p className="app-header__hello">{timeGreeting()},</p>
               <h1 className="app-header__name">{firstName}</h1>
+              <VerificationStars />
             </div>
-            <VerificationStars />
             <div className="app-header__actions">
               <NavLink
                 to="/app/messages"
-                className="icon-btn"
+                className="icon-btn icon-btn--lg"
                 aria-label={unread ? `Messages, ${unread} unread` : "Messages"}
               >
-                <IconMessage size={20} />
+                <IconMessage size={26} />
                 {unread ? (
                   <span className="badge-dot" aria-hidden>
                     {unread > 9 ? "9+" : unread}
@@ -208,10 +208,10 @@ export function AppShell() {
               </NavLink>
               <NavLink
                 to="/app/notifications"
-                className="icon-btn"
+                className="icon-btn icon-btn--lg"
                 aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}
               >
-                <IconBell size={20} />
+                <IconBell size={26} />
                 {unread ? (
                   <span className="badge-dot" aria-hidden>
                     {unread > 9 ? "9+" : unread}

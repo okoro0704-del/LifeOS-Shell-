@@ -1,8 +1,35 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { REEL_FILTERS, SERVICE_REELS, type ServiceReel } from "../lib/serviceReels";
+import type { DiscoverableOffering } from "@lifeos/shared";
+import { EmptyState, Skeleton } from "@lifeos/ui";
+import { discoverService } from "../lib/services";
+import {
+  MOCK_SERVICE_SELLERS,
+  SERVICE_CONCEPTS,
+  SERVICE_FILTERS,
+  type ServiceConcept,
+  type ServiceSeller,
+} from "../lib/serviceReels";
 
-function ReelTile({ reel, onOpen }: { reel: ServiceReel; onOpen: () => void }) {
+function matchesConcept(o: DiscoverableOffering, concept: ServiceConcept) {
+  const hay = `${o.name} ${o.description} ${o.businessName} ${o.category} ${o.type}`.toLowerCase();
+  return concept.keywords.some((k) => hay.includes(k.toLowerCase()));
+}
+
+function isOfferingAvailable(o: DiscoverableOffering) {
+  const a = (o.availability ?? "").toLowerCase();
+  if (!a) return true;
+  if (/sold out|unavailable|fully booked|closed/.test(a)) return false;
+  return true;
+}
+
+function ReelTile({
+  concept,
+  onOpen,
+}: {
+  concept: ServiceConcept;
+  onOpen: () => void;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const wrapRef = useRef<HTMLButtonElement>(null);
   const [failed, setFailed] = useState(false);
@@ -32,52 +59,126 @@ function ReelTile({ reel, onOpen }: { reel: ServiceReel; onOpen: () => void }) {
     <button
       ref={wrapRef}
       type="button"
-      className={`reel-tile reel-tile--${reel.span}`}
+      className={`reel-tile reel-tile--${concept.span} reel-tile--service`}
       onClick={onOpen}
-      aria-label={`${reel.title} — ${reel.category}. ${reel.blurb}`}
+      aria-label={concept.title}
     >
       {!failed ? (
         <video
           ref={videoRef}
           className="reel-tile__video"
-          src={reel.videoUrl}
-          poster={reel.posterUrl}
+          src={concept.videoUrl}
+          poster={concept.posterUrl}
           muted
           loop
           playsInline
           preload="metadata"
+          onTimeUpdate={(e) => {
+            const v = e.currentTarget;
+            if (v.currentTime >= concept.clipSeconds) {
+              v.currentTime = 0;
+              void v.play().catch(() => undefined);
+            }
+          }}
           onError={() => setFailed(true)}
         />
       ) : (
-        <img className="reel-tile__video" src={reel.posterUrl} alt="" />
+        <img className="reel-tile__video" src={concept.posterUrl} alt="" />
       )}
       <div className="reel-tile__shade" aria-hidden />
-      <div className="reel-tile__meta">
-        <span className="reel-tile__cat">{reel.category}</span>
-        <strong className="reel-tile__title">{reel.title}</strong>
-        <span className="reel-tile__place">{reel.place}</span>
-        <span className="reel-tile__price">{reel.priceHint}</span>
+      <div className="reel-tile__meta reel-tile__meta--service">
+        <strong className="reel-tile__title">{concept.title}</strong>
       </div>
     </button>
   );
 }
 
-/** Instagram Explore–style video mosaic of services (+ button destination). */
+/** Instagram-style service videos — tap a service to see every business that sells it. */
 export function ServicesExplorePage() {
   const navigate = useNavigate();
-  const [filter, setFilter] = useState<(typeof REEL_FILTERS)[number]>("All");
-  const [active, setActive] = useState<ServiceReel | null>(null);
-  const previewRef = useRef<HTMLVideoElement>(null);
+  const [filter, setFilter] = useState<(typeof SERVICE_FILTERS)[number]>("All");
+  const [active, setActive] = useState<ServiceConcept | null>(null);
+  const [sellers, setSellers] = useState<ServiceSeller[]>([]);
+  const [loadingSellers, setLoadingSellers] = useState(false);
 
-  const reels =
-    filter === "All" ? SERVICE_REELS : SERVICE_REELS.filter((r) => r.category === filter);
+  const concepts = useMemo(
+    () =>
+      filter === "All"
+        ? SERVICE_CONCEPTS
+        : SERVICE_CONCEPTS.filter((c) => c.category === filter),
+    [filter],
+  );
 
   useEffect(() => {
-    const v = previewRef.current;
-    if (!v || !active) return;
-    void v.play().catch(() => undefined);
+    if (!active) {
+      setSellers([]);
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingSellers(true);
+
+    void (async () => {
+      const mocks = [...(MOCK_SERVICE_SELLERS[active.id] ?? [])];
+      const fromApi: ServiceSeller[] = [];
+
+      try {
+        const [{ offerings }, { businesses }] = await Promise.all([
+          discoverService.offerings({ category: active.category }).catch(() => ({
+            offerings: [] as DiscoverableOffering[],
+          })),
+          discoverService.listBusinesses().catch(() => ({ businesses: [] })),
+        ]);
+
+        const matchedOfferings = offerings.filter((o) => matchesConcept(o, active));
+        const seen = new Set(mocks.map((m) => m.businessId));
+
+        for (const o of matchedOfferings) {
+          if (seen.has(o.businessId)) continue;
+          seen.add(o.businessId);
+          fromApi.push({
+            businessId: o.businessId,
+            businessName: o.businessName,
+            offeringName: o.name,
+            category: o.category,
+            available: isOfferingAvailable(o),
+            priceHint: o.priceFormatted || "See prices",
+            locationLabel: o.availability || undefined,
+          });
+        }
+
+        // Category businesses with no keyword hit still appear for that vertical.
+        if (!mocks.length && !fromApi.length) {
+          for (const b of businesses.filter((x) => x.category === active.category)) {
+            if (seen.has(b.businessId)) continue;
+            seen.add(b.businessId);
+            fromApi.push({
+              businessId: b.businessId,
+              businessName: b.businessName,
+              offeringName: active.title,
+              category: b.category,
+              available: true,
+              priceHint: "See options",
+              locationLabel: b.hours || undefined,
+            });
+          }
+        }
+      } catch {
+        /* mocks still apply */
+      }
+
+      if (cancelled) return;
+
+      const merged = [...mocks, ...fromApi].sort((a, b) => {
+        if (a.available !== b.available) return a.available ? -1 : 1;
+        return a.businessName.localeCompare(b.businessName);
+      });
+      setSellers(merged);
+      setLoadingSellers(false);
+    })();
+
     return () => {
-      v.pause();
+      cancelled = true;
     };
   }, [active]);
 
@@ -93,7 +194,7 @@ export function ServicesExplorePage() {
   return (
     <div className="page services-explore">
       <div className="services-explore__filters" role="tablist" aria-label="Service filters">
-        {REEL_FILTERS.map((f) => (
+        {SERVICE_FILTERS.map((f) => (
           <button
             key={f}
             type="button"
@@ -108,9 +209,9 @@ export function ServicesExplorePage() {
       </div>
 
       <div className="services-explore__grid" role="list">
-        {reels.map((reel) => (
-          <div key={reel.id} role="listitem">
-            <ReelTile reel={reel} onOpen={() => setActive(reel)} />
+        {concepts.map((concept) => (
+          <div key={concept.id} role="listitem">
+            <ReelTile concept={concept} onOpen={() => setActive(concept)} />
           </div>
         ))}
       </div>
@@ -120,44 +221,82 @@ export function ServicesExplorePage() {
           <button
             type="button"
             className="reel-preview__backdrop"
-            aria-label="Close preview"
+            aria-label="Close"
             onClick={() => setActive(null)}
           />
-          <div className="reel-preview__panel">
-            <video
-              ref={previewRef}
-              className="reel-preview__video"
-              src={active.videoUrl}
-              poster={active.posterUrl}
-              muted
-              loop
-              playsInline
-              autoPlay
-              controls={false}
-            />
-            <div className="reel-preview__body">
-              <span className="reel-preview__cat">{active.category}</span>
-              <h2>{active.title}</h2>
-              <p className="muted">{active.blurb}</p>
-              <p className="reel-preview__place">
-                {active.place} · {active.priceHint}
-              </p>
-              <div className="row-actions">
-                <button
-                  type="button"
-                  className="los-btn los-btn--primary"
-                  onClick={() => navigate(active.href)}
-                >
-                  Open {active.category}
-                </button>
-                <button
-                  type="button"
-                  className="los-btn los-btn--ghost"
-                  onClick={() => setActive(null)}
-                >
-                  Keep browsing
-                </button>
+          <div className="reel-preview__panel reel-preview__panel--sellers">
+            <div className="reel-preview__hero">
+              <video
+                className="reel-preview__video reel-preview__video--short"
+                src={active.videoUrl}
+                poster={active.posterUrl}
+                muted
+                loop
+                playsInline
+                autoPlay
+                onTimeUpdate={(e) => {
+                  const v = e.currentTarget;
+                  if (v.currentTime >= active.clipSeconds) {
+                    v.currentTime = 0;
+                    void v.play().catch(() => undefined);
+                  }
+                }}
+              />
+              <div className="reel-preview__hero-label">
+                <h2>{active.title}</h2>
+                <p className="muted small">Businesses that offer this</p>
               </div>
+            </div>
+
+            <div className="reel-preview__body">
+              {loadingSellers ? (
+                <>
+                  <Skeleton height={64} label="Loading businesses" />
+                  <Skeleton height={64} />
+                </>
+              ) : sellers.length === 0 ? (
+                <EmptyState
+                  title={`No ${active.title.toLowerCase()} sellers yet`}
+                  detail="Try another service, or check back soon."
+                />
+              ) : (
+                <ul className="service-seller-list">
+                  {sellers.map((s) => (
+                    <li key={`${s.businessId}-${s.offeringName}`}>
+                      <button
+                        type="button"
+                        className={`service-seller${s.available ? "" : " service-seller--busy"}`}
+                        onClick={() =>
+                          navigate(`/app/discover?business=${encodeURIComponent(s.businessId)}`)
+                        }
+                      >
+                        <div className="service-seller__copy">
+                          <strong>{s.businessName}</strong>
+                          <span className="muted small">{s.offeringName}</span>
+                          {s.locationLabel ? (
+                            <span className="service-seller__avail">{s.locationLabel}</span>
+                          ) : null}
+                        </div>
+                        <div className="service-seller__side">
+                          <span
+                            className={`service-seller__pill${s.available ? " service-seller__pill--ok" : ""}`}
+                          >
+                            {s.available ? "Available" : "Unavailable"}
+                          </span>
+                          <span className="service-seller__price">{s.priceHint}</span>
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <button
+                type="button"
+                className="los-btn los-btn--ghost"
+                onClick={() => setActive(null)}
+              >
+                Back to services
+              </button>
             </div>
           </div>
         </div>

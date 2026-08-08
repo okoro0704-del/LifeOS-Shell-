@@ -41,7 +41,7 @@ export function resolvePageMeta(pathname: string): PageMeta | null {
     return { title: "Saved" };
   }
   if (path === "/app/services/explore") {
-    return { title: "Discover", subtitle: "Pick a service to book" };
+    return { title: "Discover", subtitle: "Services in video — tap to find sellers" };
   }
 
   const feedMatch = path.match(/^\/app\/services\/([^/]+)\/feed$/);

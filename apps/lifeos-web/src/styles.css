@@ -340,12 +340,12 @@ a {
   padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 1.75rem);
 }
 
-/* Top bar — greeting + stars + actions */
+/* Top bar — greeting + stars under name + actions */
 .app-header {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.75rem;
   min-height: var(--header-h);
   padding: 0.65rem 1rem;
   padding-top: calc(0.65rem + var(--safe-top));
@@ -361,7 +361,8 @@ a {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.05rem;
+  align-items: flex-start;
+  gap: 0.2rem;
 }
 
 .app-header__hello {
@@ -563,16 +564,27 @@ a {
   transition: background var(--los-duration-fast) ease;
 }
 
+.icon-btn--lg {
+  width: 2.85rem;
+  height: 2.85rem;
+  border-radius: 16px;
+}
+
+.icon-btn--lg svg {
+  width: 1.55rem;
+  height: 1.55rem;
+}
+
 .icon-btn:hover {
   background: var(--los-surface-interactive);
 }
 
 .badge-dot {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  min-width: 16px;
-  height: 16px;
+  top: 4px;
+  right: 4px;
+  min-width: 17px;
+  height: 17px;
   padding: 0 4px;
   border-radius: 999px;
   background: var(--los-accent);
@@ -743,9 +755,10 @@ a {
 
 .verify-stars--header {
   flex-shrink: 0;
-  padding: 0.15rem 0.2rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--los-surface) 55%, transparent);
+  margin-top: 0.1rem;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .verify-star-btn {
@@ -3359,6 +3372,16 @@ button.los-wallet__action:disabled {
   z-index: 1;
 }
 
+.reel-tile__meta--service {
+  padding: 0.75rem 0.7rem;
+}
+
+.reel-tile--service .reel-tile__title {
+  font-size: 1.05rem;
+  font-weight: 750;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+}
+
 .reel-tile__cat {
   font-size: 0.62rem;
   font-weight: 700;
@@ -3407,6 +3430,14 @@ button.los-wallet__action:disabled {
   box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.35);
 }
 
+.reel-preview__panel--sellers {
+  max-height: min(92vh, 820px);
+}
+
+.reel-preview__hero {
+  position: relative;
+}
+
 .reel-preview__video {
   display: block;
   width: 100%;
@@ -3416,8 +3447,107 @@ button.los-wallet__action:disabled {
   background: #0b1218;
 }
 
+.reel-preview__video--short {
+  aspect-ratio: 16 / 10;
+  max-height: 28vh;
+}
+
+.reel-preview__hero-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 1rem 1rem 0.85rem;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, #0a1018 88%, transparent));
+  color: #fff;
+}
+
+.reel-preview__hero-label h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  color: #fff;
+}
+
+.reel-preview__hero-label .muted {
+  color: color-mix(in srgb, #fff 72%, transparent);
+}
+
 .reel-preview__body {
   padding: 1rem 1rem calc(1.1rem + var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.service-seller-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.service-seller {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--los-border);
+  border-radius: 0.9rem;
+  background: var(--los-bg-elevated, var(--los-surface-2));
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.service-seller--busy {
+  opacity: 0.78;
+}
+
+.service-seller__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.service-seller__avail {
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: var(--los-accent);
+}
+
+.service-seller__side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.service-seller__pill {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 0.22rem 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--los-muted) 14%, transparent);
+  color: var(--los-muted);
+}
+
+.service-seller__pill--ok {
+  background: color-mix(in srgb, #0f7a4c 14%, transparent);
+  color: #0f7a4c;
+}
+
+.service-seller__price {
+  font-size: 0.78rem;
+  font-weight: 650;
 }
 
 .reel-preview__cat {
