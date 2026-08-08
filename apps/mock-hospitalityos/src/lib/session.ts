@@ -1,8 +1,19 @@
 import type { ExperienceTokenClaims } from "@lifeos/shared";
 import { verifyExperienceToken } from "@lifeos/experience-sdk";
 
-/** Same-origin /api on Netlify; absolute API in local multi-port dev. */
-const LIFEOS_API = import.meta.env.VITE_LIFEOS_API ?? "http://localhost:8790";
+/**
+ * Resolve LifeOS API base to an absolute URL.
+ * Relative `/api` works for fetch, but jose JWKS requires an absolute URL —
+ * without this, handoff succeeds and token verify fails after Allow.
+ */
+function lifeosApiBase(): string {
+  const raw = (import.meta.env.VITE_LIFEOS_API ?? "http://localhost:8790").replace(/\/$/, "");
+  if (/^https?:\/\//i.test(raw)) return raw;
+  const path = raw.startsWith("/") ? raw : `/${raw}`;
+  if (typeof window !== "undefined") return `${window.location.origin}${path}`;
+  return path;
+}
+
 const EXPERIENCE_ID = import.meta.env.VITE_EXPERIENCE_ID ?? "exp_sunrise_hotel";
 const SESSION_KEY = "hos.session";
 
@@ -18,7 +29,8 @@ export type HosSession = {
 };
 
 export async function exchangeHandoff(handoff: string, experienceId = EXPERIENCE_ID) {
-  const res = await fetch(`${LIFEOS_API}/experience-sessions/exchange`, {
+  const api = lifeosApiBase();
+  const res = await fetch(`${api}/experience-sessions/exchange`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ handoff, experienceId }),
@@ -32,7 +44,7 @@ export async function exchangeHandoff(handoff: string, experienceId = EXPERIENCE
 
   const verified = await verifyExperienceToken({
     token: data.token as string,
-    jwksUrl: `${LIFEOS_API}/.well-known/experience-keys`,
+    jwksUrl: `${api}/.well-known/experience-keys`,
     expectedAudience: experienceId,
   });
   if (!verified.ok) {
@@ -41,8 +53,7 @@ export async function exchangeHandoff(handoff: string, experienceId = EXPERIENCE
     throw err;
   }
 
-  // Confirm session still active (revocation check).
-  const intro = await fetch(`${LIFEOS_API}/experience-sessions/introspect`, {
+  const intro = await fetch(`${api}/experience-sessions/introspect`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ jti: verified.claims.jti }),
@@ -99,7 +110,7 @@ export async function assertSessionActive(): Promise<HosSession | null> {
   const session = getLocalSession();
   if (!session) return null;
   try {
-    const intro = await fetch(`${LIFEOS_API}/experience-sessions/introspect`, {
+    const intro = await fetch(`${lifeosApiBase()}/experience-sessions/introspect`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ jti: session.jti }),

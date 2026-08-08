@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import type {
   ActionPreviewResponse,
@@ -58,7 +58,7 @@ function primaryLabel(o: DiscoverableOffering): string {
   return "Book";
 }
 
-/** Full-app business catalog: services first, then Open experience → PWA. */
+/** Full-app business catalog: services first, then View experience → PWA. */
 export function BusinessPage() {
   const { businessId = "" } = useParams();
   const [params, setParams] = useSearchParams();
@@ -148,28 +148,52 @@ export function BusinessPage() {
       .catch(() => setError("We couldn't open that service."));
   }, [offeringId]);
 
+  const autoLaunchDone = useRef(false);
+
   useEffect(() => {
-    if (!openExperienceFlag || !experience?.id) return;
-    let cancelled = false;
+    autoLaunchDone.current = false;
+  }, [businessId]);
+
+  useEffect(() => {
+    if (!openExperienceFlag || !business?.experienceId || autoLaunchDone.current) return;
+    autoLaunchDone.current = true;
+    const experienceId = business.experienceId;
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("open");
+      return next;
+    }, { replace: true });
     void (async () => {
+      setError(null);
+      setSession(null);
+      setExtraPerms(null);
       try {
-        const experienceId = experience.id;
+        let listing = experience;
+        if (!listing || listing.id !== experienceId) {
+          const res = await discoverService.getExperience(experienceId);
+          listing = {
+            ...res.experience,
+            loadable: true,
+            availability:
+              typeof res.experience.metadata?.availability === "string"
+                ? res.experience.metadata.availability
+                : undefined,
+          };
+          setExperience(listing);
+        }
         const perms = await discoverService.permissions(experienceId);
-        if (cancelled) return;
         if (perms.connected) {
           const { session: exSession } = await discoverService.session(experienceId);
-          if (!cancelled) setSession({ experience, session: exSession });
+          setPending(null);
+          setSession({ experience: listing, session: exSession });
         } else {
-          setPending({ experience, requestable: perms.requestable });
+          setPending({ experience: listing, requestable: perms.requestable });
         }
       } catch {
-        if (!cancelled) setError("We couldn't open this experience. Try again.");
+        setError("We couldn't open this experience. Try again.");
       }
     })();
-    return () => {
-      cancelled = true;
-    };
-  }, [openExperienceFlag, experience]);
+  }, [openExperienceFlag, business?.experienceId, experience, setParams]);
 
   function setOfferingParam(id: string | null) {
     setParams((prev) => {
@@ -182,13 +206,16 @@ export function BusinessPage() {
   }
 
   async function launchExperience(experienceId: string) {
+    setError(null);
+    setSession(null);
+    setExtraPerms(null);
     try {
       let listing = experience;
       if (!listing || listing.id !== experienceId) {
         const res = await discoverService.getExperience(experienceId);
         listing = {
           ...res.experience,
-          loadable: res.experience.loadable,
+          loadable: true,
           availability:
             typeof res.experience.metadata?.availability === "string"
               ? res.experience.metadata.availability
@@ -199,6 +226,7 @@ export function BusinessPage() {
       const perms = await discoverService.permissions(experienceId);
       if (perms.connected) {
         const { session: exSession } = await discoverService.session(experienceId);
+        setPending(null);
         setSession({ experience: listing, session: exSession });
       } else {
         setPending({ experience: listing, requestable: perms.requestable });
@@ -370,7 +398,7 @@ export function BusinessPage() {
           }}
           disabled={!business.experienceId}
         >
-          Open experience
+          View experience
         </Button>
       </div>
 
@@ -445,7 +473,7 @@ export function BusinessPage() {
                     if (business.experienceId) void launchExperience(business.experienceId);
                   }}
                 >
-                  Open experience
+                  View experience
                 </Button>
               </div>
             </>
@@ -468,7 +496,7 @@ export function BusinessPage() {
                     if (business.experienceId) void launchExperience(business.experienceId);
                   }}
                 >
-                  Open experience
+                  View experience
                 </Button>
               }
             />
@@ -502,14 +530,16 @@ export function BusinessPage() {
           requestable={pending.requestable}
           onCancel={clearExperience}
           onConnected={(exSession) => {
+            const exp = pending.experience;
             setPending(null);
-            setSession({ experience: pending.experience, session: exSession });
+            setSession({ experience: exp, session: exSession });
           }}
         />
       ) : null}
 
-      {session ? (
+      {session && !pending ? (
         <ExperienceViewer
+          key={session.session.sessionId}
           experience={session.experience}
           session={session.session}
           onClose={clearExperience}

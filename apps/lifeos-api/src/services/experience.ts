@@ -195,7 +195,7 @@ export class RegistryExperienceProvider implements ExperienceProvider {
       throw err;
     }
     const listing = await getBusinessDirectory().getById(opts.experienceId);
-    if (!listing?.loadable) {
+    if (!listing || listing.status !== "active") {
       const err = new Error("Experience unavailable");
       (err as Error & { code: string }).code = "experience_unavailable";
       throw err;
