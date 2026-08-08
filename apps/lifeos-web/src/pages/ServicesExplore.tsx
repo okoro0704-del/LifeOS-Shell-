@@ -1,82 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { EmptyState, SearchBar } from "@lifeos/ui";
-import {
-  SERVICE_CONCEPTS,
-  SERVICE_FILTERS,
-  type ServiceConcept,
-} from "../lib/serviceReels";
-
-function ServiceTile({
-  concept,
-  onOpen,
-}: {
-  concept: ServiceConcept;
-  onOpen: () => void;
-}) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const wrapRef = useRef<HTMLButtonElement>(null);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    const el = wrapRef.current;
-    const video = videoRef.current;
-    if (!el || !video) return;
-
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            void video.play().catch(() => undefined);
-          } else {
-            video.pause();
-          }
-        }
-      },
-      { threshold: 0.35 },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-
-  return (
-    <button
-      ref={wrapRef}
-      type="button"
-      className="discover-tile"
-      onClick={onOpen}
-      aria-label={concept.title}
-    >
-      {!failed ? (
-        <video
-          ref={videoRef}
-          className="discover-tile__media"
-          src={concept.videoUrl}
-          poster={concept.posterUrl}
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          onTimeUpdate={(e) => {
-            const v = e.currentTarget;
-            if (v.currentTime >= concept.clipSeconds) {
-              v.currentTime = 0;
-              void v.play().catch(() => undefined);
-            }
-          }}
-          onError={() => setFailed(true)}
-        />
-      ) : (
-        <img className="discover-tile__media" src={concept.posterUrl} alt="" />
-      )}
-      <div className="discover-tile__shade" aria-hidden />
-      <div className="discover-tile__meta">
-        <strong className="discover-tile__title">{concept.title}</strong>
-        <span className="discover-tile__cat">{concept.category}</span>
-      </div>
-    </button>
-  );
-}
+import { ServiceConceptTile } from "../components/ServiceConceptTile";
+import { SERVICE_CONCEPTS, SERVICE_FILTERS } from "../lib/serviceReels";
 
 /** Discover (+) — search + 3-up services → sellers → business → PWA. */
 export function ServicesExplorePage() {
@@ -144,7 +70,7 @@ export function ServicesExplorePage() {
         <div className="discover-grid" role="list">
           {concepts.map((concept) => (
             <div key={concept.id} role="listitem">
-              <ServiceTile
+              <ServiceConceptTile
                 concept={concept}
                 onOpen={() =>
                   navigate(`/app/services/explore/${encodeURIComponent(concept.id)}`)

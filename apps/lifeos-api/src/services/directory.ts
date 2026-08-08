@@ -32,16 +32,22 @@ function resolvePublicExperienceUrls(experienceUrl: string, approvedOrigin: stri
     (productionWeb.includes("netlify.app") || process.env.NODE_ENV === "production" ? "/hos" : "");
 
   const isLocalHost =
-    /localhost:5180|127\.0\.0\.1:5180/.test(approvedOrigin) ||
-    /localhost:5180|127\.0\.0\.1:5180/.test(experienceUrl);
+    /localhost|127\.0\.0\.1/.test(approvedOrigin) ||
+    /localhost|127\.0\.0\.1/.test(experienceUrl);
 
-  if (!isLocalHost || process.env.NODE_ENV !== "production") {
+  // Always rewrite local tenant URLs when the public shell origin is not local —
+  // Railway may serve with NODE_ENV=production while DB still has localhost seeds.
+  if (!isLocalHost || /localhost|127\.0\.0\.1/.test(productionWeb)) {
     return { experienceUrl, approvedOrigin };
   }
 
   try {
     const u = new URL(experienceUrl);
-    const path = u.pathname === "/" ? "" : u.pathname;
+    let path = u.pathname === "/" ? "" : u.pathname;
+    // Drop a legacy absolute /hos prefix if we're about to prepend hosBase.
+    if (hosBase && path.startsWith(hosBase)) {
+      path = path.slice(hosBase.length) || "";
+    }
     const nextUrl = `${productionWeb}${hosBase}${path || "/"}`;
     return { experienceUrl: nextUrl.replace(/([^:]\/)\/+/g, "$1"), approvedOrigin: productionWeb };
   } catch {

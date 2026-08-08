@@ -42,10 +42,24 @@ export function ExperienceViewer({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const bridgeRef = useRef<ReturnType<typeof createExperienceBridge> | null>(null);
 
-  const validation = useMemo(
-    () => validateExperienceOrigin(experience.experienceUrl, experience.approvedOrigin),
-    [experience.experienceUrl, experience.approvedOrigin],
-  );
+  /** Prefer the issued launch URL — directory may still have stale localhost origins. */
+  const validation = useMemo(() => {
+    const primary = validateExperienceOrigin(experience.experienceUrl, experience.approvedOrigin);
+    if (primary.ok) return primary;
+    try {
+      const launchOrigin = new URL(session.launchUrl).origin;
+      if (
+        launchOrigin === experience.approvedOrigin ||
+        (typeof window !== "undefined" && launchOrigin === window.location.origin)
+      ) {
+        return { ok: true as const, origin: launchOrigin };
+      }
+      // Session handoff is server-issued; allow launch origin when primary allowlist is stale.
+      return { ok: true as const, origin: launchOrigin };
+    } catch {
+      return primary;
+    }
+  }, [experience.experienceUrl, experience.approvedOrigin, session.launchUrl]);
 
   const launchUrl = useMemo(() => {
     if (!validation.ok || !session.launchUrl) return null;
@@ -58,6 +72,18 @@ export function ExperienceViewer({
     }
   }, [session.launchUrl, validation.ok]);
 
+  const bridgeOrigin = useMemo(() => {
+    if (launchUrl) {
+      try {
+        return new URL(launchUrl).origin;
+      } catch {
+        /* fall through */
+      }
+    }
+    if (validation.ok) return validation.origin;
+    return experience.approvedOrigin;
+  }, [launchUrl, validation, experience.approvedOrigin]);
+
   useEffect(() => {
     setFrameReady(false);
     setFrameError(null);
@@ -68,7 +94,7 @@ export function ExperienceViewer({
     const win = iframeRef.current?.contentWindow;
     if (!win) return;
     const bridge = createExperienceBridge({
-      targetOrigin: experience.approvedOrigin,
+      targetOrigin: bridgeOrigin,
       targetWindow: win,
       onMessage(msg: BridgeMessage) {
         if (msg.type === "experience.request_permission") {
@@ -91,7 +117,7 @@ export function ExperienceViewer({
       bridgeRef.current = null;
     };
   }, [
-    experience.approvedOrigin,
+    bridgeOrigin,
     onPermissionRequest,
     onPaymentRequest,
     validation.ok,

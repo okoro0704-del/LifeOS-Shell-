@@ -55,11 +55,44 @@ function primaryLabel(o: DiscoverableOffering): string {
   if (a === "PURCHASE_TICKET") return "Buy ticket";
   if (a === "JOIN") return "Join";
   if (a === "RESERVE") return "Reserve";
-  if (a === "BUY") return "Buy";
+  if (a === "BUY" || o.type === "MEAL" || o.category === "Eat") return "Order";
   return "Book";
 }
 
-/** Full-app business catalog: services first, then View experience → PWA. */
+function isOrderStyle(o: DiscoverableOffering): boolean {
+  if (o.type === "MEAL" || o.category === "Eat") return true;
+  if (o.capabilities.includes("BUY") || o.capabilities.includes("PURCHASE_TICKET")) return true;
+  return false;
+}
+
+function firstOfferingOfKind(
+  offerings: DiscoverableOffering[],
+  kind: "order" | "book",
+): DiscoverableOffering | null {
+  return (
+    offerings.find((o) => (kind === "order" ? isOrderStyle(o) : !isOrderStyle(o))) ?? null
+  );
+}
+
+/** Client safety net when API still returns localhost tenant URLs. */
+function normalizeExperienceUrls<T extends ExperienceRecord>(exp: T): T {
+  if (typeof window === "undefined") return exp;
+  try {
+    const u = new URL(exp.experienceUrl);
+    if (!/localhost|127\.0\.0\.1/i.test(u.hostname)) return exp;
+    const path = u.pathname === "/" ? "/" : u.pathname;
+    const hosPath = path.startsWith("/hos") ? path : `/hos${path === "/" ? "/" : path}`;
+    return {
+      ...exp,
+      experienceUrl: `${window.location.origin}${hosPath}`.replace(/([^:]\/)\/+/g, "$1"),
+      approvedOrigin: window.location.origin,
+    };
+  } catch {
+    return exp;
+  }
+}
+
+/** Full-app business catalog: services first, then Visit → PWA. */
 export function BusinessPage() {
   const { businessId = "" } = useParams();
   const [params, setParams] = useSearchParams();
@@ -107,6 +140,9 @@ export function BusinessPage() {
     if (!business) return COVERS.Stay;
     return business.logo || COVERS[business.category] || COVERS.Stay;
   }, [business]);
+
+  const orderOffering = useMemo(() => firstOfferingOfKind(offerings, "order"), [offerings]);
+  const bookOffering = useMemo(() => firstOfferingOfKind(offerings, "book"), [offerings]);
 
   useEffect(() => {
     if (!businessId) return;
@@ -228,8 +264,24 @@ export function BusinessPage() {
               ? res.experience.metadata.availability
               : undefined,
         };
-        setExperience(listing);
       }
+      // Client safety net: never point the iframe at localhost when shell is public.
+      try {
+        const u = new URL(listing.experienceUrl);
+        if (/localhost|127\.0\.0\.1/i.test(u.hostname)) {
+          const path = u.pathname === "/" ? "/" : u.pathname;
+          const withHos = path.startsWith("/hos") ? path : `/hos${path === "/" ? "/" : path}`;
+          listing = {
+            ...listing,
+            experienceUrl: `${window.location.origin}${withHos}`,
+            approvedOrigin: window.location.origin,
+            loadable: true,
+          };
+        }
+      } catch {
+        /* keep listing */
+      }
+      setExperience(listing);
       const perms = await discoverService.permissions(experienceId);
       if (perms.connected) {
         const { session: exSession } = await discoverService.session(experienceId);
@@ -425,8 +477,23 @@ export function BusinessPage() {
           }}
           disabled={!business.experienceId}
         >
-          View experience
+          Visit {business.businessName}
         </Button>
+        {bookOffering ? (
+          <Button variant="soft" onClick={() => setOfferingParam(bookOffering.id)}>
+            Book
+          </Button>
+        ) : null}
+        {orderOffering ? (
+          <Button variant="soft" onClick={() => setOfferingParam(orderOffering.id)}>
+            Order
+          </Button>
+        ) : null}
+        {!bookOffering && !orderOffering && offerings[0] ? (
+          <Button variant="soft" onClick={() => setOfferingParam(offerings[0].id)}>
+            {primaryLabel(offerings[0])}
+          </Button>
+        ) : null}
       </div>
 
       {selectedOffering ? (
@@ -500,7 +567,7 @@ export function BusinessPage() {
                     if (business.experienceId) void launchExperience(business.experienceId);
                   }}
                 >
-                  View experience
+                  Visit {business.businessName}
                 </Button>
               </div>
             </>
@@ -523,7 +590,7 @@ export function BusinessPage() {
                     if (business.experienceId) void launchExperience(business.experienceId);
                   }}
                 >
-                  View experience
+                  Visit {business.businessName}
                 </Button>
               }
             />

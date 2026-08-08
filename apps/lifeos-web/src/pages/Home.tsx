@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import type {
   AttentionItem,
   ContinueItem,
+  DiscoverableBusiness,
   DiscoverableOffering,
   LifePlanItem,
   RecommendationItem,
@@ -30,9 +31,24 @@ import {
   discoverService,
 } from "../lib/services";
 import { SERVICE_VERTICALS } from "../lib/serviceCatalog";
+import { SERVICE_CONCEPTS } from "../lib/serviceReels";
 import { useCommandLayer } from "../hooks/useCommandLayer";
 import { StatusBanner } from "../components/StatusBanner";
 import { ActionPreview } from "../components/ActionPreview";
+import { ServiceConceptTile } from "../components/ServiceConceptTile";
+
+const BUSINESS_COVERS: Record<string, string> = {
+  Stay: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=720&q=80",
+  Eat: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=720&q=80",
+  Wellness: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=720&q=80",
+  Fitness: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=720&q=80",
+  Cinema: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=720&q=80",
+  Events: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?auto=format&fit=crop&w=720&q=80",
+  Activities: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=720&q=80",
+  Travel: "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=720&q=80",
+};
+
+const HOME_DISCOVERY = SERVICE_CONCEPTS.slice(0, 8);
 
 function formatTime(iso?: string | null) {
   if (!iso) return "";
@@ -77,6 +93,7 @@ export function HomePage() {
   const [offline, setOffline] = useState(false);
   const [forYou, setForYou] = useState<DiscoverableOffering[]>([]);
   const [homeRooms, setHomeRooms] = useState<DiscoverableOffering[]>([]);
+  const [homeBusinesses, setHomeBusinesses] = useState<DiscoverableBusiness[]>([]);
   const [recs, setRecs] = useState<RecommendationItem[]>([]);
   const [today, setToday] = useState<LifePlanItem[]>([]);
   const [upcoming, setUpcoming] = useState<LifePlanItem[]>([]);
@@ -92,11 +109,12 @@ export function HomePage() {
     setOffline(offlineNow);
     void (async () => {
       try {
-        const [disc, rooms, plans] = await Promise.all([
+        const [disc, rooms, biz, plans] = await Promise.all([
           discoverService.get(),
           discoverService
             .offerings({ category: "Stay" })
             .catch(() => ({ offerings: [] as DiscoverableOffering[] })),
+          discoverService.listBusinesses().catch(() => ({ businesses: [] as DiscoverableBusiness[] })),
           actionService.plans().catch(() => null),
         ]);
         setForYou((disc.featuredOfferings ?? disc.offerings ?? []).slice(0, 8));
@@ -107,6 +125,11 @@ export function HomePage() {
             return (a.distanceKm ?? 99) - (b.distanceKm ?? 99);
           });
         setHomeRooms(roomList.slice(0, 8));
+        setHomeBusinesses(
+          [...(biz.businesses ?? [])]
+            .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+            .slice(0, 8),
+        );
         if (plans) {
           setToday(plans.life?.today ?? []);
           setUpcoming((plans.life?.upcoming ?? []).slice(0, 4));
@@ -192,6 +215,87 @@ export function HomePage() {
             <span>Search, plan, book, pay, and more</span>
           </span>
         </button>
+      </section>
+
+      <section aria-label="Discovery near you" className="home-media-section">
+        <SectionHeader title="Discovery near you" />
+        <div className="home-media-rail" role="list">
+          {HOME_DISCOVERY.map((concept) => (
+            <div key={concept.id} className="home-media-rail__item" role="listitem">
+              <ServiceConceptTile
+                concept={concept}
+                onOpen={() =>
+                  navigate(`/app/services/explore/${encodeURIComponent(concept.id)}`)
+                }
+              />
+            </div>
+          ))}
+          <button
+            type="button"
+            className="home-see-more"
+            role="listitem"
+            onClick={() => navigate("/app/services/explore")}
+            aria-label="See more Discovery"
+          >
+            <span className="home-see-more__label">See more</span>
+            <span className="home-see-more__hint">Discovery</span>
+          </button>
+        </div>
+      </section>
+
+      <section aria-label="Explore for businesses" className="home-media-section">
+        <SectionHeader
+          title="Explore for businesses"
+          action={
+            <button type="button" className="text-link" onClick={() => navigate("/app/discover")}>
+              See all
+            </button>
+          }
+        />
+        {loading && homeBusinesses.length === 0 ? (
+          <div className="home-media-rail">
+            <Skeleton height={200} />
+            <Skeleton height={200} />
+          </div>
+        ) : (
+          <div className="home-media-rail" role="list">
+            {homeBusinesses.map((b) => (
+              <button
+                key={b.businessId}
+                type="button"
+                role="listitem"
+                className="discover-tile home-biz-tile"
+                onClick={() => navigate(`/app/business/${encodeURIComponent(b.businessId)}`)}
+                aria-label={b.businessName}
+              >
+                <img
+                  className="discover-tile__media"
+                  src={b.logo || BUSINESS_COVERS[b.category] || BUSINESS_COVERS.Stay}
+                  alt=""
+                  loading="lazy"
+                />
+                <div className="discover-tile__shade" aria-hidden />
+                <div className="discover-tile__meta">
+                  <strong className="discover-tile__title">{b.businessName}</strong>
+                  <span className="discover-tile__cat">
+                    {b.category}
+                    {b.location ? ` · ${b.location}` : ""}
+                  </span>
+                </div>
+              </button>
+            ))}
+            <button
+              type="button"
+              className="home-see-more"
+              role="listitem"
+              onClick={() => navigate("/app/discover")}
+              aria-label="See more businesses"
+            >
+              <span className="home-see-more__label">See more</span>
+              <span className="home-see-more__hint">Explore</span>
+            </button>
+          </div>
+        )}
       </section>
 
       <section aria-label="Quick access" className="home-quick">

@@ -947,7 +947,8 @@ a {
 }
 
 .home-reco-rail,
-.home-glance-rail {
+.home-glance-rail,
+.home-media-rail {
   display: flex;
   gap: 0.85rem;
   overflow-x: auto;
@@ -958,8 +959,64 @@ a {
 }
 
 .home-reco-rail::-webkit-scrollbar,
-.home-glance-rail::-webkit-scrollbar {
+.home-glance-rail::-webkit-scrollbar,
+.home-media-rail::-webkit-scrollbar {
   display: none;
+}
+
+.home-media-section {
+  margin: 0.35rem 0 1.1rem;
+}
+
+.home-media-rail {
+  gap: 0.55rem;
+  align-items: stretch;
+}
+
+.home-media-rail__item,
+.home-media-rail > .discover-tile,
+.home-media-rail > .home-see-more,
+.home-media-rail > .home-biz-tile {
+  flex: 0 0 min(38vw, 148px);
+  scroll-snap-align: start;
+}
+
+.home-media-rail .discover-tile {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+}
+
+.home-see-more {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 0;
+  aspect-ratio: 3 / 4;
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--los-border, #c8d0d8) 85%, transparent);
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, var(--los-surface, #fff) 88%, var(--los-muted, #6b7785));
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: center;
+}
+
+.home-see-more__label {
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.home-see-more__hint {
+  font-size: 0.72rem;
+  opacity: 0.75;
+}
+
+.home-biz-tile {
+  flex: 0 0 min(38vw, 148px);
 }
 
 .home-reco-card {
@@ -3907,6 +3964,7 @@ button.los-wallet__action:disabled {
 
 .business-page__cta {
   margin: 0.85rem 0 1.25rem;
+  flex-wrap: wrap;
 }
 
 .business-offering-panel {
