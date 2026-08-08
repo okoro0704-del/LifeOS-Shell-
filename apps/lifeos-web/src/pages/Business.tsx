@@ -265,22 +265,10 @@ export function BusinessPage() {
               : undefined,
         };
       }
-      // Client safety net: never point the iframe at localhost when shell is public.
-      try {
-        const u = new URL(listing.experienceUrl);
-        if (/localhost|127\.0\.0\.1/i.test(u.hostname)) {
-          const path = u.pathname === "/" ? "/" : u.pathname;
-          const withHos = path.startsWith("/hos") ? path : `/hos${path === "/" ? "/" : path}`;
-          listing = {
-            ...listing,
-            experienceUrl: `${window.location.origin}${withHos}`,
-            approvedOrigin: window.location.origin,
-            loadable: true,
-          };
-        }
-      } catch {
-        /* keep listing */
-      }
+      listing = {
+        ...normalizeExperienceUrls(listing),
+        loadable: true,
+      };
       setExperience(listing);
       const perms = await discoverService.permissions(experienceId);
       if (perms.connected) {

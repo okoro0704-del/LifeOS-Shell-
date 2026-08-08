@@ -1,5 +1,6 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
 import { useEffect, useId, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   IconActivity,
   IconEat,
@@ -617,10 +618,13 @@ export function Sheet({
   title,
   children,
   onClose,
+  /** Centered modal (default bottom sheet on small screens). */
+  placement = "sheet",
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
+  placement?: "sheet" | "center";
 }) {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -667,9 +671,9 @@ export function Sheet({
     };
   }, [onClose]);
 
-  return (
+  const overlay = (
     <div
-      className="los-sheet-overlay"
+      className={`los-sheet-overlay${placement === "center" ? " los-sheet-overlay--center" : ""}`}
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
@@ -686,4 +690,8 @@ export function Sheet({
       </div>
     </div>
   );
+
+  // Portal out of sticky/backdrop-filter headers so fixed overlay covers the full app.
+  if (typeof document === "undefined") return overlay;
+  return createPortal(overlay, document.body);
 }

@@ -90,7 +90,11 @@ export function VerificationStars({ className }: Props) {
       </div>
 
       {open ? (
-        <Sheet title="Identity verification" onClose={() => setOpen(false)}>
+        <Sheet
+          title="Identity verification"
+          placement="center"
+          onClose={() => setOpen(false)}
+        >
           <p className="muted small verify-sheet__intro">
             Stars show what TrustID has verified for you. Tap a star anytime to review status.
           </p>

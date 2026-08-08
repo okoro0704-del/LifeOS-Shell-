@@ -919,6 +919,11 @@ button.los-activity {
   animation: los-fade var(--los-duration) var(--los-ease) both;
 }
 
+.los-sheet-overlay--center {
+  align-items: center;
+  padding: 1rem;
+}
+
 .los-sheet-backdrop {
   position: absolute;
   inset: 0;
@@ -938,6 +943,14 @@ button.los-activity {
   padding: var(--los-space-4) var(--los-space-4) calc(var(--los-space-5) + var(--safe-bottom));
   box-shadow: var(--los-shadow-lg);
   animation: los-sheet-up var(--los-duration) var(--los-ease) both;
+}
+
+.los-sheet-overlay--center .los-sheet {
+  width: min(420px, 100%);
+  max-height: min(80vh, 640px);
+  border-radius: var(--los-radius-lg);
+  padding-bottom: var(--los-space-5);
+  animation: los-fade var(--los-duration) var(--los-ease) both;
 }
 
 .los-sheet-head {
