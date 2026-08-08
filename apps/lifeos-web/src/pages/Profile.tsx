@@ -193,8 +193,8 @@ export function ProfilePage() {
           onClick={() => navigate("/app/connections")}
         />
         <ProfileRow
-          label="Wallet"
-          subtitle={balance ?? "Open wallet"}
+          label="Finance"
+          subtitle={balance ?? "Open Finance"}
           onClick={() => navigate("/app/wallet")}
         />
         <ProfileRow label="Notifications" onClick={() => navigate("/app/notifications")} />

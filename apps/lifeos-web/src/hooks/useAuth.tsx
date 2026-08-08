@@ -8,7 +8,15 @@ import {
   type ReactNode,
 } from "react";
 import type { LifeOsUserPublic } from "@lifeos/shared";
-import { ApiError, storeSessionToken } from "../lib/api";
+import {
+  ApiError,
+  cacheUser,
+  getCachedUser,
+  getStoredSessionToken,
+  isExplicitlyLoggedOut,
+  markLoggedOut,
+  storeSessionToken,
+} from "../lib/api";
 import { meService } from "../lib/services";
 
 export type ClientAuthStatus =
@@ -29,24 +37,61 @@ type AuthState = {
 
 const AuthContext = createContext<AuthState | null>(null);
 
+function readInitialUser(): LifeOsUserPublic | null {
+  if (isExplicitlyLoggedOut()) return null;
+  if (!getStoredSessionToken()) return null;
+  return getCachedUser<LifeOsUserPublic>();
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<LifeOsUserPublic | null>(null);
+  const [user, setUser] = useState<LifeOsUserPublic | null>(() => readInitialUser());
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<ClientAuthStatus>("loading");
 
   const refresh = useCallback(async () => {
+    // After Sign out, stay signed out until the next login — do not restore via cookie.
+    if (isExplicitlyLoggedOut()) {
+      void meService.logout().catch(() => undefined);
+      cacheUser(null);
+      setUser(null);
+      setStatus("unauthenticated");
+      setLoading(false);
+      return;
+    }
+
     try {
       const data = await meService.get();
+      cacheUser(data.user);
       setUser(data.user);
       setStatus("authenticated");
     } catch (err) {
-      setUser(null);
       if (err instanceof ApiError) {
-        if (err.code === "session_expired") setStatus("session_expired");
-        else if (err.code === "lifeos_unavailable") setStatus("lifeos_unavailable");
-        else setStatus("unauthenticated");
+        if (err.code === "session_expired" || err.code === "unauthorized") {
+          storeSessionToken(null);
+          cacheUser(null);
+          setUser(null);
+          setStatus(err.code === "session_expired" ? "session_expired" : "unauthenticated");
+        } else if (err.code === "lifeos_unavailable") {
+          // Transient API / network errors must not sign the user out.
+          const cached = getCachedUser<LifeOsUserPublic>();
+          if (cached && getStoredSessionToken()) {
+            setUser(cached);
+            setStatus("authenticated");
+          } else {
+            setStatus("lifeos_unavailable");
+          }
+        } else {
+          setUser(null);
+          setStatus("unauthenticated");
+        }
       } else {
-        setStatus("lifeos_unavailable");
+        const cached = getCachedUser<LifeOsUserPublic>();
+        if (cached && getStoredSessionToken()) {
+          setUser(cached);
+          setStatus("authenticated");
+        } else {
+          setStatus("lifeos_unavailable");
+        }
       }
     } finally {
       setLoading(false);
@@ -63,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       /* still clear local state */
     }
-    storeSessionToken(null);
+    markLoggedOut();
     setUser(null);
     setStatus("unauthenticated");
   }, []);
@@ -76,6 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refresh,
       logout,
       setUser: (next: LifeOsUserPublic | null) => {
+        cacheUser(next);
         setUser(next);
         setStatus(next ? "authenticated" : "unauthenticated");
       },

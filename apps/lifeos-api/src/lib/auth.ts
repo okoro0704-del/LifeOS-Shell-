@@ -80,23 +80,29 @@ export function sessionCookieOptions(expiresAt: Date): CookieSerializeOptions {
 }
 
 export function clearSessionCookie(reply: FastifyReply) {
-  reply.clearCookie(config.sessionCookieName, {
-    path: "/",
-    httpOnly: true,
-    sameSite: config.cookieSameSite,
-    secure: config.cookieSecure,
-  });
+  // Clear under common SameSite/Secure combos so a leftover cookie from a
+  // prior COOKIE_SAMESITE setting (or Netlify→Railway proxy) cannot re-auth.
+  const variants: CookieSerializeOptions[] = [
+    { path: "/", httpOnly: true, sameSite: config.cookieSameSite, secure: config.cookieSecure },
+    { path: "/", httpOnly: true, sameSite: "lax", secure: config.cookieSecure },
+    { path: "/", httpOnly: true, sameSite: "none", secure: true },
+    { path: "/api", httpOnly: true, sameSite: config.cookieSameSite, secure: config.cookieSecure },
+  ];
+  for (const opts of variants) {
+    reply.clearCookie(config.sessionCookieName, opts);
+  }
 }
 
 export function setSessionCookie(reply: FastifyReply, rawToken: string, expiresAt: Date) {
   reply.setCookie(config.sessionCookieName, rawToken, sessionCookieOptions(expiresAt));
 }
 
-/** Cookie first, then X-LifeOS-Session, then Authorization: Bearer. */
+/**
+ * Prefer explicit client token (header / Bearer) over cookie.
+ * The SPA stores the session in localStorage and sends X-LifeOS-Session; after
+ * logout that header is gone — cookie must not silently win over a cleared client.
+ */
 export function extractSessionToken(req: FastifyRequest): string | undefined {
-  const fromCookie = req.cookies[config.sessionCookieName];
-  if (fromCookie) return fromCookie;
-
   const header = req.headers[config.sessionHeaderName];
   if (typeof header === "string" && header.trim()) return header.trim();
 
@@ -105,6 +111,9 @@ export function extractSessionToken(req: FastifyRequest): string | undefined {
     const token = auth.slice(7).trim();
     if (token) return token;
   }
+
+  const fromCookie = req.cookies[config.sessionCookieName];
+  if (fromCookie) return fromCookie;
 
   return undefined;
 }

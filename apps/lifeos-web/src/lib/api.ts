@@ -5,6 +5,10 @@ export const trustIdApi = import.meta.env.VITE_TRUSTID_API ?? "http://localhost:
 export const lifeosApiBase = import.meta.env.VITE_LIFEOS_API ?? "/api";
 
 const SESSION_STORAGE_KEY = "lifeos.session.token";
+/** Explicit sign-in / sign-out intent — survives refresh so cookies alone cannot re-login. */
+const AUTH_INTENT_KEY = "lifeos.auth.intent";
+/** Last known user — used to keep the shell alive across refresh when /me briefly fails. */
+const USER_CACHE_KEY = "lifeos.auth.user";
 
 export const authClient = createAuthClient({
   trustIdApi,
@@ -47,10 +51,54 @@ export function getStoredSessionToken(): string | null {
   }
 }
 
+/** True after Sign out until the next successful login. */
+export function isExplicitlyLoggedOut(): boolean {
+  try {
+    if (localStorage.getItem(SESSION_STORAGE_KEY)) return false;
+    return localStorage.getItem(AUTH_INTENT_KEY) === "logged_out";
+  } catch {
+    return false;
+  }
+}
+
+export function getCachedUser<T = unknown>(): T | null {
+  try {
+    const raw = localStorage.getItem(USER_CACHE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
+export function cacheUser(user: unknown | null) {
+  try {
+    if (user) localStorage.setItem(USER_CACHE_KEY, JSON.stringify(user));
+    else localStorage.removeItem(USER_CACHE_KEY);
+  } catch {
+    /* private mode / blocked storage */
+  }
+}
+
 export function storeSessionToken(token: string | null) {
   try {
-    if (token) localStorage.setItem(SESSION_STORAGE_KEY, token);
-    else localStorage.removeItem(SESSION_STORAGE_KEY);
+    if (token) {
+      localStorage.setItem(SESSION_STORAGE_KEY, token);
+      localStorage.setItem(AUTH_INTENT_KEY, "logged_in");
+    } else {
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+    }
+  } catch {
+    /* private mode / blocked storage */
+  }
+}
+
+/** Clear client session and record that the user signed out (refresh must not restore via cookie). */
+export function markLoggedOut() {
+  try {
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+    localStorage.removeItem(USER_CACHE_KEY);
+    localStorage.setItem(AUTH_INTENT_KEY, "logged_out");
   } catch {
     /* private mode / blocked storage */
   }
@@ -133,6 +181,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     const code = mapErrorCode(res.status, raw);
     if (code === "unauthorized" || code === "session_expired") {
       storeSessionToken(null);
+      cacheUser(null);
     }
     const message =
       (data as { message?: string }).message ||

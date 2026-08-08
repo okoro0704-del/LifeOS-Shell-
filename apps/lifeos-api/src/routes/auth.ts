@@ -214,15 +214,32 @@ export async function authRoutes(app: FastifyInstance) {
   });
 
   app.post("/auth/logout", async (req, reply) => {
-    const token = extractSessionToken(req);
-    if (token) {
+    // Collect every token the client may still be presenting (header + cookie can differ).
+    const candidates = new Set<string>();
+    const header = req.headers[config.sessionHeaderName];
+    if (typeof header === "string" && header.trim()) candidates.add(header.trim());
+    const auth = req.headers.authorization;
+    if (typeof auth === "string" && auth.toLowerCase().startsWith("bearer ")) {
+      const bearer = auth.slice(7).trim();
+      if (bearer) candidates.add(bearer);
+    }
+    const cookieTok = req.cookies[config.sessionCookieName];
+    if (cookieTok) candidates.add(cookieTok);
+    const primary = extractSessionToken(req);
+    if (primary) candidates.add(primary);
+
+    let revokedUserId: string | null = null;
+    for (const token of candidates) {
       const session = await prisma.session.findUnique({
         where: { tokenHash: hashSecret(token) },
       });
       if (session) {
-        await prisma.session.delete({ where: { id: session.id } });
-        await auditLog(AUDIT_EVENTS.SESSION_REVOKED, { userId: session.userId });
+        await prisma.session.delete({ where: { id: session.id } }).catch(() => undefined);
+        revokedUserId = session.userId;
       }
+    }
+    if (revokedUserId) {
+      await auditLog(AUDIT_EVENTS.SESSION_REVOKED, { userId: revokedUserId });
     }
     clearSessionCookie(reply);
     return { ok: true };

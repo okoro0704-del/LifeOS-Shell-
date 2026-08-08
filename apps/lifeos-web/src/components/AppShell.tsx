@@ -28,9 +28,16 @@ const tabs: {
 }[] = [
   { to: "/app", end: true, label: "Home", Icon: IconHome },
   { to: "/app/discover", label: "Explore", Icon: IconExplore },
-  { to: "/app/wallet", label: "Wallet", Icon: IconWallet },
+  { to: "/app/wallet", label: "Finance", Icon: IconWallet },
   { to: "/app/activity", label: "Activity", Icon: IconActivity },
 ];
+
+function timeGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
+}
 
 const PLUS_SERVICES: Array<{
   id: string;
@@ -63,6 +70,7 @@ export function AppShell() {
   } | null>(null);
   const [showInstall, setShowInstall] = useState(false);
   const avatarSrc = user?.preferences?.avatarUrl ?? null;
+  const firstName = user?.firstName || user?.displayName?.split(" ")[0] || "there";
 
   useEffect(() => {
     void notificationService.list().then((d) => setUnread(d.unreadCount)).catch(() => undefined);
@@ -202,9 +210,9 @@ export function AppShell() {
 
       <div className="shell-main">
         <header className="app-header">
-          <div className="app-header__brand">
-            <span className="brand-mark brand-mark--sm" aria-hidden />
-            <span className="brand-name">LifeOS</span>
+          <div className="app-header__greeting">
+            <p className="app-header__hello">{timeGreeting()},</p>
+            <h1 className="app-header__name">{firstName}</h1>
           </div>
           <div className="app-header__actions">
             <NavLink
@@ -329,7 +337,7 @@ export function AppShell() {
           </div>
         ) : null}
 
-        <nav className="bottom-nav bottom-nav--fab bottom-nav--glass" aria-label="Primary">
+        <nav className="bottom-nav bottom-nav--fab bottom-nav--float" aria-label="Primary">
           {tabs.slice(0, 2).map((t) => (
             <NavLink
               key={t.to}

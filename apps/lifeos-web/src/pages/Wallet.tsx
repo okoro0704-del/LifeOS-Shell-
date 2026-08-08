@@ -27,7 +27,14 @@ type Tx = {
 };
 
 type Mode = "idle" | "send" | "receive" | "pay";
-type Rail = "fiat" | "token";
+type Rail = "fiat" | "token" | "p2p" | "financeos";
+
+const FINANCE_RAILS: Array<{ id: Rail; label: string }> = [
+  { id: "fiat", label: "Cash" },
+  { id: "token", label: "Tokens" },
+  { id: "p2p", label: "P2P Marketplace" },
+  { id: "financeos", label: "FinanceOS" },
+];
 
 function maskAddress(address?: string) {
   if (!address || address.length < 8) return "••••";
@@ -80,7 +87,14 @@ export function WalletPage() {
   useEffect(() => {
     const action = params.get("action");
     const railParam = params.get("rail");
-    if (railParam === "token" || railParam === "fiat") setRail(railParam);
+    if (
+      railParam === "token" ||
+      railParam === "fiat" ||
+      railParam === "p2p" ||
+      railParam === "financeos"
+    ) {
+      setRail(railParam);
+    }
     if (action === "send" || action === "pay" || action === "receive") {
       setMode(action);
       params.delete("action");
@@ -108,7 +122,7 @@ export function WalletPage() {
     [data],
   );
 
-  const activeTxs = rail === "fiat" ? fiatTxs : tokenTxs;
+  const activeTxs = rail === "fiat" ? fiatTxs : rail === "token" ? tokenTxs : [];
 
   const grouped = useMemo(() => {
     const map = new Map<string, Tx[]>();
@@ -123,8 +137,12 @@ export function WalletPage() {
 
   async function onSend(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (rail === "fiat") {
-      setError("Cash transfers are coming soon. Switch to Tokens to send in preview.");
+    if (rail !== "token") {
+      setError(
+        rail === "fiat"
+          ? "Cash transfers are coming soon. Switch to Tokens to send in preview."
+          : "This rail is coming soon. Switch to Tokens to send in preview.",
+      );
       return;
     }
     const fd = new FormData(e.currentTarget);
@@ -149,8 +167,12 @@ export function WalletPage() {
 
   async function onPay(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (rail === "fiat") {
-      setError("Cash payments are coming soon. Switch to Tokens to pay in preview.");
+    if (rail !== "token") {
+      setError(
+        rail === "fiat"
+          ? "Cash payments are coming soon. Switch to Tokens to pay in preview."
+          : "This rail is coming soon. Switch to Tokens to pay in preview.",
+      );
       return;
     }
     const fd = new FormData(e.currentTarget);
@@ -176,12 +198,13 @@ export function WalletPage() {
   const fiat = data?.fiat;
   const tokenBalance = data?.token?.balance ?? data?.balance;
   const tokenWallet = data?.token?.wallet ?? data?.wallet;
+  const showTxList = rail === "fiat" || rail === "token";
 
   return (
     <div className="page">
       <SectionHeader
-        title="Wallet"
-        subtitle="Cash for everyday money · Tokens for the ecosystem"
+        title="Finance"
+        subtitle="Cash, tokens, P2P marketplace, and FinanceOS"
       />
       {error ? <StatusBanner title={error} /> : null}
       {success ? (
@@ -190,17 +213,23 @@ export function WalletPage() {
         </div>
       ) : null}
 
-      <div className="chip-row wallet-rail-switch" role="group" aria-label="Wallet type">
-        <Chip active={rail === "fiat"} onClick={() => setRail("fiat")}>
-          Cash
-        </Chip>
-        <Chip active={rail === "token"} onClick={() => setRail("token")}>
-          Tokens
-        </Chip>
+      <div className="chip-row wallet-rail-switch" role="group" aria-label="Finance section">
+        {FINANCE_RAILS.map((r) => (
+          <Chip
+            key={r.id}
+            active={rail === r.id}
+            onClick={() => {
+              setRail(r.id);
+              setMode("idle");
+            }}
+          >
+            {r.label}
+          </Chip>
+        ))}
       </div>
 
       {loading ? (
-        <Skeleton height={180} label="Loading wallet" />
+        <Skeleton height={180} label="Loading finance" />
       ) : rail === "fiat" ? (
         <WalletCard
           variant="fiat"
@@ -237,7 +266,7 @@ export function WalletPage() {
             </>
           }
         />
-      ) : (
+      ) : rail === "token" ? (
         <WalletCard
           variant="token"
           label="Tokens"
@@ -258,6 +287,76 @@ export function WalletPage() {
             </>
           }
         />
+      ) : rail === "p2p" ? (
+        <WalletCard
+          variant="fiat"
+          label="P2P Marketplace"
+          subtitle="Peer-to-peer cash & token trading"
+          balance="Coming soon"
+          actions={
+            <>
+              <button
+                type="button"
+                className="los-wallet__action los-wallet__action--soon"
+                disabled
+                title="P2P buy coming soon"
+              >
+                Buy · Soon
+              </button>
+              <button
+                type="button"
+                className="los-wallet__action los-wallet__action--soon"
+                disabled
+                title="P2P sell coming soon"
+              >
+                Sell · Soon
+              </button>
+              <button
+                type="button"
+                className="los-wallet__action los-wallet__action--soon"
+                disabled
+                title="P2P offers coming soon"
+              >
+                Offers · Soon
+              </button>
+            </>
+          }
+        />
+      ) : (
+        <WalletCard
+          variant="token"
+          label="FinanceOS"
+          subtitle="Business finance operating system"
+          balance="Coming soon"
+          actions={
+            <>
+              <button
+                type="button"
+                className="los-wallet__action los-wallet__action--soon"
+                disabled
+                title="FinanceOS accounts coming soon"
+              >
+                Accounts · Soon
+              </button>
+              <button
+                type="button"
+                className="los-wallet__action los-wallet__action--soon"
+                disabled
+                title="FinanceOS transfer coming soon"
+              >
+                Transfer · Soon
+              </button>
+              <button
+                type="button"
+                className="los-wallet__action los-wallet__action--soon"
+                disabled
+                title="Open FinanceOS coming soon"
+              >
+                Open · Soon
+              </button>
+            </>
+          }
+        />
       )}
 
       {rail === "fiat" ? (
@@ -266,21 +365,23 @@ export function WalletPage() {
             "Cash is a preview balance. Live pay, send, and top-up are coming soon — switch to Tokens for preview actions."}
         </p>
       ) : null}
+      {rail === "p2p" ? (
+        <p className="muted small wallet-rail-note">
+          Trade cash and tokens directly with other people. Escrow-backed P2P offers will live here.
+        </p>
+      ) : null}
+      {rail === "financeos" ? (
+        <p className="muted small wallet-rail-note">
+          FinanceOS powers business accounts, payouts, and bookkeeping — opening from LifeOS when connected.
+        </p>
+      ) : null}
 
-      {mode === "send" ? (
+      {mode === "send" && rail === "token" ? (
         <form className="panel-form" onSubmit={onSend}>
-          <h3>Send {rail === "fiat" ? "cash" : "tokens"}</h3>
-          {rail === "fiat" ? (
-            <p className="muted small">Bank transfers will land here. Preview only for now.</p>
-          ) : null}
+          <h3>Send tokens</h3>
           <label>
             To
-            <input
-              name="to"
-              required
-              placeholder={rail === "fiat" ? "Account or phone" : "Address or TrustID"}
-              autoComplete="off"
-            />
+            <input name="to" required placeholder="Address or TrustID" autoComplete="off" />
           </label>
           <label>
             Amount
@@ -301,9 +402,9 @@ export function WalletPage() {
         </form>
       ) : null}
 
-      {mode === "pay" ? (
+      {mode === "pay" && rail === "token" ? (
         <form className="panel-form" onSubmit={onPay}>
-          <h3>Pay with {rail === "fiat" ? "cash" : "tokens"}</h3>
+          <h3>Pay with tokens</h3>
           <label>
             Merchant
             <input name="merchant" required defaultValue="Sunrise Hotel" />
@@ -327,21 +428,10 @@ export function WalletPage() {
         </form>
       ) : null}
 
-      {mode === "receive" ? (
+      {mode === "receive" && rail === "token" ? (
         <div className="panel-form">
-          <h3>{rail === "fiat" ? "Add cash" : "Receive tokens"}</h3>
-          {rail === "fiat" ? (
-            <>
-              <p className="muted small">
-                Bank top-ups and card funding will appear here. Your cash account mask is{" "}
-                <span className="mono">{fiat?.accountMask ?? "••••"}</span>.
-              </p>
-              <EmptyState
-                title="Funding coming soon"
-                detail="Physical fiat rails are not connected yet — this is a preview of your cash wallet."
-              />
-            </>
-          ) : tokenWallet?.address ? (
+          <h3>Receive tokens</h3>
+          {tokenWallet?.address ? (
             <div className="mono receive-box">{tokenWallet.address}</div>
           ) : (
             <EmptyState title="Address unavailable" />
@@ -352,43 +442,68 @@ export function WalletPage() {
         </div>
       ) : null}
 
-      <SectionHeader
-        title="Recent activity"
-        subtitle={rail === "fiat" ? "Cash movements" : "Token movements"}
-      />
-      {loading ? (
+      {showTxList ? (
         <>
-          <Skeleton height={48} />
-          <Skeleton height={48} />
+          <SectionHeader
+            title="Recent activity"
+            subtitle={rail === "fiat" ? "Cash movements" : "Token movements"}
+          />
+          {loading ? (
+            <>
+              <Skeleton height={48} />
+              <Skeleton height={48} />
+            </>
+          ) : grouped.length === 0 ? (
+            <EmptyState
+              title="No transactions yet"
+              detail={
+                rail === "fiat"
+                  ? "Cash payments and transfers will show here."
+                  : "Pay, send, or receive tokens to see activity here."
+              }
+            />
+          ) : (
+            grouped.map(([day, txs]) => (
+              <div key={day} className="tx-group">
+                <div className="tx-day">{day}</div>
+                <div className="surface-block">
+                  {txs.map((tx) => (
+                    <ActivityRow
+                      key={tx.id}
+                      kind={
+                        tx.kind === "receive" || tx.kind === "deposit"
+                          ? "wallet_transfer"
+                          : "payment"
+                      }
+                      title={tx.counterparty}
+                      detail={`${tx.kind} · ${rail === "fiat" ? "Cash" : "Token"}`}
+                      time={formatTime(tx.createdAt)}
+                      amount={`${tx.kind === "receive" || tx.kind === "deposit" ? "+" : "−"}${tx.amount} ${unit(tx)}`}
+                      onClick={() => setSelected(tx)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
         </>
-      ) : grouped.length === 0 ? (
-        <EmptyState
-          title="No transactions yet"
-          detail={
-            rail === "fiat"
-              ? "Cash payments and transfers will show here."
-              : "Pay, send, or receive tokens to see activity here."
-          }
-        />
       ) : (
-        grouped.map(([day, txs]) => (
-          <div key={day} className="tx-group">
-            <div className="tx-day">{day}</div>
-            <div className="surface-block">
-              {txs.map((tx) => (
-                <ActivityRow
-                  key={tx.id}
-                  kind={tx.kind === "receive" || tx.kind === "deposit" ? "wallet_transfer" : "payment"}
-                  title={tx.counterparty}
-                  detail={`${tx.kind} · ${rail === "fiat" ? "Cash" : "Token"}`}
-                  time={formatTime(tx.createdAt)}
-                  amount={`${tx.kind === "receive" || tx.kind === "deposit" ? "+" : "−"}${tx.amount} ${unit(tx)}`}
-                  onClick={() => setSelected(tx)}
-                />
-              ))}
-            </div>
-          </div>
-        ))
+        <>
+          <SectionHeader
+            title={rail === "p2p" ? "Marketplace" : "FinanceOS"}
+            subtitle={
+              rail === "p2p" ? "Open offers and trades" : "Connected business finance"
+            }
+          />
+          <EmptyState
+            title={rail === "p2p" ? "P2P marketplace coming soon" : "FinanceOS coming soon"}
+            detail={
+              rail === "p2p"
+                ? "Browse buy and sell offers once peer trading goes live."
+                : "Link your FinanceOS workspace to manage business money from LifeOS."
+            }
+          />
+        </>
       )}
 
       <section className="wallet-status">
@@ -396,7 +511,7 @@ export function WalletPage() {
         <div className="surface-block padded">
           <p className="muted small">
             {data?.notice ??
-              "Cash is your physical fiat wallet preview. Tokens connect to the ecosystem Token Network when it goes live."}
+              "Cash and Tokens are available as previews. P2P Marketplace and FinanceOS will connect when those services go live."}
           </p>
         </div>
       </section>
@@ -412,7 +527,7 @@ export function WalletPage() {
               </div>
             </div>
             <div>
-              <div className="label">Wallet</div>
+              <div className="label">Rail</div>
               <div>{selected.rail === "fiat" ? "Cash (fiat)" : "Tokens"}</div>
             </div>
             <div>

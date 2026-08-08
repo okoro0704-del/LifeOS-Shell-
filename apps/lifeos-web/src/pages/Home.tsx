@@ -22,7 +22,6 @@ import {
   IconWallet,
   SectionHeader,
   Skeleton,
-  StatusBadge,
 } from "@lifeos/ui";
 import {
   actionService,
@@ -36,11 +35,30 @@ import { useCommandLayer } from "../hooks/useCommandLayer";
 import { StatusBanner } from "../components/StatusBanner";
 import { ActionPreview } from "../components/ActionPreview";
 
-function greeting() {
-  const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 18) return "Good afternoon";
-  return "Good evening";
+/** Five verification levels — only email lights a star for now. */
+function VerificationStars({ emailVerified }: { emailVerified: boolean }) {
+  const lit = emailVerified ? 1 : 0;
+  return (
+    <div
+      className="verify-stars"
+      role="img"
+      aria-label={
+        lit
+          ? "Email verified — 1 of 5 identity levels"
+          : "No identity levels verified yet — 0 of 5"
+      }
+    >
+      {Array.from({ length: 5 }, (_, i) => (
+        <span
+          key={i}
+          className={`verify-star${i < lit ? " verify-star--on" : ""}`}
+          aria-hidden
+        >
+          ★
+        </span>
+      ))}
+    </div>
+  );
 }
 
 function formatTime(iso?: string | null) {
@@ -62,7 +80,7 @@ function roomInitials(o: DiscoverableOffering) {
 
 const QUICK_LINKS = [
   { id: "bookings", label: "Bookings", href: "/app/activity?filter=bookings", Icon: IconBook },
-  { id: "wallet", label: "Wallet", href: "/app/wallet", Icon: IconWallet },
+  { id: "wallet", label: "Finance", href: "/app/wallet", Icon: IconWallet },
   { id: "activity", label: "Activity", href: "/app/activity", Icon: IconActivity },
   { id: "payments", label: "Payments", href: "/app/wallet", Icon: IconPay },
   { id: "messages", label: "Messages", href: "/app/notifications", Icon: IconBell },
@@ -139,7 +157,7 @@ export function HomePage() {
     })();
   }, []);
 
-  const first = user?.firstName || user?.displayName?.split(" ")[0] || "there";
+  const emailVerified = Boolean(user?.email?.trim());
 
   const recommended = useMemo(() => {
     if (homeRooms.length) return homeRooms;
@@ -181,18 +199,9 @@ export function HomePage() {
 
   return (
     <div className="page home-page home-page--mock">
-      <header className="home-greeting home-greeting--mock">
-        <div className="home-greeting__text">
-          <h1 className="home-greeting__title">
-            {greeting()}, {first}{" "}
-            <span aria-hidden>👋</span>
-          </h1>
-          <p className="home-greeting__tagline">Let&apos;s make today amazing.</p>
-          <div className="home-greeting__badge">
-            <StatusBadge label="Identity protected" tone="ok" />
-          </div>
-        </div>
-      </header>
+      <div className="home-verify">
+        <VerificationStars emailVerified={emailVerified} />
+      </div>
 
       {offline || dataError ? (
         <StatusBanner
@@ -203,6 +212,7 @@ export function HomePage() {
       {providerHint ? <StatusBanner title={providerHint} /> : null}
 
       <section className="home-ask-bar" aria-label="Ask or Tell LifeOS">
+        <p className="home-ask-bar__prompt">How can we make your day amazing?</p>
         <button
           type="button"
           className="home-ask-bar__btn"

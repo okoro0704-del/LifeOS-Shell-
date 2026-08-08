@@ -36,6 +36,8 @@ export function RequireAuth() {
   }
 
   if (status === "lifeos_unavailable") {
+    // Keep the shell if we already know the user — refresh/network blips must not eject them.
+    if (user) return <Outlet />;
     return (
       <div className="welcome">
         <div className="welcome-inner">

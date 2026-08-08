@@ -50,7 +50,10 @@ export function CallbackPage() {
           /* optional enrichment */
         }
         const data = await meService.createSession(tokens.access_token);
-        if (data.sessionToken) storeSessionToken(data.sessionToken);
+        if (!data.sessionToken) {
+          throw new ApiError("Session token missing from LifeOS response.", 502, "lifeos_unavailable");
+        }
+        storeSessionToken(data.sessionToken);
         saveReturningIdentity(data.user, { phone });
         setUser(data.user);
         navigate("/app", { replace: true });
