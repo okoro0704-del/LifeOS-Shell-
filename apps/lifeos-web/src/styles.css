@@ -3736,3 +3736,123 @@ button.los-wallet__action:disabled {
   margin-top: 0.65rem;
   margin-bottom: 0.35rem;
 }
+
+.business-page {
+  padding-bottom: 2rem;
+}
+
+.business-hero {
+  position: relative;
+  margin: -0.25rem -1rem 1rem;
+  min-height: 220px;
+  overflow: hidden;
+  background: #121a22;
+}
+
+.business-hero__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.business-hero__shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(8, 12, 16, 0.15), rgba(8, 12, 16, 0.88));
+}
+
+.business-hero__copy {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 220px;
+  padding: 1.25rem 1rem 1.1rem;
+  color: #eef2f5;
+}
+
+.business-hero__title {
+  margin: 0.15rem 0 0.25rem;
+  font-size: clamp(1.55rem, 5vw, 2rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.business-hero__meta {
+  margin: 0;
+  opacity: 0.85;
+  font-size: 0.9rem;
+}
+
+.business-page__desc {
+  margin: 0 0 0.65rem;
+  line-height: 1.45;
+}
+
+.business-page__cta {
+  margin: 0.85rem 0 1.25rem;
+}
+
+.business-offering-panel {
+  margin-top: 0.5rem;
+  padding-top: 0.35rem;
+}
+
+.business-offering-panel__back {
+  display: inline-block;
+  margin-bottom: 0.65rem;
+}
+
+.service-sellers-page {
+  padding-bottom: 2rem;
+}
+
+.service-sellers-hero {
+  position: relative;
+  margin: -0.25rem -1rem 1rem;
+  min-height: 180px;
+  overflow: hidden;
+  background: #121a22;
+}
+
+.service-sellers-hero__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.service-sellers-hero__shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(8, 12, 16, 0.2), rgba(8, 12, 16, 0.9));
+}
+
+.service-sellers-hero__copy {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 180px;
+  padding: 1.15rem 1rem;
+  color: #eef2f5;
+}
+
+.service-sellers-hero__copy h1 {
+  margin: 0.2rem 0 0.35rem;
+  font-size: clamp(1.45rem, 4.5vw, 1.85rem);
+}
+
+.service-seller-list--page {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}

@@ -56,6 +56,9 @@ export function AppShell() {
   const avatarSrc = user?.preferences?.avatarUrl ?? null;
   const firstName = user?.firstName || user?.displayName?.split(" ")[0] || "there";
   const onExplore = location.pathname.startsWith("/app/services/explore");
+  const isImmersive =
+    location.pathname.startsWith("/app/business/") ||
+    Boolean(location.pathname.match(/^\/app\/services\/explore\/[^/]+$/));
   const isHome =
     location.pathname === "/app" ||
     location.pathname === "/app/" ||
@@ -273,7 +276,11 @@ export function AppShell() {
           </div>
         ) : null}
 
-        <main id="main-content" className="content" key={location.pathname}>
+        <main
+          id="main-content"
+          className={`content${isImmersive ? " content--immersive" : ""}`}
+          key={location.pathname}
+        >
           <div className="page-enter">
             <Outlet />
           </div>
@@ -281,46 +288,48 @@ export function AppShell() {
 
         <CommandOverlay />
 
-        <nav className="bottom-nav bottom-nav--fab bottom-nav--float" aria-label="Primary">
-          {tabs.slice(0, 2).map((t) => (
-            <NavLink
-              key={t.to}
-              to={t.to}
-              end={t.end}
-              className={({ isActive }) => `bottom-item${isActive ? " active" : ""}`}
+        {!isImmersive ? (
+          <nav className="bottom-nav bottom-nav--fab bottom-nav--float" aria-label="Primary">
+            {tabs.slice(0, 2).map((t) => (
+              <NavLink
+                key={t.to}
+                to={t.to}
+                end={t.end}
+                className={({ isActive }) => `bottom-item${isActive ? " active" : ""}`}
+              >
+                <span className="bottom-icon" aria-hidden>
+                  <t.Icon size={22} />
+                </span>
+                <span>{t.label}</span>
+              </NavLink>
+            ))}
+            <button
+              type="button"
+              className={`bottom-fab${onExplore ? " active" : ""}`}
+              aria-label={onExplore ? "Close services discover" : "Discover services"}
+              aria-pressed={onExplore}
+              onClick={() => {
+                if (onExplore) navigate("/app");
+                else navigate("/app/services/explore");
+              }}
             >
-              <span className="bottom-icon" aria-hidden>
-                <t.Icon size={22} />
-              </span>
-              <span>{t.label}</span>
-            </NavLink>
-          ))}
-          <button
-            type="button"
-            className={`bottom-fab${onExplore ? " active" : ""}`}
-            aria-label={onExplore ? "Close services discover" : "Discover services"}
-            aria-pressed={onExplore}
-            onClick={() => {
-              if (onExplore) navigate("/app");
-              else navigate("/app/services/explore");
-            }}
-          >
-            <span aria-hidden>{onExplore ? "×" : "+"}</span>
-          </button>
-          {tabs.slice(2).map((t) => (
-            <NavLink
-              key={t.to}
-              to={t.to}
-              end={t.end}
-              className={({ isActive }) => `bottom-item${isActive ? " active" : ""}`}
-            >
-              <span className="bottom-icon" aria-hidden>
-                <t.Icon size={22} />
-              </span>
-              <span>{t.label}</span>
-            </NavLink>
-          ))}
-        </nav>
+              <span aria-hidden>{onExplore ? "×" : "+"}</span>
+            </button>
+            {tabs.slice(2).map((t) => (
+              <NavLink
+                key={t.to}
+                to={t.to}
+                end={t.end}
+                className={({ isActive }) => `bottom-item${isActive ? " active" : ""}`}
+              >
+                <span className="bottom-icon" aria-hidden>
+                  <t.Icon size={22} />
+                </span>
+                <span>{t.label}</span>
+              </NavLink>
+            ))}
+          </nav>
+        ) : null}
       </div>
     </div>
   );

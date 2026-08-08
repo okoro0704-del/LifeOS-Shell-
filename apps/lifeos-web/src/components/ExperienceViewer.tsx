@@ -31,7 +31,7 @@ export function ExperienceViewer({ experience, session, onClose, onPermissionReq
   const launchUrl = useMemo(() => {
     if (!validation.ok) return null;
     return buildSecureLaunchUrl(session.launchUrl, {
-      returnUrl: window.location.origin + "/app/discover",
+      returnUrl: window.location.href.split("?")[0],
     });
   }, [session.launchUrl, validation.ok]);
 

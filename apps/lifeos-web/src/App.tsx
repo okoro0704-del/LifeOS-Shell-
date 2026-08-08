@@ -39,6 +39,12 @@ const OfferingFeedPage = lazy(() =>
 const ServicesExplorePage = lazy(() =>
   import("./pages/ServicesExplore").then((m) => ({ default: m.ServicesExplorePage })),
 );
+const ServiceSellersPage = lazy(() =>
+  import("./pages/ServiceSellers").then((m) => ({ default: m.ServiceSellersPage })),
+);
+const BusinessPage = lazy(() =>
+  import("./pages/Business").then((m) => ({ default: m.BusinessPage })),
+);
 const MessagesPage = lazy(() =>
   import("./pages/Messages").then((m) => ({ default: m.MessagesPage })),
 );
@@ -171,6 +177,22 @@ function ThemedApp() {
                 element={
                   <Suspense fallback={<PageFallback />}>
                     <ServicesExplorePage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="services/explore/:conceptId"
+                element={
+                  <Suspense fallback={<PageFallback />}>
+                    <ServiceSellersPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="business/:businessId"
+                element={
+                  <Suspense fallback={<PageFallback />}>
+                    <BusinessPage />
                   </Suspense>
                 }
               />

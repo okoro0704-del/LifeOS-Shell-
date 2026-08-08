@@ -1,4 +1,5 @@
 import { serviceLabel, serviceVerticalById } from "./serviceCatalog";
+import { SERVICE_CONCEPTS } from "./serviceReels";
 
 export type PageMeta = {
   title: string;
@@ -12,6 +13,9 @@ export function resolvePageMeta(pathname: string): PageMeta | null {
 
   if (path.startsWith("/app/discover")) {
     return { title: "Explore", subtitle: "Businesses deployed on LifeOS" };
+  }
+  if (path.match(/^\/app\/business\/[^/]+$/)) {
+    return { title: "Business", subtitle: "Services & experience" };
   }
   if (path.startsWith("/app/wallet")) {
     return { title: "Finance", subtitle: "Cash, tokens & more" };
@@ -39,6 +43,14 @@ export function resolvePageMeta(pathname: string): PageMeta | null {
   }
   if (path.startsWith("/app/saved")) {
     return { title: "Saved" };
+  }
+  const sellersMatch = path.match(/^\/app\/services\/explore\/([^/]+)$/);
+  if (sellersMatch) {
+    const concept = SERVICE_CONCEPTS.find((c) => c.id === decodeURIComponent(sellersMatch[1]));
+    return {
+      title: concept?.title ?? "Sellers",
+      subtitle: "Businesses that offer this",
+    };
   }
   if (path === "/app/services/explore") {
     return { title: "Discover", subtitle: "Services in video — tap to find sellers" };
