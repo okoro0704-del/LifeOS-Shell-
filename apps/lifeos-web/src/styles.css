@@ -1965,6 +1965,13 @@ button.list-row {
   gap: 0.75rem;
 }
 
+.experience-probe-hint {
+  padding: 0.4rem 1rem;
+  background: #1a2430;
+  color: rgba(238, 242, 245, 0.75);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
 .experience-frame {
   flex: 1;
   width: 100%;

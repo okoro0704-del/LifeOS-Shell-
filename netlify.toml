@@ -1,9 +1,10 @@
 # LifeOS Web (PWA) — Netlify static deploy
 # Publish directory = apps/lifeos-web/dist
 # Note: apps/lifeos-web/public/_redirects is copied into dist and must include the /api proxy.
+# HospitalityOS business PWAs are built into dist/hos for same-origin iframe loading.
 
 [build]
-  command = "npm install && npm run build -w @lifeos/shared && npm run build -w @lifeos/auth-client && npm run build -w @lifeos/experience-sdk && npm run build -w @lifeos/ui && npm run build -w @lifeos/web"
+  command = "npm install && npm run build -w @lifeos/shared && npm run build -w @lifeos/auth-client && npm run build -w @lifeos/experience-sdk && npm run build -w @lifeos/ui && npm run build -w @lifeos/web && HOS_BASE=/hos/ VITE_LIFEOS_API=/api VITE_LIFEOS_WEB=https://lifeos011.netlify.app npm run build -w @lifeos/mock-hospitalityos && mkdir -p apps/lifeos-web/dist/hos && cp -R apps/mock-hospitalityos/dist/. apps/lifeos-web/dist/hos/"
   publish = "apps/lifeos-web/dist"
 
 [build.environment]
@@ -16,6 +17,12 @@
   to = "https://lifeos-shell-production.up.railway.app/:splat"
   status = 200
   force = true
+
+# HospitalityOS SPA (must be before LifeOS /* fallback)
+[[redirects]]
+  from = "/hos/*"
+  to = "/hos/index.html"
+  status = 200
 
 [[redirects]]
   from = "/*"

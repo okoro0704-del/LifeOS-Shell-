@@ -7,5 +7,5 @@ builder = "NIXPACKS"
 buildCommand = "cd ../.. && npm install && npm run build -w @lifeos/shared && npm run build -w @lifeos/experience-sdk && npm run build -w @lifeos/token-network && npm run db:generate -w @lifeos/api && npm run build -w @lifeos/api"
 
 [deploy]
-startCommand = "npm run start -w @lifeos/api"
+startCommand = "cd ../.. && npm run db:push -w @lifeos/api && npm run db:seed -w @lifeos/api && npm run start -w @lifeos/api"
 restartPolicyType = "ON_FAILURE"

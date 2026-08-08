@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { lifeosDiscoverUrl } from "../lib/lifeos";
 import {
   clearLocalSession,
   createLocalSession,
@@ -16,7 +17,7 @@ export function LifeOsAuthPage() {
     const handoff = params.get("handoff");
     const experienceId = params.get("experience_id") ?? "exp_sunrise_hotel";
     const returnPath = params.get("return_path") || "/";
-    const returnUrl = params.get("returnUrl") ?? "http://localhost:5174/app/discover";
+    const returnUrl = params.get("returnUrl") ?? lifeosDiscoverUrl();
 
     if (rejectQueryAuth() && !handoff) {
       setError("Query-parameter authentication is not allowed.");
@@ -55,7 +56,7 @@ export function LifeOsAuthPage() {
         <>
           <h1>Secure connection failed</h1>
           <p className="error">{error}</p>
-          <a className="hos-back" href="http://localhost:5174/app/discover">
+          <a className="hos-back" href={lifeosDiscoverUrl()}>
             ← Return to LifeOS
           </a>
         </>

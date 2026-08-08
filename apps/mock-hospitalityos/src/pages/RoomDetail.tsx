@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useParams } from "react-router-dom";
 import { ROOMS } from "../lib/data";
+import { lifeosDiscoverUrl, lifeosWebOrigin } from "../lib/lifeos";
 import { useHosSession } from "../components/RequireHosSession";
 
 export function RoomDetail() {
@@ -16,6 +17,16 @@ export function RoomDetail() {
         <p>Room not found.</p>
         <Link to="/">Back</Link>
       </div>
+    );
+  }
+
+  function requestLifeOsPayment() {
+    window.parent.postMessage(
+      {
+        type: "experience.request_permission",
+        permissions: ["wallet.view", "wallet.pay"],
+      },
+      lifeosWebOrigin(),
     );
   }
 
@@ -38,13 +49,16 @@ export function RoomDetail() {
 
       {booked ? (
         <div className="hos-confirm">
-          <h2>Booking held (mock)</h2>
+          <h2>Booking held</h2>
           <p>
-            Thanks, {session?.displayName ?? "Guest"}. Confirmation lives only in HospitalityOS —
-            LifeOS does not store the reservation.
+            Thanks, {session?.displayName ?? "Guest"}. Confirm and pay from LifeOS so wallet, identity,
+            and this business stay in one place.
           </p>
-          <a className="hos-btn" href={session?.returnUrl ?? "http://localhost:5174/app/discover"}>
-            Return to LifeOS
+          <button type="button" className="hos-btn" onClick={requestLifeOsPayment}>
+            Request payment permission
+          </button>
+          <a className="hos-btn secondary" href={session?.returnUrl ?? lifeosDiscoverUrl()}>
+            Return to LifeOS to pay
           </a>
         </div>
       ) : (

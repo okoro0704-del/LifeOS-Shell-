@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { HOTEL_NAME, ROOMS } from "../lib/data";
+import { lifeosDiscoverUrl, lifeosWebOrigin } from "../lib/lifeos";
 import { logoutHos, useHosSession } from "../components/RequireHosSession";
 
 export function HotelHome() {
@@ -12,7 +13,7 @@ export function HotelHome() {
           <div className="hos-os">HospitalityOS</div>
           <h1>{HOTEL_NAME}</h1>
         </div>
-        <a className="hos-back" href={session?.returnUrl ?? "http://localhost:5174/app/discover"}>
+        <a className="hos-back" href={session?.returnUrl ?? lifeosDiscoverUrl()}>
           ← LifeOS
         </a>
       </header>
@@ -41,11 +42,9 @@ export function HotelHome() {
           type="button"
           className="hos-btn secondary"
           onClick={() => {
-            // Demo: request an extra scope from LifeOS (never auto-granted).
-            const lifeosOrigin = "http://localhost:5174";
             window.parent.postMessage(
               { type: "experience.request_permission", permissions: ["wallet.view"] },
-              lifeosOrigin,
+              lifeosWebOrigin(),
             );
           }}
         >

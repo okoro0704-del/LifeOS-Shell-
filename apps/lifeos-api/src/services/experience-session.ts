@@ -90,16 +90,20 @@ export class JwtExperienceSessionIssuer implements ExperienceSessionIssuer {
       },
     });
 
-    const launch = new URL("/auth/lifeos", opts.approvedOrigin);
-    // Prefer path on approved origin; experienceUrl may include path (restaurant etc.)
     const base = new URL(opts.experienceUrl);
-    launch.protocol = base.protocol;
-    launch.host = base.host;
-    launch.pathname = "/auth/lifeos";
+    const pathParts = base.pathname.split("/").filter(Boolean);
+    const appRoot = pathParts[0] === "hos" ? "/hos" : "";
+    const launch = new URL(`${appRoot}/auth/lifeos`, base.origin);
     launch.searchParams.set("handoff", handoff);
     launch.searchParams.set("experience_id", opts.experienceId);
-    if (base.pathname && base.pathname !== "/") {
-      launch.searchParams.set("return_path", base.pathname);
+
+    let returnPath = base.pathname || "/";
+    if (appRoot && returnPath.startsWith(appRoot)) {
+      returnPath = returnPath.slice(appRoot.length) || "/";
+    }
+    if (!returnPath.startsWith("/")) returnPath = `/${returnPath}`;
+    if (returnPath !== "/") {
+      launch.searchParams.set("return_path", returnPath);
     }
 
     return {

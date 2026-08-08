@@ -15,6 +15,43 @@ export interface BusinessDirectoryProvider {
   search(q: string): Promise<DirectoryListing[]>;
 }
 
+/**
+ * Production safety net: older seeds pointed at localhost:5180.
+ * Rewrite to the Netlify-hosted HospitalityOS under /hos when needed.
+ */
+function resolvePublicExperienceUrls(experienceUrl: string, approvedOrigin: string): {
+  experienceUrl: string;
+  approvedOrigin: string;
+} {
+  const productionWeb =
+    process.env.LIFEOS_WEB_ORIGIN?.replace(/\/$/, "") ||
+    process.env.HOSPITALITY_ORIGIN?.replace(/\/$/, "") ||
+    "https://lifeos011.netlify.app";
+  const hosBase =
+    process.env.HOSPITALITY_BASE_PATH?.replace(/\/$/, "") ||
+    (productionWeb.includes("netlify.app") || process.env.NODE_ENV === "production" ? "/hos" : "");
+
+  const isLocalHost =
+    /localhost:5180|127\.0\.0\.1:5180/.test(approvedOrigin) ||
+    /localhost:5180|127\.0\.0\.1:5180/.test(experienceUrl);
+
+  if (!isLocalHost || process.env.NODE_ENV !== "production") {
+    return { experienceUrl, approvedOrigin };
+  }
+
+  try {
+    const u = new URL(experienceUrl);
+    const path = u.pathname === "/" ? "" : u.pathname;
+    const nextUrl = `${productionWeb}${hosBase}${path || "/"}`;
+    return { experienceUrl: nextUrl.replace(/([^:]\/)\/+/g, "$1"), approvedOrigin: productionWeb };
+  } catch {
+    return {
+      experienceUrl: `${productionWeb}${hosBase}/`,
+      approvedOrigin: productionWeb,
+    };
+  }
+}
+
 function mapRow(row: {
   id: string;
   businessId: string;
@@ -46,6 +83,7 @@ function mapRow(row: {
   } catch {
     /* empty */
   }
+  const publicUrls = resolvePublicExperienceUrls(row.experienceUrl, row.approvedOrigin);
   const record: ExperienceRecord = {
     id: row.id,
     businessId: row.businessId,
@@ -53,8 +91,8 @@ function mapRow(row: {
     osType: row.osType as OsType,
     category: row.category as DiscoverCategory,
     experienceType: (row.experienceType || "web") as ExperienceType,
-    experienceUrl: row.experienceUrl,
-    approvedOrigin: row.approvedOrigin,
+    experienceUrl: publicUrls.experienceUrl,
+    approvedOrigin: publicUrls.approvedOrigin,
     displayName: row.displayName,
     description: row.description,
     location: row.location,

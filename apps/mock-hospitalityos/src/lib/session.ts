@@ -1,6 +1,7 @@
 import type { ExperienceTokenClaims } from "@lifeos/shared";
 import { verifyExperienceToken } from "@lifeos/experience-sdk";
 
+/** Same-origin /api on Netlify; absolute API in local multi-port dev. */
 const LIFEOS_API = import.meta.env.VITE_LIFEOS_API ?? "http://localhost:8790";
 const EXPERIENCE_ID = import.meta.env.VITE_EXPERIENCE_ID ?? "exp_sunrise_hotel";
 const SESSION_KEY = "hos.session";

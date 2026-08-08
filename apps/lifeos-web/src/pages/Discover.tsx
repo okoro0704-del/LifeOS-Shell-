@@ -167,22 +167,38 @@ export function DiscoverPage() {
   }, [businessId]);
 
   useEffect(() => {
-    if (!openId || !experiences.length) return;
-    const experience = experiences.find((i) => i.id === openId);
-    if (!experience) return;
+    if (!openId) return;
+    let cancelled = false;
     void (async () => {
       try {
+        let experience: Listing | undefined = experiences.find((i) => i.id === openId);
+        if (!experience) {
+          const res = await discoverService.getExperience(openId);
+          experience = {
+            ...res.experience,
+            loadable: res.experience.loadable,
+            availability:
+              typeof res.experience.metadata?.availability === "string"
+                ? res.experience.metadata.availability
+                : undefined,
+          };
+        }
+        if (cancelled || !experience) return;
         const perms = await discoverService.permissions(openId);
+        if (cancelled) return;
         if (perms.connected) {
           const { session: exSession } = await discoverService.session(openId);
-          setSession({ experience, session: exSession });
+          if (!cancelled) setSession({ experience, session: exSession });
         } else {
           setPending({ experience, requestable: perms.requestable });
         }
       } catch {
-        setError("We couldn't open this experience. Try again.");
+        if (!cancelled) setError("We couldn't open this experience. Try again.");
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [openId, experiences]);
 
   const deployedExperienceIds = useMemo(

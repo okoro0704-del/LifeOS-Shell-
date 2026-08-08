@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { lifeosDiscoverUrl } from "../lib/lifeos";
 import { assertSessionActive, clearLocalSession, type HosSession } from "../lib/session";
 
 export function RequireHosSession({ children }: { children: ReactNode }) {
@@ -25,7 +26,7 @@ export function RequireHosSession({ children }: { children: ReactNode }) {
           This guest experience requires a verified LifeOS experience session.
           Opening with query parameters alone is not accepted.
         </p>
-        <a className="hos-btn" href="http://localhost:5174/app/discover">
+        <a className="hos-btn" href={lifeosDiscoverUrl()}>
           Open in LifeOS
         </a>
       </div>
@@ -45,5 +46,5 @@ export function useHosSession(): HosSession | null {
 
 export function logoutHos() {
   clearLocalSession();
-  window.location.href = "http://localhost:5174/app/discover";
+  window.location.href = lifeosDiscoverUrl();
 }

@@ -1,4 +1,5 @@
 import { logoutHos, useHosSession } from "../components/RequireHosSession";
+import { lifeosDiscoverUrl } from "../lib/lifeos";
 
 export function ApartmentPage() {
   const session = useHosSession();
@@ -9,7 +10,7 @@ export function ApartmentPage() {
           <div className="hos-os">RealEstateOS (preview)</div>
           <h1>Harbor Apartments</h1>
         </div>
-        <a className="hos-back" href={session?.returnUrl ?? "http://localhost:5174/app/discover"}>
+        <a className="hos-back" href={session?.returnUrl ?? lifeosDiscoverUrl()}>
           ← LifeOS
         </a>
       </header>

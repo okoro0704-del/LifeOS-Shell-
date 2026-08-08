@@ -20,7 +20,7 @@ type Props = {
  */
 export function ExperienceViewer({ experience, session, onClose, onPermissionRequest }: Props) {
   const [loading, setLoading] = useState(true);
-  const [unreachable, setUnreachable] = useState(false);
+  const [probeHint, setProbeHint] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const validation = useMemo(
@@ -37,31 +37,28 @@ export function ExperienceViewer({ experience, session, onClose, onPermissionReq
 
   useEffect(() => {
     if (!validation.ok || !launchUrl) return;
+    // Always mount the iframe — origin probes (esp. no-cors) are advisory only.
+    const showTimer = window.setTimeout(() => setLoading(false), 250);
     let cancelled = false;
     const controller = new AbortController();
-    const timer = window.setTimeout(() => controller.abort(), 4000);
+    const probeTimer = window.setTimeout(() => controller.abort(), 4000);
     fetch(experience.approvedOrigin, { mode: "no-cors", signal: controller.signal })
       .then(() => {
-        if (!cancelled) {
-          setUnreachable(false);
-          setLoading(false);
-        }
+        if (!cancelled) setProbeHint(false);
       })
       .catch(() => {
-        if (!cancelled) {
-          setUnreachable(true);
-          setLoading(false);
-        }
+        if (!cancelled) setProbeHint(true);
       })
-      .finally(() => clearTimeout(timer));
+      .finally(() => clearTimeout(probeTimer));
     return () => {
       cancelled = true;
       controller.abort();
+      clearTimeout(showTimer);
     };
   }, [experience.approvedOrigin, launchUrl, validation.ok]);
 
   useEffect(() => {
-    if (!validation.ok) return;
+    if (!validation.ok || loading) return;
     const bridge = createExperienceBridge({
       targetOrigin: experience.approvedOrigin,
       targetWindow: iframeRef.current?.contentWindow,
@@ -109,19 +106,17 @@ export function ExperienceViewer({ experience, session, onClose, onPermissionReq
         </div>
       </div>
 
+      {probeHint ? (
+        <div className="experience-probe-hint muted small">
+          Reachability check for {experience.approvedOrigin} was inconclusive — loading the experience
+          anyway.
+        </div>
+      ) : null}
+
       {loading ? (
         <div className="experience-fallback">
           <Skeleton height={24} />
           <p className="muted">Loading experience…</p>
-        </div>
-      ) : unreachable ? (
-        <div className="experience-fallback">
-          <h2>This experience is temporarily unavailable</h2>
-          <p>
-            LifeOS is still running. The independently deployed experience at{" "}
-            <span className="mono">{experience.approvedOrigin}</span> could not be reached.
-          </p>
-          <Button onClick={onClose}>Return to LifeOS</Button>
         </div>
       ) : (
         <iframe
@@ -129,7 +124,7 @@ export function ExperienceViewer({ experience, session, onClose, onPermissionReq
           className="experience-frame"
           title={experience.displayName}
           src={launchUrl!}
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
           referrerPolicy="no-referrer"
         />
       )}
