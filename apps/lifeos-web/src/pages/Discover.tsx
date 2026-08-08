@@ -25,8 +25,6 @@ import { ExperienceViewer } from "../components/ExperienceViewer";
 import { PermissionConsent } from "../components/PermissionConsent";
 import { PermissionRequestSheet } from "../components/PermissionRequestSheet";
 import { StatusBanner } from "../components/StatusBanner";
-import { AskLifeOSTrigger } from "../components/CommandOverlay";
-import { useCommandLayer } from "../hooks/useCommandLayer";
 import { ActionPreview } from "../components/ActionPreview";
 import { SlotPicker } from "../components/SlotPicker";
 import { actionService, discoverService } from "../lib/services";
@@ -52,21 +50,32 @@ function primaryLabel(o: DiscoverableOffering): string {
   return "Book";
 }
 
-const CATEGORY_CHIPS = [
+const BUSINESS_CHIPS = [
   { id: "All", label: "All" },
-  { id: "Stay", label: "Hotel rooms" },
-  { id: "Eat", label: "Food" },
+  { id: "Stay", label: "Hotels & stays" },
+  { id: "Eat", label: "Dining" },
   { id: "Wellness", label: "Wellness" },
   { id: "Fitness", label: "Fitness" },
-  { id: "Events", label: "Events" },
   { id: "Cinema", label: "Cinema" },
+  { id: "Events", label: "Events" },
   { id: "Activities", label: "Activities" },
-  { id: "More", label: "More" },
+  { id: "Travel", label: "Travel" },
 ] as const;
+
+const BUSINESS_COVERS: Record<string, string> = {
+  Stay: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80",
+  Eat: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=900&q=80",
+  Wellness: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=900&q=80",
+  Fitness: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=900&q=80",
+  Cinema: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=900&q=80",
+  Events: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?auto=format&fit=crop&w=900&q=80",
+  Activities: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=900&q=80",
+  Travel: "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=900&q=80",
+};
 
 export function DiscoverPage() {
   const [params, setParams] = useSearchParams();
-  const { openCommand } = useCommandLayer();
+  const [businesses, setBusinesses] = useState<DiscoverableBusiness[]>([]);
   const [offerings, setOfferings] = useState<DiscoverableOffering[]>([]);
   const [experiences, setExperiences] = useState<Listing[]>([]);
   const [category, setCategory] = useState<string>(params.get("category") || "All");
@@ -111,13 +120,16 @@ export function DiscoverPage() {
   }, [params]);
 
   useEffect(() => {
-    void discoverService
-      .get()
-      .then((d) => {
-        setOfferings(d.offerings ?? []);
-        setExperiences(d.items);
+    void Promise.all([
+      discoverService.listBusinesses(),
+      discoverService.get(),
+    ])
+      .then(([biz, disc]) => {
+        setBusinesses(biz.businesses ?? []);
+        setOfferings(disc.offerings ?? []);
+        setExperiences(disc.items);
       })
-      .catch(() => setError("We couldn't load discovery. Try again."))
+      .catch(() => setError("We couldn't load businesses. Try again."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -173,32 +185,38 @@ export function DiscoverPage() {
     })();
   }, [openId, experiences]);
 
-  const filtered = useMemo(() => {
-    let list = offerings;
-    if (category !== "All") list = list.filter((o) => o.category === category);
+  const deployedExperienceIds = useMemo(
+    () => new Set(experiences.filter((e) => e.status === "active" || e.loadable).map((e) => e.id)),
+    [experiences],
+  );
+
+  const coverByBusiness = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const o of offerings) {
+      if (o.image && !map.has(o.businessId)) map.set(o.businessId, o.image);
+    }
+    return map;
+  }, [offerings]);
+
+  const filteredBusinesses = useMemo(() => {
+    let list = businesses.filter(
+      (b) => deployedExperienceIds.size === 0 || deployedExperienceIds.has(b.experienceId),
+    );
+    // If registry is empty (edge), still show catalog businesses.
+    if (!list.length) list = businesses;
+    if (category !== "All") list = list.filter((b) => b.category === category);
     const q = query.trim().toLowerCase();
     if (q) {
       list = list.filter(
-        (o) =>
-          o.name.toLowerCase().includes(q) ||
-          o.businessName.toLowerCase().includes(q) ||
-          o.description.toLowerCase().includes(q) ||
-          o.category.toLowerCase().includes(q) ||
-          o.type.toLowerCase().includes(q),
+        (b) =>
+          b.businessName.toLowerCase().includes(q) ||
+          b.description.toLowerCase().includes(q) ||
+          b.category.toLowerCase().includes(q) ||
+          (b.location ?? "").toLowerCase().includes(q),
       );
     }
-    return list;
-  }, [offerings, category, query]);
-
-  const popular = useMemo(
-    () => offerings.filter((o) => o.featured).slice(0, 8),
-    [offerings],
-  );
-  const nearYou = useMemo(
-    () => offerings.filter((o) => o.distanceKm != null).slice(0, 8),
-    [offerings],
-  );
-  const showFiltered = category !== "All" || query.trim().length > 0;
+    return [...list].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+  }, [businesses, category, query, deployedExperienceIds]);
 
   function setParam(key: string, value: string | null) {
     setParams((prev) => {
@@ -252,6 +270,15 @@ export function DiscoverPage() {
       else next.set("category", id);
       return next;
     });
+  }
+
+  function businessCover(b: DiscoverableBusiness) {
+    return (
+      b.logo ||
+      coverByBusiness.get(b.businessId) ||
+      BUSINESS_COVERS[b.category] ||
+      BUSINESS_COVERS.Stay
+    );
   }
 
   async function startAction(action: OrchestratedAction) {
@@ -353,56 +380,22 @@ export function DiscoverPage() {
     }
   }
 
-  const INTENT_CARDS = [
-    { id: "eat", label: "Eat tonight", detail: "Tables & meals nearby", category: "Eat", query: "restaurants tonight" },
-    { id: "reset", label: "Reset", detail: "Spa & wellness", category: "Wellness", query: "massage" },
-    { id: "stay", label: "Stay nearby", detail: "Rooms & hotels", category: "Stay", query: "hotel" },
-    { id: "fun", label: "Something fun", detail: "Cinema & events", category: "Cinema", query: "cinema tickets" },
-  ] as const;
-
   return (
-    <div className="page">
-      <SectionHeader title="Discover" subtitle="What can you do today?" />
-
+    <div className="page explore-page">
       {error ? <StatusBanner title={error} /> : null}
 
-      <AskLifeOSTrigger />
-
-      <section className="intent-grid" aria-label="Start with an intent">
-        {INTENT_CARDS.map((card) => (
-          <button
-            key={card.id}
-            type="button"
-            className="intent-card"
-            onClick={() => {
-              selectCategory(card.category);
-              setQuery("");
-              openCommand(card.query, "ask");
-            }}
-          >
-            <strong>{card.label}</strong>
-            <span className="muted small">{card.detail}</span>
-          </button>
-        ))}
-      </section>
-
       <SearchBar
-        id="discover-search"
-        placeholder="Massage, dinner, room, movie…"
+        id="explore-search"
+        placeholder="Search businesses on LifeOS…"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         autoComplete="off"
-        aria-label="Search offerings"
-        style={{ marginTop: "0.75rem" }}
+        aria-label="Search businesses"
       />
 
-      <div className="chip-row" role="group" aria-label="Categories">
-        {CATEGORY_CHIPS.map((c) => (
-          <Chip
-            key={c.id}
-            active={category === c.id}
-            onClick={() => selectCategory(c.id)}
-          >
+      <div className="chip-row" role="group" aria-label="Business categories">
+        {BUSINESS_CHIPS.map((c) => (
+          <Chip key={c.id} active={category === c.id} onClick={() => selectCategory(c.id)}>
             {c.label}
           </Chip>
         ))}
@@ -410,102 +403,65 @@ export function DiscoverPage() {
 
       {loading ? (
         <>
-          <Skeleton height={180} label="Loading offerings" />
-          <Skeleton height={180} />
+          <Skeleton height={200} label="Loading businesses" />
+          <Skeleton height={200} />
         </>
-      ) : showFiltered ? (
-        <>
-          <SectionHeader
-            title={query.trim() ? "Results" : CATEGORY_CHIPS.find((c) => c.id === category)?.label || category}
-            subtitle={`${filtered.length} offerings`}
-          />
-          {filtered.length === 0 ? (
-            <EmptyState
-              title="No offerings match"
-              detail="Try another category, or ask LifeOS."
-              action={
-                <button
-                  type="button"
-                  className="text-link"
-                  onClick={() => {
-                    setQuery("");
-                    selectCategory("All");
-                    openCommand("Find something to do", "ask");
-                  }}
-                >
-                  Ask LifeOS
-                </button>
-              }
-            />
-          ) : (
-            <div className="exp-grid">
-              {filtered.map((o) => (
-                <OfferingCard
-                  key={o.id}
-                  name={o.name}
-                  businessName={o.businessName}
-                  category={o.category}
-                  price={o.priceFormatted}
-                  priceUnit={o.priceUnit}
-                  duration={o.duration}
-                  location={o.location}
-                  availability={o.availability}
-                  badge={o.badge}
-                  rating={o.rating}
-                  image={o.image}
-                  onClick={() => openOffering(o.id)}
-                />
-              ))}
-            </div>
-          )}
-        </>
+      ) : filteredBusinesses.length === 0 ? (
+        <EmptyState
+          title="No businesses found"
+          detail="Try another category, or clear your search."
+          action={
+            <button
+              type="button"
+              className="text-link"
+              onClick={() => {
+                setQuery("");
+                selectCategory("All");
+              }}
+            >
+              Show all businesses
+            </button>
+          }
+        />
       ) : (
         <>
-          <SectionHeader title="Popular near you" />
-          <div className="exp-rail">
-            {(popular.length ? popular : offerings.slice(0, 6)).map((o) => (
-              <OfferingCard
-                key={o.id}
-                name={o.name}
-                businessName={o.businessName}
-                category={o.category}
-                price={o.priceFormatted}
-                priceUnit={o.priceUnit}
-                duration={o.duration}
-                location={o.location}
-                availability={o.availability}
-                badge={o.badge}
-                rating={o.rating}
-                image={o.image}
-                onClick={() => openOffering(o.id)}
-              />
-            ))}
+          <SectionHeader
+            title={query.trim() ? "Results" : "Deployed businesses"}
+            subtitle={`${filteredBusinesses.length} on LifeOS`}
+          />
+          <div className="business-grid" role="list">
+            {filteredBusinesses.map((b) => {
+              const live = deployedExperienceIds.has(b.experienceId);
+              return (
+                <button
+                  key={b.businessId}
+                  type="button"
+                  role="listitem"
+                  className="business-card"
+                  onClick={() => openBusiness(b.businessId)}
+                >
+                  <div className="business-card__media">
+                    <img src={businessCover(b)} alt="" loading="lazy" />
+                    <span className={`business-card__badge${live ? " business-card__badge--live" : ""}`}>
+                      {live ? "Live on LifeOS" : b.category}
+                    </span>
+                  </div>
+                  <div className="business-card__body">
+                    <strong className="business-card__name">{b.businessName}</strong>
+                    <span className="business-card__meta">
+                      {b.category}
+                      {b.location ? ` · ${b.location}` : ""}
+                      {b.rating != null ? ` · ★ ${b.rating.toFixed(1)}` : ""}
+                    </span>
+                    <p className="business-card__desc">{b.description}</p>
+                    <span className="business-card__count">
+                      {b.offeringCount ?? 0} service{(b.offeringCount ?? 0) === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
-
-          <SectionHeader title="Nearby" subtitle="Based on tagged locations" />
-          {nearYou.length === 0 ? (
-            <EmptyState title="Nothing nearby yet" />
-          ) : (
-            <div className="exp-rail">
-              {nearYou.map((o) => (
-                <OfferingCard
-                  key={o.id}
-                  name={o.name}
-                  businessName={o.businessName}
-                  category={o.category}
-                  price={o.priceFormatted}
-                  priceUnit={o.priceUnit}
-                  duration={o.duration}
-                  location={o.location}
-                  availability={o.availability}
-                  badge={o.badge}
-                  rating={o.rating}
-                  image={o.image}
-                  onClick={() => openOffering(o.id)}
-                />
-              ))}
-            </div>
-          )}
         </>
       )}
 

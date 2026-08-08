@@ -202,10 +202,6 @@ export function WalletPage() {
 
   return (
     <div className="page">
-      <SectionHeader
-        title="Finance"
-        subtitle="Cash, tokens, P2P marketplace, and FinanceOS"
-      />
       {error ? <StatusBanner title={error} /> : null}
       {success ? (
         <div className="success-banner" role="status">

@@ -51,7 +51,7 @@ export function NotificationsPage() {
   return (
     <div className="page">
       <SectionHeader
-        title="Notifications"
+        title="Inbox"
         subtitle={unread ? `${unread} unread` : "All caught up"}
         action={
           unread ? (

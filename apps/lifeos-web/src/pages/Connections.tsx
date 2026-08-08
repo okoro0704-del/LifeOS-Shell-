@@ -56,10 +56,6 @@ export function ConnectionsPage() {
 
   return (
     <div className="page">
-      <SectionHeader
-        title="Connections"
-        subtitle="Control what each experience can access"
-      />
       {error ? <StatusBanner title={error} /> : null}
       {loading ? (
         <>

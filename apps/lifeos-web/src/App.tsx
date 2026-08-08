@@ -36,6 +36,9 @@ const ServiceCategoryPage = lazy(() =>
 const OfferingFeedPage = lazy(() =>
   import("./pages/OfferingFeed").then((m) => ({ default: m.OfferingFeedPage })),
 );
+const ServicesExplorePage = lazy(() =>
+  import("./pages/ServicesExplore").then((m) => ({ default: m.ServicesExplorePage })),
+);
 const MessagesPage = lazy(() =>
   import("./pages/Messages").then((m) => ({ default: m.MessagesPage })),
 );
@@ -160,6 +163,14 @@ function ThemedApp() {
                 element={
                   <Suspense fallback={<PageFallback />}>
                     <ServicesPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="services/explore"
+                element={
+                  <Suspense fallback={<PageFallback />}>
+                    <ServicesExplorePage />
                   </Suspense>
                 }
               />

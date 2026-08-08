@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ActivityItem } from "@lifeos/shared";
-import { ActivityRow, Button, EmptyState, SectionHeader, Skeleton } from "@lifeos/ui";
+import { ActivityRow, Button, EmptyState, Skeleton } from "@lifeos/ui";
 import { activityService } from "../lib/services";
 import { StatusBanner } from "../components/StatusBanner";
 
@@ -30,7 +30,6 @@ export function ActivityPage() {
 
   return (
     <div className="page">
-      <SectionHeader title="Activity" subtitle="Your recent LifeOS events" />
       {error ? <StatusBanner title={error} /> : null}
       {loading ? (
         <>

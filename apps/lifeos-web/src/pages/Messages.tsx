@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, EmptyState, IconMessage, SectionHeader, Skeleton } from "@lifeos/ui";
+import { Button, EmptyState, IconMessage, Skeleton } from "@lifeos/ui";
 import { notificationService } from "../lib/services";
 import { StatusBanner } from "../components/StatusBanner";
 
@@ -56,15 +56,11 @@ export function MessagesPage() {
 
   return (
     <div className="page">
-      <SectionHeader
-        title="Messages"
-        subtitle="Conversations and updates"
-        action={
-          <button type="button" className="text-link" onClick={() => navigate("/app/notifications")}>
-            Alerts
-          </button>
-        }
-      />
+      <div className="page-toolbar">
+        <button type="button" className="text-link" onClick={() => navigate("/app/notifications")}>
+          Alerts
+        </button>
+      </div>
       {error ? <StatusBanner title={error} /> : null}
       {loading ? <Skeleton height={120} label="Loading messages" /> : null}
       {!loading && threads.length === 0 ? (

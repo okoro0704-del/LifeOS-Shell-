@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { SavedOfferingPublic } from "@lifeos/shared";
-import { Button, EmptyState, OfferingCard, SectionHeader, Skeleton } from "@lifeos/ui";
+import { Button, EmptyState, OfferingCard, Skeleton } from "@lifeos/ui";
 import { actionService } from "../lib/services";
 import { StatusBanner } from "../components/StatusBanner";
 
@@ -24,7 +24,6 @@ export function SavedPage() {
 
   return (
     <div className="page">
-      <SectionHeader title="Saved" subtitle="Offerings you want to come back to" />
       {error ? <StatusBanner title={error} /> : null}
       {loading ? <Skeleton height={160} /> : null}
       {!loading && items.length === 0 ? (

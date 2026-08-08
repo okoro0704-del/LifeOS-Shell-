@@ -118,19 +118,15 @@ export function PlansPage() {
 
   return (
     <div className="page">
-      <SectionHeader
-        title="Today"
-        subtitle="Now · Next · Later"
-        action={
-          <button
-            type="button"
-            className="text-link"
-            onClick={() => setView((v) => (v === "list" ? "timeline" : "list"))}
-          >
-            {view === "list" ? "Timeline" : "List"}
-          </button>
-        }
-      />
+      <div className="page-toolbar">
+        <button
+          type="button"
+          className="text-link"
+          onClick={() => setView((v) => (v === "list" ? "timeline" : "list"))}
+        >
+          {view === "list" ? "Timeline" : "List"}
+        </button>
+      </div>
       <AskLifeOSTrigger />
       {offline ? (
         <StatusBanner title="You're offline. Some information may be outdated." />

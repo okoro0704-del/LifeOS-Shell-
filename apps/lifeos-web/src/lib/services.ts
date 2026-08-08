@@ -162,6 +162,14 @@ export const discoverService = {
       offerings: DiscoverableOffering[];
       experience?: ExperienceRecord | null;
     }>(`/discover/businesses/${id}`),
+  listBusinesses: (q?: string) => {
+    const params = new URLSearchParams();
+    if (q?.trim()) params.set("q", q.trim());
+    const qs = params.toString();
+    return api<{ businesses: DiscoverableBusiness[] }>(
+      `/discover/businesses${qs ? `?${qs}` : ""}`,
+    );
+  },
   search: (q: string) =>
     api<{
       query: string;

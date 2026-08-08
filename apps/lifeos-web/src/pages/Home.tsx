@@ -30,36 +30,9 @@ import {
   discoverService,
 } from "../lib/services";
 import { SERVICE_VERTICALS } from "../lib/serviceCatalog";
-import { useAuth } from "../hooks/useAuth";
 import { useCommandLayer } from "../hooks/useCommandLayer";
 import { StatusBanner } from "../components/StatusBanner";
 import { ActionPreview } from "../components/ActionPreview";
-
-/** Five verification levels — only email lights a star for now. */
-function VerificationStars({ emailVerified }: { emailVerified: boolean }) {
-  const lit = emailVerified ? 1 : 0;
-  return (
-    <div
-      className="verify-stars"
-      role="img"
-      aria-label={
-        lit
-          ? "Email verified — 1 of 5 identity levels"
-          : "No identity levels verified yet — 0 of 5"
-      }
-    >
-      {Array.from({ length: 5 }, (_, i) => (
-        <span
-          key={i}
-          className={`verify-star${i < lit ? " verify-star--on" : ""}`}
-          aria-hidden
-        >
-          ★
-        </span>
-      ))}
-    </div>
-  );
-}
 
 function formatTime(iso?: string | null) {
   if (!iso) return "";
@@ -97,7 +70,6 @@ const CATEGORY_PILLS = [
 ] as const;
 
 export function HomePage() {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const { openCommand, setPreview, preview } = useCommandLayer();
   const [dataError, setDataError] = useState<string | null>(null);
@@ -157,8 +129,6 @@ export function HomePage() {
     })();
   }, []);
 
-  const emailVerified = Boolean(user?.email?.trim());
-
   const recommended = useMemo(() => {
     if (homeRooms.length) return homeRooms;
     return forYou.slice(0, 6);
@@ -199,10 +169,6 @@ export function HomePage() {
 
   return (
     <div className="page home-page home-page--mock">
-      <div className="home-verify">
-        <VerificationStars emailVerified={emailVerified} />
-      </div>
-
       {offline || dataError ? (
         <StatusBanner
           title={dataError ?? "You're offline. Some information may be outdated."}

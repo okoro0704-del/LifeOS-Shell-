@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import type { DiscoverableOffering } from "@lifeos/shared";
 import {
   Button,
@@ -9,7 +9,6 @@ import {
   IconStay,
   IconTicket,
   OfferingCard,
-  SectionHeader,
   Skeleton,
 } from "@lifeos/ui";
 import { discoverService } from "../lib/services";
@@ -46,18 +45,6 @@ export function ServicesPage() {
 
   return (
     <div className="page services-page">
-      <header className="services-page__head">
-        <SectionHeader
-          title="Services"
-          subtitle="Scroll through what LifeOS can do for you"
-          action={
-            <Link to="/app" className="text-link">
-              Home
-            </Link>
-          }
-        />
-      </header>
-
       {error ? <StatusBanner title={error} /> : null}
 
       {loading ? (
@@ -117,7 +104,6 @@ export function ServiceCategoryPage() {
   const [error, setError] = useState<string | null>(null);
 
   const title = vertical?.label ?? category;
-  const blurb = vertical?.blurb ?? "Pick what you prefer";
 
   useEffect(() => {
     if (!category) return;
@@ -144,13 +130,6 @@ export function ServiceCategoryPage() {
 
   return (
     <div className="page service-category-page">
-      <header className="service-category__head">
-        <button type="button" className="text-link" onClick={() => navigate("/app/services")}>
-          ← All services
-        </button>
-        <SectionHeader title={title} subtitle={blurb} />
-      </header>
-
       {error ? <StatusBanner title={error} /> : null}
 
       {loading ? (

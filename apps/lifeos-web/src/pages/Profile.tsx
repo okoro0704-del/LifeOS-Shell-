@@ -125,7 +125,6 @@ export function ProfilePage() {
 
   return (
     <div className="page">
-      <SectionHeader title="Profile" />
       {error ? <StatusBanner title={error} /> : null}
       {loading ? <Skeleton height={88} label="Loading profile" /> : null}
 

@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import type { DiscoverableOffering } from "@lifeos/shared";
 import { Button, EmptyState, Skeleton } from "@lifeos/ui";
 import { discoverService } from "../lib/services";
-import { serviceLabel, serviceVerticalById } from "../lib/serviceCatalog";
+import { serviceLabel } from "../lib/serviceCatalog";
 import { StatusBanner } from "../components/StatusBanner";
 
 const TONE_BY_CATEGORY: Record<string, string> = {
@@ -32,9 +32,8 @@ export function OfferingFeedPage() {
   const [error, setError] = useState<string | null>(null);
   const [index, setIndex] = useState(0);
 
-  const vertical = serviceVerticalById(category);
-  const tone = TONE_BY_CATEGORY[category] ?? "stay";
   const title = category === "Stay" ? "Hotel rooms nearby" : serviceLabel(category);
+  const tone = TONE_BY_CATEGORY[category] ?? "stay";
 
   useEffect(() => {
     setLoading(true);
@@ -117,28 +116,8 @@ export function OfferingFeedPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, offerings.length]);
 
-  const countLabel = useMemo(
-    () => (offerings.length ? `${index + 1} / ${offerings.length}` : ""),
-    [index, offerings.length],
-  );
-
   return (
     <div className="offering-feed-page">
-      <header className="offering-feed__chrome">
-        <button type="button" className="offering-feed__back" onClick={() => navigate("/app")}>
-          ← Back
-        </button>
-        <div className="offering-feed__titles">
-          <strong>{title}</strong>
-          <span className="muted small">
-            {vertical?.blurb ?? "Swipe left or right"} · {countLabel}
-          </span>
-        </div>
-        <button type="button" className="text-link" onClick={() => navigate("/app/services")}>
-          All
-        </button>
-      </header>
-
       {error ? <StatusBanner title={error} /> : null}
 
       {loading ? (

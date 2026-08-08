@@ -36,10 +36,6 @@ export function SearchPage() {
 
   return (
     <div className="page">
-      <SectionHeader
-        title="Search"
-        subtitle="Ask to find things · Tell to get things done"
-      />
       <div className="home-command__duo">
         <AskLifeOSTrigger mode="ask" />
         <AskLifeOSTrigger mode="tell" />
