@@ -13,6 +13,7 @@ import { hasSeenIntro, markIntroSeen } from "../lib/introSeen";
 
 /**
  * Login surface. Returning users land here directly (intro is skipped).
+ * One TrustID per phone — Create is hidden while a returning binding exists.
  */
 export function LoginPage() {
   const { user, loading, status } = useAuth();
@@ -30,7 +31,6 @@ export function LoginPage() {
   }, []);
 
   useEffect(() => {
-    // Anyone who reaches login has left first-launch intro behind.
     if (!hasSeenIntro()) markIntroSeen();
   }, []);
 
@@ -52,17 +52,19 @@ export function LoginPage() {
     void authClient.beginLogin({ prompt: "login", silentUi: true });
   }
 
-  function switchAccount() {
+  function resetPhoneBinding() {
     if (entering.current) return;
+    const ok = window.confirm(
+      "Reset this phone’s TrustID binding?\n\nUse this after a server wipe so you can Create TrustID again. If your account still exists, tap Enter LifeOS instead.\n\nDelete the old trustedid.netlify.app passkey in device settings if Face ID keeps offering it.",
+    );
+    if (!ok) return;
     clearReturningIdentity();
     setReturning(null);
     entering.current = false;
   }
 
   function openRegister() {
-    if (entering.current) return;
-    clearReturningIdentity();
-    setReturning(null);
+    if (entering.current || returning) return;
     const register = new URL("/register", authGatewayWeb);
     register.searchParams.set("source", "lifeos");
     window.location.href = register.toString();
@@ -116,15 +118,14 @@ export function LoginPage() {
             <div className="welcome-auth">
               <p className="welcome-auth__label mono">welcome back</p>
               <h1>Enter LifeOS Business</h1>
-              <p className="lead">Unlock with Face ID or fingerprint on this device.</p>
+              <p className="lead">
+                One TrustID per phone. Unlock with Face ID or fingerprint on this device.
+              </p>
               <Button className="full-width" disabled={gatewayUp === false} onClick={enterLifeOS}>
                 Enter LifeOS
               </Button>
-              <button type="button" className="returning-card__switch" onClick={switchAccount}>
-                Log into another Account
-              </button>
-              <button type="button" className="returning-card__device-code" onClick={openRegister}>
-                Create a new TrustID
+              <button type="button" className="returning-card__switch" onClick={resetPhoneBinding}>
+                Reset this phone’s TrustID binding
               </button>
               <button type="button" className="returning-card__device-code" onClick={openDeviceCodeLogin}>
                 I have a device code
@@ -135,8 +136,8 @@ export function LoginPage() {
               <p className="welcome-auth__label mono">secure entry</p>
               <h1>Log into LifeOS Business</h1>
               <p className="lead">
-                After a server reset, create a new TrustID first — old Face ID / fingerprint
-                passkeys will show &quot;Unknown credential&quot;.
+                Create TrustID once on this phone. After a server wipe, reset binding then create
+                again — old passkeys show &quot;Unknown credential&quot;.
               </p>
               <Button className="full-width" disabled={gatewayUp === false} onClick={openRegister}>
                 Create TrustID →
