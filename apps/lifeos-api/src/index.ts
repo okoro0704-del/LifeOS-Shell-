@@ -16,6 +16,7 @@ import { storageRoutes } from "./routes/storage.js";
 import { commandRoutes } from "./command/routes.js";
 import { actionRoutes } from "./routes/actions.js";
 import { bookingRoutes } from "./routes/bookings.js";
+import { wipeRoutes } from "./routes/wipe.js";
 
 const app = Fastify({ logger: true });
 
@@ -51,6 +52,7 @@ await storageRoutes(app);
 await commandRoutes(app);
 await actionRoutes(app);
 await bookingRoutes(app);
+await wipeRoutes(app);
 
 await app.listen({ port: config.port, host: config.host });
 console.log(`LifeOS API listening on http://${config.host}:${config.port}`);
