@@ -80,7 +80,14 @@ export function WalletPage() {
 
   useEffect(() => {
     void load()
-      .catch(() => setError("We couldn't load your wallet. Try again."))
+      .catch((err) => {
+        const msg = err instanceof Error ? err.message : "";
+        if (/unbound|unavailable|finprov/i.test(msg)) {
+          setError("Module Unbound / Awaiting Sovereign Node: finprov");
+        } else {
+          setError("We couldn't load your wallet. Try again.");
+        }
+      })
       .finally(() => setLoading(false));
   }, []);
 

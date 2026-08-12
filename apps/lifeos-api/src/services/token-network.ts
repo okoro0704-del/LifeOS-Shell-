@@ -1,11 +1,11 @@
-import { createTokenNetworkProvider, type TokenNetworkProvider } from "@lifeos/token-network";
-import { config } from "../lib/config.js";
+import { container } from "../container.js";
+import type { IFinProvLedgerProvider } from "../ports/finprov.js";
 
-let provider: TokenNetworkProvider | null = null;
+/** FinProv ledger — unbound until a sovereign node is bound on the container. */
+export function getTokenNetwork(): IFinProvLedgerProvider {
+  return container.getFinProvLedger();
+}
 
-export function getTokenNetwork(): TokenNetworkProvider {
-  if (!provider) {
-    provider = createTokenNetworkProvider(config.tokenNetworkProvider);
-  }
-  return provider;
+export function setTokenNetwork(adapter: IFinProvLedgerProvider) {
+  container.bindFinProvLedger(adapter);
 }

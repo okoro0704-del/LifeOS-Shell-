@@ -26,7 +26,10 @@ export const config = {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean),
-  tokenNetworkProvider: (process.env.TOKEN_NETWORK_PROVIDER ?? "mock") as "mock" | "real",
+  tokenNetworkProvider: (process.env.TOKEN_NETWORK_PROVIDER ?? "unbound") as
+    | "unbound"
+    | "mock"
+    | "real",
   sessionCookieName: "lifeos_session",
   sessionHeaderName: "x-lifeos-session",
   cookieSameSite,

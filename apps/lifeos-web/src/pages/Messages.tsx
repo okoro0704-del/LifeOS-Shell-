@@ -1,57 +1,55 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, EmptyState, IconMessage, Skeleton } from "@lifeos/ui";
-import { notificationService } from "../lib/services";
+import { Button, EmptyState, Skeleton } from "@lifeos/ui";
+import { api } from "../lib/api";
 import { StatusBanner } from "../components/StatusBanner";
+
+type MessagingStatus = {
+  module: string;
+  bound: boolean;
+  status: string;
+  message: string;
+};
 
 type Thread = {
   id: string;
   title: string;
   preview: string;
-  when: string;
-  unread?: boolean;
+  updatedAt: string;
+  unreadCount: number;
 };
 
-/** Messaging inbox — threads from notifications until a dedicated chat API exists. */
+/** ElfCom inbox — empty shell until the messaging sovereign node is bound. */
 export function MessagesPage() {
   const navigate = useNavigate();
+  const [status, setStatus] = useState<MessagingStatus | null>(null);
   const [threads, setThreads] = useState<Thread[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    void notificationService
-      .list()
-      .then((d) => {
-        const mapped: Thread[] = d.notifications.slice(0, 20).map((n) => ({
-          id: n.id,
-          title: n.title,
-          preview: n.body ?? "Open to view",
-          when: n.createdAt
-            ? new Date(n.createdAt).toLocaleString(undefined, {
-                month: "short",
-                day: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-              })
-            : "",
-          unread: !n.read,
-        }));
-        if (mapped.length === 0) {
-          setThreads([
-            {
-              id: "welcome",
-              title: "LifeOS Concierge",
-              preview: "Ask or tell LifeOS anything — bookings, rides, and more.",
-              when: "Now",
-            },
-          ]);
-        } else {
-          setThreads(mapped);
+    void (async () => {
+      try {
+        const st = await api<MessagingStatus>("/messaging/status");
+        setStatus(st);
+        if (!st.bound) {
+          setThreads([]);
+          return;
         }
-      })
-      .catch(() => setError("Couldn't load messages."))
-      .finally(() => setLoading(false));
+        const data = await api<{ threads: Thread[] }>("/messaging/threads");
+        setThreads(data.threads ?? []);
+      } catch {
+        setError("Couldn't reach ElfCom messaging.");
+        setStatus({
+          module: "elfcom",
+          bound: false,
+          status: "unbound",
+          message: "Module Unbound / Awaiting Sovereign Node: elfcom",
+        });
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   return (
@@ -63,37 +61,31 @@ export function MessagesPage() {
       </div>
       {error ? <StatusBanner title={error} /> : null}
       {loading ? <Skeleton height={120} label="Loading messages" /> : null}
-      {!loading && threads.length === 0 ? (
+      {!loading && (!status?.bound || threads.length === 0) ? (
         <EmptyState
-          title="No messages yet"
-          detail="When hotels and services message you, they’ll show up here."
+          title={status?.bound ? "No messages yet" : "Messaging unbound"}
+          detail={
+            status?.bound
+              ? "When services message you through ElfCom, they’ll show up here."
+              : status?.message ?? "Module Unbound / Awaiting Sovereign Node: elfcom"
+          }
           action={
             <Button variant="soft" size="sm" onClick={() => navigate("/app")}>
               Back home
             </Button>
           }
         />
-      ) : (
+      ) : null}
+      {!loading && status?.bound && threads.length > 0 ? (
         <div className="messages-list surface-block">
           {threads.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              className={`messages-row${t.unread ? " messages-row--unread" : ""}`}
-              onClick={() => navigate(t.id === "welcome" ? "/app" : "/app/notifications")}
-            >
-              <span className="messages-row__icon" aria-hidden>
-                <IconMessage size={20} />
-              </span>
-              <span className="messages-row__body">
-                <strong>{t.title}</strong>
-                <span className="muted small">{t.preview}</span>
-              </span>
-              <span className="messages-row__when muted small">{t.when}</span>
-            </button>
+            <div key={t.id} className="messages-row">
+              <strong>{t.title}</strong>
+              <span className="muted small">{t.preview}</span>
+            </div>
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

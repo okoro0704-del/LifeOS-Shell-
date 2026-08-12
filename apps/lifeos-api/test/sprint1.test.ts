@@ -5,11 +5,6 @@ import {
   canLoadExperience,
   validateExperienceOrigin,
 } from "@lifeos/experience-sdk";
-import {
-  MockTokenNetworkProvider,
-  createTokenNetworkProvider,
-  type TokenNetworkProvider,
-} from "@lifeos/token-network";
 import type { ExperienceRecord } from "@lifeos/shared";
 import { PrismaClient } from "@prisma/client";
 import { DEFAULT_PREFERENCES } from "@lifeos/shared";
@@ -132,19 +127,18 @@ describe("authentication & user model", () => {
 });
 
 describe("wallet provider abstraction", () => {
-  test("MockTokenNetworkProvider satisfies TokenNetworkProvider contract", async () => {
-    const provider: TokenNetworkProvider = createTokenNetworkProvider("mock");
-    assert.ok(provider instanceof MockTokenNetworkProvider);
-    const trustId = "TD-WALLETTEST01";
-    const balance = await provider.getBalance(trustId);
-    assert.equal(balance.symbol, "TOK");
-    assert.equal(balance.amount, 2450);
-    const txs = await provider.getTransactions(trustId);
-    assert.ok(txs.length >= 1);
-    const after = await provider.send(trustId, { to: "tok_other", amount: 10, memo: "test" });
-    assert.equal(after.kind, "send");
-    const bal2 = await provider.getBalance(trustId);
-    assert.equal(bal2.amount, 2440);
+  test("unbound FinProv ledger refuses mock settlement", async () => {
+    const {
+      UnboundTokenNetworkProvider,
+      FinProvUnboundError,
+      createTokenNetworkProvider,
+    } = await import("@lifeos/token-network");
+    const provider = createTokenNetworkProvider("unbound");
+    assert.ok(provider instanceof UnboundTokenNetworkProvider);
+    await assert.rejects(() => provider.getBalance("TD-WALLETTEST01"), (err: unknown) => {
+      assert.ok(err instanceof FinProvUnboundError);
+      return true;
+    });
   });
 });
 

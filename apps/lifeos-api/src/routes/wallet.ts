@@ -1,9 +1,9 @@
 import type { FastifyInstance, FastifyReply } from "fastify";
 import { z } from "zod";
 import { requireSession } from "../lib/auth.js";
-import { getTokenNetwork } from "../services/token-network.js";
+import { container } from "../container.js";
+import { ModuleUnboundError } from "../ports/unbound.js";
 import { prisma } from "../lib/prisma.js";
-import { getFiatWallet } from "../services/fiat-wallet.js";
 
 const sendBody = z.object({
   to: z.string().min(1),
@@ -19,101 +19,101 @@ const payBody = z.object({
   rail: z.enum(["token", "fiat"]).optional().default("token"),
 });
 
-function walletUnavailable(reply: FastifyReply) {
+function finprovUnavailable(reply: FastifyReply) {
   return reply.code(503).send({
     error: "wallet_unavailable",
-    message: "Wallet unavailable.",
+    code: "module_unbound",
+    module: "finprov",
+    message: "Module Unbound / Awaiting Sovereign Node: finprov",
   });
 }
 
 export async function walletRoutes(app: FastifyInstance) {
-  app.get("/wallet", { preHandler: requireSession }, async (req, reply) => {
+  app.get("/wallet", { preHandler: requireSession }, async (_req, reply) => {
+    const ledger = container.getFinProvLedger();
+    const fiat = container.getFinProvFiat();
+    if (!ledger.bound && !fiat.bound) {
+      return finprovUnavailable(reply);
+    }
     try {
-      const tn = getTokenNetwork();
-      const trustId = req.lifeosUser!.trustId;
-      const [wallet, balance, transactions, fiat] = await Promise.all([
-        tn.getWallet(trustId),
-        tn.getBalance(trustId),
-        tn.getTransactions(trustId),
-        Promise.resolve(getFiatWallet(trustId)),
-      ]);
+      const trustId = _req.lifeosUser!.trustId;
+      const token = ledger.bound
+        ? {
+            wallet: await ledger.getWallet(trustId),
+            balance: await ledger.getBalance(trustId),
+            transactions: (await ledger.getTransactions(trustId)).slice(0, 20),
+          }
+        : null;
+      const cash = fiat.bound ? await fiat.getCashWallet(trustId) : null;
       return {
-        fiat,
-        token: {
-          wallet,
-          balance,
-          transactions: transactions.slice(0, 20),
-        },
-        // Back-compat for older clients
-        wallet,
-        balance,
-        transactions: transactions.slice(0, 20),
-        mock: true,
-        notice:
-          "Cash (fiat) and Tokens are preview balances in LifeOS — not real bank or Token Network settlement.",
+        fiat: cash,
+        token,
+        wallet: token?.wallet ?? null,
+        balance: token?.balance ?? null,
+        transactions: token?.transactions ?? [],
+        bound: true,
+        module: "finprov",
       };
-    } catch {
-      return walletUnavailable(reply);
+    } catch (err) {
+      if (err instanceof ModuleUnboundError) return finprovUnavailable(reply);
+      return finprovUnavailable(reply);
     }
   });
 
   app.get("/wallet/balance", { preHandler: requireSession }, async (req, reply) => {
+    const ledger = container.getFinProvLedger();
+    if (!ledger.bound) return finprovUnavailable(reply);
     try {
-      const trustId = req.lifeosUser!.trustId;
-      const [token, fiat] = await Promise.all([
-        getTokenNetwork().getBalance(trustId),
-        Promise.resolve(getFiatWallet(trustId)),
-      ]);
-      return {
-        ...token,
-        fiat: fiat.balance,
-        formatted: fiat.balance.formatted,
-        mock: true,
-      };
+      return await ledger.getBalance(req.lifeosUser!.trustId);
     } catch {
-      return walletUnavailable(reply);
+      return finprovUnavailable(reply);
     }
   });
 
   app.get("/wallet/transactions", { preHandler: requireSession }, async (req, reply) => {
+    const ledger = container.getFinProvLedger();
+    const fiat = container.getFinProvFiat();
+    if (!ledger.bound && !fiat.bound) return finprovUnavailable(reply);
     try {
       const trustId = req.lifeosUser!.trustId;
-      const [tokenTxs, fiat] = await Promise.all([
-        getTokenNetwork().getTransactions(trustId),
-        Promise.resolve(getFiatWallet(trustId)),
-      ]);
       return {
-        transactions: tokenTxs,
-        fiatTransactions: fiat.transactions,
-        mock: true,
+        transactions: ledger.bound ? await ledger.getTransactions(trustId) : [],
+        fiatTransactions: fiat.bound ? (await fiat.getCashWallet(trustId)).transactions : [],
       };
     } catch {
-      return walletUnavailable(reply);
+      return finprovUnavailable(reply);
     }
   });
 
   app.post("/wallet/send", { preHandler: requireSession }, async (req, reply) => {
     const body = sendBody.parse(req.body);
     if (body.rail === "fiat") {
-      return reply.code(501).send({
-        error: "fiat_not_live",
-        message: "Cash transfers are coming soon. Token send is available in preview.",
+      return reply.code(503).send({
+        error: "wallet_unavailable",
+        code: "module_unbound",
+        module: "finprov",
+        message: "Module Unbound / Awaiting Sovereign Node: finprov",
       });
     }
+    const ledger = container.getFinProvLedger();
+    if (!ledger.bound) return finprovUnavailable(reply);
     try {
-      const tx = await getTokenNetwork().send(req.lifeosUser!.trustId, body);
+      const tx = await ledger.send(req.lifeosUser!.trustId, body);
       await prisma.activity.create({
         data: {
           userId: req.lifeosUser!.id,
           kind: "wallet_transfer",
-          title: "Sent TOK",
-          detail: `Sent ${tx.amount} ${tx.symbol} to ${tx.counterparty} (mock)`,
-          source: "token-network",
-          amount: `${tx.amount} ${tx.symbol}`,
+          title: "Sent tokens",
+          detail: `${body.amount} to ${body.to}`,
+          source: "finprov",
+          amount: String(body.amount),
+          status: "completed",
+          deepLink: "/app/wallet",
         },
       });
-      return { transaction: tx, mock: true };
+      return { transaction: tx };
     } catch (err) {
+      if (err instanceof ModuleUnboundError) return finprovUnavailable(reply);
       return reply.code(400).send({
         error: "send_failed",
         message: err instanceof Error ? err.message : "Send failed",
@@ -123,26 +123,13 @@ export async function walletRoutes(app: FastifyInstance) {
 
   app.post("/wallet/pay", { preHandler: requireSession }, async (req, reply) => {
     const body = payBody.parse(req.body);
-    if (body.rail === "fiat") {
-      return reply.code(501).send({
-        error: "fiat_not_live",
-        message: "Cash payments are coming soon. Token pay is available in preview.",
-      });
-    }
+    const ledger = container.getFinProvLedger();
+    if (!ledger.bound) return finprovUnavailable(reply);
     try {
-      const tx = await getTokenNetwork().requestPayment(req.lifeosUser!.trustId, body);
-      await prisma.activity.create({
-        data: {
-          userId: req.lifeosUser!.id,
-          kind: "payment",
-          title: "Payment",
-          detail: `Paid ${tx.amount} ${tx.symbol} to ${tx.counterparty} (mock)`,
-          source: "token-network",
-          amount: `${tx.amount} ${tx.symbol}`,
-        },
-      });
-      return { transaction: tx, mock: true };
+      const tx = await ledger.requestPayment(req.lifeosUser!.trustId, body);
+      return { transaction: tx };
     } catch (err) {
+      if (err instanceof ModuleUnboundError) return finprovUnavailable(reply);
       return reply.code(400).send({
         error: "pay_failed",
         message: err instanceof Error ? err.message : "Payment failed",
@@ -151,11 +138,12 @@ export async function walletRoutes(app: FastifyInstance) {
   });
 
   app.get("/wallet/receive", { preHandler: requireSession }, async (req, reply) => {
+    const ledger = container.getFinProvLedger();
+    if (!ledger.bound) return finprovUnavailable(reply);
     try {
-      const addr = await getTokenNetwork().receiveAddress(req.lifeosUser!.trustId);
-      return { ...addr, mock: true };
+      return await ledger.receiveAddress(req.lifeosUser!.trustId);
     } catch {
-      return walletUnavailable(reply);
+      return finprovUnavailable(reply);
     }
   });
 }
