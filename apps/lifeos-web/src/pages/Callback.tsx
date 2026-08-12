@@ -7,12 +7,12 @@ import { useAuth } from "../hooks/useAuth";
 import { StatusBanner } from "../components/StatusBanner";
 import { saveReturningIdentity } from "../lib/returningIdentity";
 
+/** Silent return surface — no handshake status chatter. */
 export function CallbackPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const { setUser } = useAuth();
   const [error, setError] = useState<string | null>(null);
-  const [detail, setDetail] = useState("Validating LifeOS Gateway authorization…");
   const started = useRef(false);
 
   useEffect(() => {
@@ -38,15 +38,8 @@ export function CallbackPage() {
 
     (async () => {
       try {
-        setDetail("Exchanging authorization code…");
         const tokens = await authClient.exchangeCode(code, state);
-
-        setDetail("Collecting zero-knowledge identity claims…");
         const handshake = await authClient.buildSessionHandshake(tokens.access_token);
-
-        setDetail("Creating your LifeOS session…");
-        // Contacts/names (if any) stay client-ephemeral for returning UX — never sent as persisted PII.
-        // Optional RAM-only presentation on the API is omitted by default (zero-PII).
         const data = await meService.createSession(tokens.access_token, {
           zkClaims: handshake.zkClaims,
         });
@@ -70,7 +63,8 @@ export function CallbackPage() {
   }, [params, navigate, setUser]);
 
   return (
-    <div className="welcome">
+    <div className="welcome welcome--silent">
+      <div className="welcome-atmosphere" aria-hidden />
       <div className="welcome-inner">
         <p className="brand-hero">LifeOS</p>
         {error ? (
@@ -82,10 +76,9 @@ export function CallbackPage() {
             </button>
           </>
         ) : (
-          <>
-            <h1>Connecting…</h1>
-            <p className="lead">{detail}</p>
-          </>
+          <p className="sr-only" aria-live="polite">
+            Entering LifeOS
+          </p>
         )}
       </div>
     </div>

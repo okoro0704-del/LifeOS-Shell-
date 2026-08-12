@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, Button, SecurityCard } from "@lifeos/ui";
-import { authClient, checkAuthGatewayReachable } from "../lib/api";
+import { authClient, authGatewayWeb, checkAuthGatewayReachable } from "../lib/api";
 import { useAuth } from "../hooks/useAuth";
 import { StatusBanner } from "../components/StatusBanner";
 import {
@@ -14,8 +14,9 @@ export function WelcomePage() {
   const { user, loading, status } = useAuth();
   const navigate = useNavigate();
   const [gatewayUp, setGatewayUp] = useState<boolean | null>(null);
-  const [starting, setStarting] = useState(false);
   const [returning, setReturning] = useState<ReturningIdentity | null>(() => getReturningIdentity());
+  /** Silent lock — prevents double-tap without painting busy/spinner UI. */
+  const entering = useRef(false);
 
   useEffect(() => {
     if (!loading && user) navigate("/app", { replace: true });
@@ -25,25 +26,36 @@ export function WelcomePage() {
     void checkAuthGatewayReachable().then(setGatewayUp);
   }, []);
 
-  function startPasskey() {
-    if (!returning) return;
-    setStarting(true);
+  function enterLifeOS() {
+    if (!returning || entering.current || gatewayUp === false) return;
+    entering.current = true;
+    // Immediate redirect — no spinners, status copy, or intermediate LifeOS chrome.
     void authClient.beginLogin({
       loginHint: returning.trustId,
       preferPasskey: true,
+      silentUi: true,
       phone: returning.phone,
       deviceName: returning.deviceName,
     });
   }
 
   function startFresh() {
-    setStarting(true);
+    if (entering.current || gatewayUp === false) return;
+    entering.current = true;
     void authClient.beginLogin({ prompt: "login" });
   }
 
   function switchAccount() {
+    if (entering.current) return;
     clearReturningIdentity();
     setReturning(null);
+  }
+
+  function openDeviceCodeLogin() {
+    if (entering.current) return;
+    const enroll = new URL("/enroll", authGatewayWeb);
+    enroll.searchParams.set("source", "lifeos");
+    window.location.href = enroll.toString();
   }
 
   return (
@@ -55,7 +67,7 @@ export function WelcomePage() {
         {returning ? (
           <>
             <h1>Welcome back</h1>
-            <p className="lead">Your details are saved on this device. Continue with your passkey.</p>
+            <p className="lead">Your account is ready on this device.</p>
           </>
         ) : (
           <>
@@ -70,9 +82,7 @@ export function WelcomePage() {
           <StatusBanner
             title="Your session ended"
             detail={
-              returning
-                ? "Use your passkey to sign in again."
-                : "Log into LifeOS again to continue."
+              returning ? "Enter LifeOS again to continue." : "Log into LifeOS again to continue."
             }
           />
         ) : null}
@@ -104,33 +114,49 @@ export function WelcomePage() {
             </div>
             <Button
               className="full-width"
-              disabled={gatewayUp === false || starting}
-              onClick={startPasskey}
+              disabled={gatewayUp === false}
+              onClick={enterLifeOS}
             >
-              Use Passkey →
+              Enter LifeOS
             </Button>
             <button
               type="button"
               className="returning-card__switch"
-              disabled={starting}
               onClick={switchAccount}
             >
-              Not {returning.firstName}? Log into another account
+              Log into another Account
+            </button>
+            <button
+              type="button"
+              className="returning-card__device-code"
+              onClick={openDeviceCodeLogin}
+            >
+              I have a device code for logging into a secondary device
             </button>
           </div>
         ) : (
           <SecurityCard
             eyebrow="LifeOS Gateway"
             title="Log into LifeOS"
-            detail="Sign in once through the LifeOS Gateway. We'll remember you on this device so next time you only need your passkey."
+            detail="Sign in once through the LifeOS Gateway. Next time, Enter LifeOS unlocks this device instantly."
             action={
-              <Button
-                className="full-width"
-                disabled={gatewayUp === false || starting}
-                onClick={startFresh}
-              >
-                Log into LifeOS →
-              </Button>
+              <>
+                <Button
+                  className="full-width"
+                  disabled={gatewayUp === false}
+                  onClick={startFresh}
+                >
+                  Log into LifeOS →
+                </Button>
+                <button
+                  type="button"
+                  className="returning-card__device-code"
+                  onClick={openDeviceCodeLogin}
+                  style={{ marginTop: "0.75rem", width: "100%" }}
+                >
+                  I have a device code for logging into a secondary device
+                </button>
+              </>
             }
           />
         )}

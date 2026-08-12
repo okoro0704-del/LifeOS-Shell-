@@ -110,6 +110,11 @@ export function createAuthClient(config: AuthClientConfig) {
       prompt?: string;
       /** Prefer passkey path on the LifeOS Gateway when supported. */
       preferPasskey?: boolean;
+      /**
+       * Suppress gateway intermediate status chrome; jump straight to the
+       * native credentials.get ceremony when the Continue surface loads.
+       */
+      silentUi?: boolean;
       phone?: string | null;
       deviceName?: string | null;
     }) {
@@ -134,6 +139,9 @@ export function createAuthClient(config: AuthClientConfig) {
       if (opts?.preferPasskey) {
         url.searchParams.set("auth_mode", "passkey");
         url.searchParams.set("lifeos_returning", "1");
+      }
+      if (opts?.silentUi) {
+        url.searchParams.set("ui_mode", "silent");
       }
       if (opts?.phone) url.searchParams.set("phone_hint", opts.phone);
       if (opts?.deviceName) url.searchParams.set("device_name", opts.deviceName);
