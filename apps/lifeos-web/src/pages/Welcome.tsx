@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, Button, SecurityCard } from "@lifeos/ui";
-import { authClient, checkTrustIdReachable } from "../lib/api";
+import { authClient, checkAuthGatewayReachable } from "../lib/api";
 import { useAuth } from "../hooks/useAuth";
 import { StatusBanner } from "../components/StatusBanner";
 import {
@@ -13,7 +13,7 @@ import {
 export function WelcomePage() {
   const { user, loading, status } = useAuth();
   const navigate = useNavigate();
-  const [trustIdUp, setTrustIdUp] = useState<boolean | null>(null);
+  const [gatewayUp, setGatewayUp] = useState<boolean | null>(null);
   const [starting, setStarting] = useState(false);
   const [returning, setReturning] = useState<ReturningIdentity | null>(() => getReturningIdentity());
 
@@ -22,7 +22,7 @@ export function WelcomePage() {
   }, [loading, user, navigate]);
 
   useEffect(() => {
-    void checkTrustIdReachable().then(setTrustIdUp);
+    void checkAuthGatewayReachable().then(setGatewayUp);
   }, []);
 
   function startPasskey() {
@@ -59,9 +59,9 @@ export function WelcomePage() {
           </>
         ) : (
           <>
-            <h1>Your everyday shell for a trusted digital life</h1>
+            <h1>Log into LifeOS</h1>
             <p className="lead">
-              Wallet, activity, and experiences — with identity that stays yours.
+              Wallet, activity, and experiences — signed in through the LifeOS Gateway.
             </p>
           </>
         )}
@@ -72,7 +72,7 @@ export function WelcomePage() {
             detail={
               returning
                 ? "Use your passkey to sign in again."
-                : "Continue with TrustID to sign in again."
+                : "Log into LifeOS again to continue."
             }
           />
         ) : null}
@@ -84,9 +84,9 @@ export function WelcomePage() {
           />
         ) : null}
 
-        {trustIdUp === false ? (
+        {gatewayUp === false ? (
           <StatusBanner
-            title="Identity service unavailable"
+            title="LifeOS Gateway unavailable"
             detail="Please try again shortly."
           />
         ) : null}
@@ -105,7 +105,7 @@ export function WelcomePage() {
             </div>
             <Button
               className="full-width"
-              disabled={trustIdUp === false || starting}
+              disabled={gatewayUp === false || starting}
               onClick={startPasskey}
             >
               Use Passkey →
@@ -116,21 +116,21 @@ export function WelcomePage() {
               disabled={starting}
               onClick={switchAccount}
             >
-              Not {returning.firstName}? Login into another account
+              Not {returning.firstName}? Log into another account
             </button>
           </div>
         ) : (
           <SecurityCard
-            eyebrow="Identity"
-            title="Secure your LifeOS session"
-            detail="Sign in once with TrustID. We'll remember you on this device so next time you only need your passkey."
+            eyebrow="LifeOS Gateway"
+            title="Log into LifeOS"
+            detail="Sign in once through the LifeOS Gateway. We'll remember you on this device so next time you only need your passkey."
             action={
               <Button
                 className="full-width"
-                disabled={trustIdUp === false || starting}
+                disabled={gatewayUp === false || starting}
                 onClick={startFresh}
               >
-                Continue with TrustID →
+                Log into LifeOS →
               </Button>
             }
           />

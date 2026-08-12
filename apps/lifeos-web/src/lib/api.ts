@@ -1,7 +1,15 @@
 import { createAuthClient } from "@lifeos/auth-client";
 
+/**
+ * Identity backend endpoints (env still uses TRUSTID_* for deploy compatibility).
+ * Prefer the LifeOS Gateway aliases in UI/feature code.
+ */
 export const trustIdWeb = import.meta.env.VITE_TRUSTID_WEB ?? "http://localhost:5173";
 export const trustIdApi = import.meta.env.VITE_TRUSTID_API ?? "http://localhost:8787";
+/** Public alias — identity portal opened from Profile / security. */
+export const authGatewayWeb = trustIdWeb;
+/** Public alias — OAuth/passkey API base used by the auth client. */
+export const authGatewayApi = trustIdApi;
 export const lifeosApiBase = import.meta.env.VITE_LIFEOS_API ?? "/api";
 
 const SESSION_STORAGE_KEY = "lifeos.session.token";
@@ -10,8 +18,9 @@ const AUTH_INTENT_KEY = "lifeos.auth.intent";
 /** Last known user — used to keep the shell alive across refresh when /me briefly fails. */
 const USER_CACHE_KEY = "lifeos.auth.user";
 
+/** Encapsulated OAuth/passkey client — UI should not mention the identity vendor. */
 export const authClient = createAuthClient({
-  trustIdApi,
+  trustIdApi: authGatewayApi,
   clientId: import.meta.env.VITE_TRUSTID_CLIENT_ID ?? "lifeos_mock_public",
   redirectUri: import.meta.env.VITE_TRUSTID_REDIRECT_URI ?? "http://localhost:5174/callback",
   scopes:
@@ -121,11 +130,11 @@ export function userFacingMessage(err: unknown): string {
   if (err instanceof ApiError) {
     switch (err.code) {
       case "session_expired":
-        return "Your LifeOS session has expired. Continue with TrustID.";
+        return "Your LifeOS session has expired. Log into LifeOS again.";
       case "authorization_revoked":
-        return "TrustID authorization was revoked. Continue with TrustID to reconnect.";
+        return "Authorization was revoked. Log into LifeOS again to reconnect.";
       case "trustid_unavailable":
-        return "TrustID is temporarily unavailable.";
+        return "LifeOS Gateway is temporarily unavailable.";
       case "wallet_unavailable":
         return "Wallet unavailable.";
       case "lifeos_unavailable":
@@ -133,7 +142,7 @@ export function userFacingMessage(err: unknown): string {
       case "experience_unavailable":
         return "This experience is temporarily unavailable.";
       case "unauthorized":
-        return "Please continue with TrustID to sign in.";
+        return "Please log into LifeOS to continue.";
       default:
         return err.message || "Something went wrong.";
     }
@@ -191,11 +200,15 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return data as T;
 }
 
-export async function checkTrustIdReachable(): Promise<boolean> {
+/** Health-check the LifeOS Gateway (identity backend). */
+export async function checkAuthGatewayReachable(): Promise<boolean> {
   try {
-    const res = await fetch(`${trustIdApi}/health`, { signal: AbortSignal.timeout(3000) });
+    const res = await fetch(`${authGatewayApi}/health`, { signal: AbortSignal.timeout(3000) });
     return res.ok;
   } catch {
     return false;
   }
 }
+
+/** @deprecated Prefer checkAuthGatewayReachable */
+export const checkTrustIdReachable = checkAuthGatewayReachable;

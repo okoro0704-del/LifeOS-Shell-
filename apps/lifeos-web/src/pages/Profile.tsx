@@ -10,7 +10,7 @@ import {
   Skeleton,
   StatusBadge,
 } from "@lifeos/ui";
-import { trustIdWeb } from "../lib/api";
+import { authGatewayWeb } from "../lib/api";
 import { connectionService, profileService, walletService } from "../lib/services";
 import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../hooks/useTheme";
@@ -168,19 +168,19 @@ export function ProfilePage() {
       <section className="profile-stack">
         <SectionHeader title="Trust & security" />
         <ProfileRow
-          label="TrustID"
+          label="LifeOS Gateway"
           subtitle="Manage identity & recovery"
-          onClick={() => window.open(trustIdWeb, "_blank", "noopener,noreferrer")}
+          onClick={() => window.open(authGatewayWeb, "_blank", "noopener,noreferrer")}
         />
         <ProfileRow
           label="Connected devices"
-          subtitle="Managed in TrustID"
-          onClick={() => window.open(trustIdWeb, "_blank", "noopener,noreferrer")}
+          subtitle="Managed in LifeOS Gateway"
+          onClick={() => window.open(authGatewayWeb, "_blank", "noopener,noreferrer")}
         />
         <ProfileRow
           label="Security"
           subtitle="Sessions and credentials"
-          onClick={() => window.open(trustIdWeb, "_blank", "noopener,noreferrer")}
+          onClick={() => window.open(authGatewayWeb, "_blank", "noopener,noreferrer")}
         />
       </section>
 

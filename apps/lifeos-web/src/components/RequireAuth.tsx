@@ -25,9 +25,9 @@ export function RequireAuth() {
           <p className="brand-hero">LifeOS</p>
           <StatusBanner
             title="Your session ended"
-            detail="Continue with TrustID to sign in again."
+            detail="Log into LifeOS again to continue."
             action={
-              <Button onClick={() => navigate("/")}>Continue with TrustID →</Button>
+              <Button onClick={() => navigate("/")}>Log into LifeOS →</Button>
             }
           />
         </div>

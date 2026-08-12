@@ -11,7 +11,7 @@ export default defineConfig({
       manifest: {
         name: "LifeOS",
         short_name: "LifeOS",
-        description: "Your universal LifeOS shell for TrustID ecosystem experiences",
+        description: "Your everyday LifeOS shell for wallet, activity, and experiences",
         theme_color: "#0d7a6f",
         background_color: "#eef2f5",
         display: "standalone",

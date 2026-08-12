@@ -34,7 +34,7 @@ async function sha256(input: string) {
 }
 
 function writePkce(storageKey: string, value: string) {
-  // localStorage survives better across long TrustID redirects than sessionStorage alone
+  // localStorage survives better across long OAuth redirects than sessionStorage alone
   localStorage.setItem(storageKey, value);
   sessionStorage.setItem(storageKey, value);
 }
@@ -53,11 +53,11 @@ export function createAuthClient(config: AuthClientConfig) {
 
   return {
     async beginLogin(opts?: {
-      /** Pre-fill TrustID identity (email / TrustID). */
+      /** Pre-fill identity (email / LifeOS ID). */
       loginHint?: string;
       /** OIDC prompt — use "login" when switching accounts. */
       prompt?: string;
-      /** Prefer passkey path on TrustID when supported. */
+      /** Prefer passkey path on the LifeOS Gateway when supported. */
       preferPasskey?: boolean;
       phone?: string | null;
       deviceName?: string | null;
@@ -93,7 +93,7 @@ export function createAuthClient(config: AuthClientConfig) {
       const raw = readPkce(storageKey);
       if (!raw) {
         throw new Error(
-          "Missing PKCE state. Start again from LifeOS with Continue with TrustID (same browser).",
+          "Missing PKCE state. Start again from LifeOS (same browser).",
         );
       }
       const saved = JSON.parse(raw) as { verifier: string; state: string };

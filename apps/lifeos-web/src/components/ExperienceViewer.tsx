@@ -27,7 +27,7 @@ type Props = {
 
 /**
  * Loads an independently deployed business experience via secure handoff URL.
- * Never passes TrustID tokens or LifeOS cookies into the iframe.
+ * Never passes identity tokens or LifeOS cookies into the iframe.
  */
 export function ExperienceViewer({
   experience,

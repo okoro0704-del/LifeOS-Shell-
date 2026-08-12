@@ -57,7 +57,7 @@ export function PermissionConsent({ experience, requestable, onCancel, onConnect
         ))}
       </ul>
       <p className="muted small">
-        LifeOS will not share TrustID credentials. Only the scopes you allow are passed to this
+        LifeOS will not share your gateway credentials. Only the scopes you allow are passed to this
         business experience.
       </p>
       {error ? <p className="error">{error}</p> : null}

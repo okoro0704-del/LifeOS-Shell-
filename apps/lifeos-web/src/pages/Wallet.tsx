@@ -377,7 +377,7 @@ export function WalletPage() {
           <h3>Send tokens</h3>
           <label>
             To
-            <input name="to" required placeholder="Address or TrustID" autoComplete="off" />
+            <input name="to" required placeholder="Address or LifeOS ID" autoComplete="off" />
           </label>
           <label>
             Amount

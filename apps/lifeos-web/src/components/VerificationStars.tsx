@@ -12,7 +12,7 @@ export const VERIFICATION_LEVELS: VerificationLevel[] = [
   {
     id: "email",
     label: "Email",
-    detail: "A verified email address on your TrustID.",
+    detail: "A verified email address on your LifeOS identity.",
   },
   {
     id: "phone",
@@ -42,7 +42,7 @@ function useVerificationStatus() {
     const emailVerified = Boolean(user?.email?.trim());
     return VERIFICATION_LEVELS.map((level, index) => ({
       ...level,
-      /** Only email lights for now — others stay unverified until TrustID exposes them. */
+      /** Only email lights for now — others stay unverified until the gateway exposes them. */
       verified: index === 0 ? emailVerified : false,
     }));
   }, [user?.email]);
@@ -96,7 +96,7 @@ export function VerificationStars({ className }: Props) {
           onClose={() => setOpen(false)}
         >
           <p className="muted small verify-sheet__intro">
-            Stars show what TrustID has verified for you. Tap a star anytime to review status.
+            Stars show what LifeOS has verified for you. Tap a star anytime to review status.
           </p>
           <ul className="verify-sheet__list">
             {levels.map((level) => {

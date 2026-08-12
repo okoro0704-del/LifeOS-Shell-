@@ -11,7 +11,7 @@ export function CallbackPage() {
   const navigate = useNavigate();
   const { setUser } = useAuth();
   const [error, setError] = useState<string | null>(null);
-  const [detail, setDetail] = useState("Validating TrustID authorization…");
+  const [detail, setDetail] = useState("Validating LifeOS Gateway authorization…");
   const started = useRef(false);
 
   useEffect(() => {
@@ -27,7 +27,7 @@ export function CallbackPage() {
       setError(
         oauthError === "access_denied"
           ? "Authorization was denied."
-          : "TrustID authorization was revoked or denied.",
+          : "LifeOS Gateway authorization was revoked or denied.",
       );
       return;
     }
@@ -59,7 +59,7 @@ export function CallbackPage() {
         navigate("/app", { replace: true });
       } catch (err) {
         if (err instanceof ApiError && err.code === "authorization_revoked") {
-          setError("TrustID authorization was revoked. Continue with TrustID to reconnect.");
+          setError("Authorization was revoked. Log into LifeOS again to reconnect.");
         } else {
           setError(userFacingMessage(err));
         }
