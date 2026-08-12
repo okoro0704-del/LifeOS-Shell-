@@ -56,6 +56,16 @@ export function LoginPage() {
     if (entering.current) return;
     clearReturningIdentity();
     setReturning(null);
+    entering.current = false;
+  }
+
+  function openRegister() {
+    if (entering.current) return;
+    clearReturningIdentity();
+    setReturning(null);
+    const register = new URL("/register", authGatewayWeb);
+    register.searchParams.set("source", "lifeos");
+    window.location.href = register.toString();
   }
 
   function openDeviceCodeLogin() {
@@ -113,6 +123,9 @@ export function LoginPage() {
               <button type="button" className="returning-card__switch" onClick={switchAccount}>
                 Log into another Account
               </button>
+              <button type="button" className="returning-card__device-code" onClick={openRegister}>
+                Create a new TrustID
+              </button>
               <button type="button" className="returning-card__device-code" onClick={openDeviceCodeLogin}>
                 I have a device code
               </button>
@@ -121,9 +134,20 @@ export function LoginPage() {
             <div className="welcome-auth">
               <p className="welcome-auth__label mono">secure entry</p>
               <h1>Log into LifeOS Business</h1>
-              <p className="lead">Passkey unlock — Face ID or fingerprint on this device.</p>
-              <Button className="full-width" disabled={gatewayUp === false} onClick={startFresh}>
-                Log into LifeOS Business →
+              <p className="lead">
+                After a server reset, create a new TrustID first — old Face ID / fingerprint
+                passkeys will show &quot;Unknown credential&quot;.
+              </p>
+              <Button className="full-width" disabled={gatewayUp === false} onClick={openRegister}>
+                Create TrustID →
+              </Button>
+              <Button
+                className="full-width"
+                variant="soft"
+                disabled={gatewayUp === false}
+                onClick={startFresh}
+              >
+                I already have a TrustID
               </Button>
               <button type="button" className="returning-card__device-code" onClick={openDeviceCodeLogin}>
                 I have a device code
