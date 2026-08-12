@@ -1,14 +1,9 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Avatar, Button } from "@lifeos/ui";
-import { authClient, authGatewayWeb, checkAuthGatewayReachable } from "../lib/api";
+import { useEffect, useState } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
+import { Button } from "@lifeos/ui";
 import { useAuth } from "../hooks/useAuth";
-import { StatusBanner } from "../components/StatusBanner";
-import {
-  clearReturningIdentity,
-  getReturningIdentity,
-  type ReturningIdentity,
-} from "../lib/returningIdentity";
+import { getReturningIdentity } from "../lib/returningIdentity";
+import { hasSeenIntro, markIntroSeen } from "../lib/introSeen";
 
 const BUSINESS_BOARDS = [
   {
@@ -34,63 +29,37 @@ const BUSINESS_BOARDS = [
   },
 ] as const;
 
+/**
+ * First-launch intro only. Returning users (or anyone who already entered) skip to /login.
+ */
 export function WelcomePage() {
-  const { user, loading, status } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [gatewayUp, setGatewayUp] = useState<boolean | null>(null);
-  const [returning, setReturning] = useState<ReturningIdentity | null>(() => getReturningIdentity());
   const [boardIndex, setBoardIndex] = useState(0);
-  /** Silent lock — prevents double-tap without painting busy/spinner UI. */
-  const entering = useRef(false);
+  const skipIntro = Boolean(getReturningIdentity()) || hasSeenIntro();
 
   useEffect(() => {
     if (!loading && user) navigate("/app", { replace: true });
   }, [loading, user, navigate]);
 
   useEffect(() => {
-    void checkAuthGatewayReachable().then(setGatewayUp);
-  }, []);
-
-  useEffect(() => {
+    if (skipIntro) return;
     const id = window.setInterval(() => {
       setBoardIndex((i) => (i + 1) % BUSINESS_BOARDS.length);
     }, 4200);
     return () => window.clearInterval(id);
-  }, []);
+  }, [skipIntro]);
+
+  if (!loading && user) return null;
+  if (skipIntro) return <Navigate to="/login" replace />;
 
   function enterLifeOS() {
-    if (!returning || entering.current || gatewayUp === false) return;
-    entering.current = true;
-    void authClient.beginLogin({
-      loginHint: returning.trustId,
-      preferPasskey: true,
-      silentUi: true,
-      phone: returning.phone,
-      deviceName: returning.deviceName,
-    });
-  }
-
-  function startFresh() {
-    if (entering.current || gatewayUp === false) return;
-    entering.current = true;
-    void authClient.beginLogin({ prompt: "login", silentUi: true });
-  }
-
-  function switchAccount() {
-    if (entering.current) return;
-    clearReturningIdentity();
-    setReturning(null);
-  }
-
-  function openDeviceCodeLogin() {
-    if (entering.current) return;
-    const enroll = new URL("/enroll", authGatewayWeb);
-    enroll.searchParams.set("source", "lifeos");
-    window.location.href = enroll.toString();
+    markIntroSeen();
+    navigate("/login", { replace: true });
   }
 
   return (
-    <div className="welcome welcome--business">
+    <div className="welcome welcome--business welcome--intro">
       <div className="welcome-atmosphere" aria-hidden />
       <div className="welcome-grid" aria-hidden />
       <div className="welcome-inner welcome-inner--business">
@@ -98,7 +67,7 @@ export function WelcomePage() {
           <p className="brand-hero">
             LifeOS <span className="brand-hero__product">Business</span>
           </p>
-          <p className="welcome-brand-meta mono">identity · commerce · ops</p>
+          <p className="welcome-tagline">Operating system for everyday businesses</p>
         </header>
 
         <section className="welcome-boards" aria-roledescription="carousel" aria-label="LifeOS Business">
@@ -134,65 +103,11 @@ export function WelcomePage() {
         </section>
 
         <div className="welcome-login">
-          {status === "session_expired" ? (
-            <StatusBanner
-              title="Your session ended"
-              detail={
-                returning
-                  ? "Enter LifeOS Business again to continue."
-                  : "Log into LifeOS Business again to continue."
-              }
-            />
-          ) : null}
-
-          {status === "lifeos_unavailable" ? (
-            <StatusBanner
-              title="Something went wrong"
-              detail="We couldn't load LifeOS Business. Try again in a moment."
-            />
-          ) : null}
-
-          {gatewayUp === false ? (
-            <StatusBanner
-              title="LifeOS Gateway unavailable"
-              detail="Please try again shortly."
-            />
-          ) : null}
-
-          {returning ? (
-            <div className="welcome-auth">
-              <div className="returning-card__who">
-                <Avatar name={returning.displayName} size="md" src={returning.avatarUrl} />
-                <div>
-                  <strong className="returning-card__name">{returning.firstName}</strong>
-                  <div className="muted small mono">
-                    {[returning.deviceName, returning.trustId].filter(Boolean).join(" · ")}
-                  </div>
-                </div>
-              </div>
-              <Button className="full-width" disabled={gatewayUp === false} onClick={enterLifeOS}>
-                Enter LifeOS Business
-              </Button>
-              <button type="button" className="returning-card__switch" onClick={switchAccount}>
-                Log into another Account
-              </button>
-              <button type="button" className="returning-card__device-code" onClick={openDeviceCodeLogin}>
-                I have a device code
-              </button>
-            </div>
-          ) : (
-            <div className="welcome-auth">
-              <p className="welcome-auth__label mono">secure entry</p>
-              <h1>Log into LifeOS Business</h1>
-              <p className="lead">Passkey unlock — Face ID or fingerprint on this device.</p>
-              <Button className="full-width" disabled={gatewayUp === false} onClick={startFresh}>
-                Log into LifeOS Business →
-              </Button>
-              <button type="button" className="returning-card__device-code" onClick={openDeviceCodeLogin}>
-                I have a device code
-              </button>
-            </div>
-          )}
+          <div className="welcome-auth welcome-auth--enter">
+            <Button className="full-width" onClick={enterLifeOS}>
+              Enter LifeOS
+            </Button>
+          </div>
         </div>
       </div>
     </div>

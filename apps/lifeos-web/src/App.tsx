@@ -6,6 +6,7 @@ import { CommandLayerProvider } from "./hooks/useCommandLayer";
 import { AppShell } from "./components/AppShell";
 import { RequireAuth } from "./components/RequireAuth";
 import { WelcomePage } from "./pages/Welcome";
+import { LoginPage } from "./pages/Login";
 import { CallbackPage } from "./pages/Callback";
 import { Skeleton } from "@lifeos/ui";
 
@@ -66,6 +67,7 @@ function ThemedApp() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<WelcomePage />} />
+          <Route path="/login" element={<LoginPage />} />
           <Route path="/callback" element={<CallbackPage />} />
           <Route element={<RequireAuth />}>
             <Route

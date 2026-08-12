@@ -27,7 +27,7 @@ export function RequireAuth() {
             title="Your session ended"
             detail="Log into LifeOS Business again to continue."
             action={
-              <Button onClick={() => navigate("/")}>Log into LifeOS Business →</Button>
+              <Button onClick={() => navigate("/login")}>Log into LifeOS Business →</Button>
             }
           />
         </div>
@@ -52,6 +52,6 @@ export function RequireAuth() {
     );
   }
 
-  if (!user) return <Navigate to="/" replace />;
+  if (!user) return <Navigate to="/login" replace />;
   return <Outlet />;
 }

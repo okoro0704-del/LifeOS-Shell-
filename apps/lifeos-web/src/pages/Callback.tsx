@@ -6,6 +6,7 @@ import { meService } from "../lib/services";
 import { useAuth } from "../hooks/useAuth";
 import { StatusBanner } from "../components/StatusBanner";
 import { saveReturningIdentity } from "../lib/returningIdentity";
+import { markIntroSeen } from "../lib/introSeen";
 
 /** Silent return surface — no handshake status chatter. */
 export function CallbackPage() {
@@ -48,6 +49,7 @@ export function CallbackPage() {
         }
         storeSessionToken(data.sessionToken);
         saveReturningIdentity(data.user);
+        markIntroSeen();
         setUser(data.user);
         navigate("/app", { replace: true });
       } catch (err) {
@@ -71,7 +73,7 @@ export function CallbackPage() {
           <>
             <h1>Could not connect</h1>
             <StatusBanner title={error} />
-            <button className="los-btn los-btn--primary" onClick={() => navigate("/")}>
+            <button className="los-btn los-btn--primary" onClick={() => navigate("/login")}>
               Try again
             </button>
           </>

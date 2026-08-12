@@ -282,7 +282,7 @@ export function ProfilePage() {
         className="logout-btn"
         onClick={async () => {
           await logout();
-          navigate("/");
+          navigate("/login");
         }}
       >
         Sign out
