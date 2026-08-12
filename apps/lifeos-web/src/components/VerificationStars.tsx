@@ -39,13 +39,17 @@ export const VERIFICATION_LEVELS: VerificationLevel[] = [
 function useVerificationStatus() {
   const { user } = useAuth();
   return useMemo(() => {
-    const emailVerified = Boolean(user?.email?.trim());
+    const tier = user?.trustTier ?? 0;
+    const verifiedIdentity =
+      user?.zkVerified ||
+      user?.identityStatus === "verified" ||
+      (typeof tier === "number" && tier >= 2);
+    // Light stars from non-PII trust tier / ZK status — never from raw email columns.
     return VERIFICATION_LEVELS.map((level, index) => ({
       ...level,
-      /** Only email lights for now — others stay unverified until the gateway exposes them. */
-      verified: index === 0 ? emailVerified : false,
+      verified: index < Math.max(verifiedIdentity ? Math.min(tier || 1, 5) : tier, 0),
     }));
-  }, [user?.email]);
+  }, [user?.trustTier, user?.identityStatus, user?.zkVerified]);
 }
 
 type Props = {

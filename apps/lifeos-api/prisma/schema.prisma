@@ -7,24 +7,27 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/// LifeOS-local user keyed by TrustID public ID — not a separate consumer identity.
+/// LifeOS-local user keyed by TrustID public ID — zero-PII (no gateway email/names).
 model User {
-  id            String   @id @default(cuid())
-  trustId       String   @unique
-  displayName   String
-  email         String?
-  firstName     String?
-  lastName      String?
-  preferences   String   @default("{}")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  lastLoginAt   DateTime @default(now())
-  sessions      Session[]
-  notifications Notification[]
-  activities    Activity[]
-  connections     ExperienceConnection[]
+  id             String    @id @default(cuid())
+  trustId        String    @unique
+  displayName    String
+  /// Non-PII trust tier from ZK / trust_level claims (0–3).
+  trustTier     Int?
+  /// Non-PII identity status from gateway (e.g. verified).
+  identityStatus String?
+  /// When the last login included verified ZK claims.
+  zkVerifiedAt   DateTime?
+  preferences    String    @default("{}")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  lastLoginAt    DateTime  @default(now())
+  sessions       Session[]
+  notifications  Notification[]
+  activities     Activity[]
+  connections      ExperienceConnection[]
   experienceSessions ExperienceSession[]
-  auditEvents   AuditEvent[]
+  auditEvents    AuditEvent[]
   commandHistory CommandHistory[]
   savedOfferings SavedOffering[]
   actionRecords  ActionRecord[]

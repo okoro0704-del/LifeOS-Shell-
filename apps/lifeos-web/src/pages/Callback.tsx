@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { AuthClientError } from "@lifeos/auth-client";
 import { ApiError, authClient, storeSessionToken, userFacingMessage } from "../lib/api";
 import { meService } from "../lib/services";
 import { useAuth } from "../hooks/useAuth";
@@ -15,7 +16,6 @@ export function CallbackPage() {
   const started = useRef(false);
 
   useEffect(() => {
-    // Run the exchange only once (Strict Mode remounts must not abort a successful flow)
     if (started.current) return;
     started.current = true;
 
@@ -40,25 +40,27 @@ export function CallbackPage() {
       try {
         setDetail("Exchanging authorization code…");
         const tokens = await authClient.exchangeCode(code, state);
+
+        setDetail("Collecting zero-knowledge identity claims…");
+        const handshake = await authClient.buildSessionHandshake(tokens.access_token);
+
         setDetail("Creating your LifeOS session…");
-        let phone: string | null = null;
-        try {
-          const info = await authClient.fetchUserInfo(tokens.access_token);
-          phone =
-            info.contacts?.find((c) => c.type === "phone" || c.type === "tel")?.value ?? null;
-        } catch {
-          /* optional enrichment */
-        }
-        const data = await meService.createSession(tokens.access_token);
+        // Contacts/names (if any) stay client-ephemeral for returning UX — never sent as persisted PII.
+        // Optional RAM-only presentation on the API is omitted by default (zero-PII).
+        const data = await meService.createSession(tokens.access_token, {
+          zkClaims: handshake.zkClaims,
+        });
         if (!data.sessionToken) {
           throw new ApiError("Session token missing from LifeOS response.", 502, "lifeos_unavailable");
         }
         storeSessionToken(data.sessionToken);
-        saveReturningIdentity(data.user, { phone });
+        saveReturningIdentity(data.user);
         setUser(data.user);
         navigate("/app", { replace: true });
       } catch (err) {
-        if (err instanceof ApiError && err.code === "authorization_revoked") {
+        if (err instanceof AuthClientError) {
+          setError(err.message);
+        } else if (err instanceof ApiError && err.code === "authorization_revoked") {
           setError("Authorization was revoked. Log into LifeOS again to reconnect.");
         } else {
           setError(userFacingMessage(err));

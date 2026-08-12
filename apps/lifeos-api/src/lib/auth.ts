@@ -9,9 +9,9 @@ export type SessionUser = {
   id: string;
   trustId: string;
   displayName: string;
-  email: string | null;
-  firstName: string | null;
-  lastName: string | null;
+  trustTier: number | null;
+  identityStatus: string | null;
+  zkVerifiedAt: Date | null;
   preferences: LifeOsPreferences;
   createdAt: Date;
   lastLoginAt: Date;
@@ -48,9 +48,9 @@ export function toPublicUser(user: {
   id: string;
   trustId: string;
   displayName: string;
-  email: string | null;
-  firstName: string | null;
-  lastName: string | null;
+  trustTier?: number | null;
+  identityStatus?: string | null;
+  zkVerifiedAt?: Date | null;
   preferences: string;
   createdAt: Date;
   lastLoginAt: Date;
@@ -59,9 +59,12 @@ export function toPublicUser(user: {
     id: user.id,
     trustId: user.trustId,
     displayName: user.displayName,
-    email: user.email,
-    firstName: user.firstName,
-    lastName: user.lastName,
+    email: null,
+    firstName: null,
+    lastName: null,
+    trustTier: user.trustTier ?? null,
+    identityStatus: user.identityStatus ?? null,
+    zkVerified: Boolean(user.zkVerifiedAt),
     preferences: parsePreferences(user.preferences),
     createdAt: user.createdAt.toISOString(),
     lastLoginAt: user.lastLoginAt.toISOString(),
@@ -80,8 +83,6 @@ export function sessionCookieOptions(expiresAt: Date): CookieSerializeOptions {
 }
 
 export function clearSessionCookie(reply: FastifyReply) {
-  // Clear under common SameSite/Secure combos so a leftover cookie from a
-  // prior COOKIE_SAMESITE setting (or Netlify→Railway proxy) cannot re-auth.
   const variants: CookieSerializeOptions[] = [
     { path: "/", httpOnly: true, sameSite: config.cookieSameSite, secure: config.cookieSecure },
     { path: "/", httpOnly: true, sameSite: "lax", secure: config.cookieSecure },
@@ -97,11 +98,6 @@ export function setSessionCookie(reply: FastifyReply, rawToken: string, expiresA
   reply.setCookie(config.sessionCookieName, rawToken, sessionCookieOptions(expiresAt));
 }
 
-/**
- * Prefer explicit client token (header / Bearer) over cookie.
- * The SPA stores the session in localStorage and sends X-LifeOS-Session; after
- * logout that header is gone — cookie must not silently win over a cleared client.
- */
 export function extractSessionToken(req: FastifyRequest): string | undefined {
   const header = req.headers[config.sessionHeaderName];
   if (typeof header === "string" && header.trim()) return header.trim();
@@ -122,9 +118,9 @@ function toSessionUser(user: {
   id: string;
   trustId: string;
   displayName: string;
-  email: string | null;
-  firstName: string | null;
-  lastName: string | null;
+  trustTier?: number | null;
+  identityStatus?: string | null;
+  zkVerifiedAt?: Date | null;
   preferences: string;
   createdAt: Date;
   lastLoginAt: Date;
@@ -133,19 +129,15 @@ function toSessionUser(user: {
     id: user.id,
     trustId: user.trustId,
     displayName: user.displayName,
-    email: user.email,
-    firstName: user.firstName,
-    lastName: user.lastName,
+    trustTier: user.trustTier ?? null,
+    identityStatus: user.identityStatus ?? null,
+    zkVerifiedAt: user.zkVerifiedAt ?? null,
     preferences: parsePreferences(user.preferences),
     createdAt: user.createdAt,
     lastLoginAt: user.lastLoginAt,
   };
 }
 
-/**
- * Resolve auth. When `reply` is provided and the session is valid, slide expiry
- * forward by SESSION_TTL_HOURS (default 24h inactivity window).
- */
 export async function resolveAuthStatus(
   req: FastifyRequest,
   reply?: FastifyReply,
@@ -174,8 +166,6 @@ export async function resolveAuthStatus(
 
   const ttlMs = config.sessionTtlHours * 3600_000;
   const expiresAt = new Date(Date.now() + ttlMs);
-  // Slide only when less than half the window remains — cuts DB writes while still
-  // enforcing ~24h inactivity.
   const remaining = session.expiresAt.getTime() - Date.now();
   if (remaining < ttlMs / 2) {
     await prisma.session.update({
@@ -204,7 +194,7 @@ export async function requireSession(req: FastifyRequest, reply: FastifyReply) {
     clearSessionCookie(reply);
     return reply.code(401).send({
       error: "session_expired",
-      message: "Your LifeOS session has expired. Continue with TrustID.",
+      message: "Your LifeOS session has expired. Log into LifeOS again.",
     });
   }
 

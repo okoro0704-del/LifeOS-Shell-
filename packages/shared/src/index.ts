@@ -122,13 +122,70 @@ export interface LifeOsUserPublic {
   id: string;
   trustId: string;
   displayName: string;
+  /**
+   * @deprecated Zero-PII: never populated from the identity gateway.
+   * May appear only from ephemeral client-side returning identity.
+   */
   email?: string | null;
+  /** @deprecated Zero-PII — not persisted by LifeOS API. */
   firstName?: string | null;
+  /** @deprecated Zero-PII — not persisted by LifeOS API. */
   lastName?: string | null;
+  /** Trust tier from ZK / trust_level claims (0–3). */
+  trustTier?: number | null;
+  /** Gateway identity status (e.g. verified / unverified). */
+  identityStatus?: string | null;
+  /** True when the current login included verified ZK claims. */
+  zkVerified?: boolean;
   preferences: LifeOsPreferences;
   createdAt: string;
   lastLoginAt: string;
 }
+
+/** Groth16 proof payload as produced by snarkjs / Circom. */
+export type Groth16Proof = {
+  pi_a: string[];
+  pi_b: string[][];
+  pi_c: string[];
+  protocol?: string;
+  curve?: string;
+};
+
+export type ZkClaimType =
+  | "compliance_tier"
+  | "uniqueness"
+  | "authorization"
+  | "identity_status"
+  | string;
+
+/** Zero-knowledge claim bundle from TrustID — no raw PII. */
+export type ZkClaimBundle = {
+  claimType: ZkClaimType;
+  proof: Groth16Proof;
+  publicSignals: string[];
+  /** Audience-bound uniqueness nullifier (opaque). */
+  nullifier?: string;
+  disclosed?: {
+    trustTier?: number;
+    identityStatus?: string;
+    verified?: boolean;
+    authorized?: boolean;
+  };
+  issuedAt?: string;
+  audience?: string;
+  protocol?: "groth16";
+};
+
+export type ZkVerifyErrorCode =
+  | "zk_invalid"
+  | "zk_required"
+  | "zk_expired"
+  | "zk_audience_mismatch"
+  | "zk_unavailable";
+
+/** Default OAuth scopes for LifeOS — ZK-first, no legacy PII scopes. */
+export const LIFEOS_AUTH_SCOPES =
+  "openid identity.basic identity.zk_claims identity.trust_level identity.verification_status";
 
 export interface LifeOsPreferences {
   notificationsEnabled: boolean;

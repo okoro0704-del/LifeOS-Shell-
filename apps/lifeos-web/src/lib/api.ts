@@ -1,3 +1,4 @@
+import { LIFEOS_AUTH_SCOPES } from "@lifeos/shared";
 import { createAuthClient } from "@lifeos/auth-client";
 
 /**
@@ -23,9 +24,7 @@ export const authClient = createAuthClient({
   trustIdApi: authGatewayApi,
   clientId: import.meta.env.VITE_TRUSTID_CLIENT_ID ?? "lifeos_mock_public",
   redirectUri: import.meta.env.VITE_TRUSTID_REDIRECT_URI ?? "http://localhost:5174/callback",
-  scopes:
-    import.meta.env.VITE_TRUSTID_SCOPES ??
-    "openid identity.basic identity.profile identity.email",
+  scopes: import.meta.env.VITE_TRUSTID_SCOPES ?? LIFEOS_AUTH_SCOPES,
 });
 
 export type ApiErrorCode =
@@ -34,6 +33,11 @@ export type ApiErrorCode =
   | "invalid_token"
   | "authorization_revoked"
   | "trustid_unavailable"
+  | "zk_invalid"
+  | "zk_required"
+  | "zk_expired"
+  | "zk_audience_mismatch"
+  | "zk_unavailable"
   | "wallet_unavailable"
   | "lifeos_unavailable"
   | "experience_unavailable"
@@ -118,6 +122,11 @@ function mapErrorCode(status: number, raw?: string): ApiErrorCode {
   if (raw === "authorization_revoked") return "authorization_revoked";
   if (raw === "invalid_token") return "invalid_token";
   if (raw === "trustid_unavailable") return "trustid_unavailable";
+  if (raw === "zk_invalid") return "zk_invalid";
+  if (raw === "zk_required") return "zk_required";
+  if (raw === "zk_expired") return "zk_expired";
+  if (raw === "zk_audience_mismatch") return "zk_audience_mismatch";
+  if (raw === "zk_unavailable") return "zk_unavailable";
   if (raw === "wallet_unavailable") return "wallet_unavailable";
   if (raw === "experience_not_loadable") return "experience_unavailable";
   if (raw === "not_found") return "not_found";
@@ -135,6 +144,16 @@ export function userFacingMessage(err: unknown): string {
         return "Authorization was revoked. Log into LifeOS again to reconnect.";
       case "trustid_unavailable":
         return "LifeOS Gateway is temporarily unavailable.";
+      case "zk_invalid":
+        return "Identity proof was rejected. Try signing in again.";
+      case "zk_required":
+        return "A verified identity proof is required to continue.";
+      case "zk_expired":
+        return "Your identity proof expired. Log into LifeOS again.";
+      case "zk_audience_mismatch":
+        return "Identity proof was issued for a different app.";
+      case "zk_unavailable":
+        return "Identity proof verification is temporarily unavailable.";
       case "wallet_unavailable":
         return "Wallet unavailable.";
       case "lifeos_unavailable":

@@ -29,7 +29,7 @@ export function WelcomePage() {
     if (!returning) return;
     setStarting(true);
     void authClient.beginLogin({
-      loginHint: returning.email || returning.trustId,
+      loginHint: returning.trustId,
       preferPasskey: true,
       phone: returning.phone,
       deviceName: returning.deviceName,
@@ -98,8 +98,7 @@ export function WelcomePage() {
               <div>
                 <strong className="returning-card__name">{returning.firstName}</strong>
                 <div className="muted small">
-                  {[returning.email, returning.deviceName].filter(Boolean).join(" · ") ||
-                    returning.trustId}
+                  {[returning.deviceName, returning.trustId].filter(Boolean).join(" · ")}
                 </div>
               </div>
             </div>

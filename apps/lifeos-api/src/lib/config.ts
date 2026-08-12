@@ -37,4 +37,23 @@ export const config = {
       ? false
       : (process.env.NODE_ENV ?? "development") === "production",
   experienceTokenTtlSeconds: Number(process.env.EXPERIENCE_TOKEN_TTL_SECONDS ?? 300),
+  /**
+   * ZK verification strategy:
+   * - hybrid (default): TrustID /zk/verify then local snarkjs
+   * - remote: TrustID only
+   * - local: snarkjs + TrustID verification key only
+   */
+  zkVerifyMode: (process.env.ZK_VERIFY_MODE ?? "hybrid") as "hybrid" | "remote" | "local",
+  /** Require zkClaims on POST /auth/session when gateway advertises zk.available */
+  zkRequireClaims: (process.env.ZK_REQUIRE_CLAIMS ?? "").toLowerCase() === "true",
+  /**
+   * Dev/staging: accept structurally valid claims when TrustID circuits are not deployed.
+   * Never enable in production.
+   */
+  zkDevRelaxed:
+    (process.env.ZK_DEV_RELAXED ?? "").toLowerCase() === "true" ||
+    ((process.env.NODE_ENV ?? "development") !== "production" &&
+      (process.env.ZK_DEV_RELAXED ?? "true").toLowerCase() !== "false"),
+  /** OAuth client id used as ZK audience. */
+  trustIdClientId: process.env.TRUSTID_CLIENT_ID ?? "lifeos_mock_public",
 };

@@ -6,7 +6,9 @@ export type ReturningIdentity = {
   trustId: string;
   displayName: string;
   firstName: string;
+  /** @deprecated Zero-PII — not populated from gateway. */
   email?: string | null;
+  /** Device-local only; never from LifeOS API persistence. */
   phone?: string | null;
   deviceName?: string | null;
   avatarUrl?: string | null;
@@ -52,15 +54,16 @@ export function saveReturningIdentity(
 ) {
   const existing = getReturningIdentity();
   const firstName =
-    user.firstName?.trim() ||
+    user.displayName.replace(/^LifeOS\s*[·•-]\s*/i, "").trim() ||
     user.displayName.split(/\s+/)[0] ||
-    user.displayName;
+    "there";
   const next: ReturningIdentity = {
     trustId: user.trustId,
     displayName: user.displayName,
     firstName,
-    email: user.email ?? existing?.email ?? null,
-    phone: extras?.phone ?? existing?.phone ?? null,
+    // Never cache gateway email/contacts on disk.
+    email: null,
+    phone: extras?.phone ?? null,
     deviceName: extras?.deviceName ?? existing?.deviceName ?? defaultDeviceName(),
     avatarUrl: user.preferences?.avatarUrl ?? existing?.avatarUrl ?? null,
     lastSignedInAt: new Date().toISOString(),

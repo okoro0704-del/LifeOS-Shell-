@@ -32,10 +32,30 @@ export const meService = {
       "/auth/status",
     ),
   logout: () => api<{ ok: boolean }>("/auth/logout", { method: "POST" }),
-  createSession: (accessToken: string) =>
-    api<{ user: LifeOsUserPublic; sessionToken?: string; expiresAt?: string }>("/auth/session", {
+  createSession: (
+    accessToken: string,
+    opts?: {
+      zkClaims?: import("@lifeos/shared").ZkClaimBundle[];
+      ephemeralPresentation?: {
+        email?: string;
+        phone?: string;
+        firstName?: string;
+        lastName?: string;
+      };
+    },
+  ) =>
+    api<{
+      user: LifeOsUserPublic;
+      sessionToken?: string;
+      expiresAt?: string;
+      zk?: { verified: boolean; claimCount: number };
+    }>("/auth/session", {
       method: "POST",
-      body: JSON.stringify({ accessToken }),
+      body: JSON.stringify({
+        accessToken,
+        zkClaims: opts?.zkClaims,
+        ephemeralPresentation: opts?.ephemeralPresentation,
+      }),
     }),
 };
 
