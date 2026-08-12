@@ -9,9 +9,9 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "apple-touch-icon.png"],
       manifest: {
-        name: "LifeOS",
-        short_name: "LifeOS",
-        description: "Your everyday LifeOS shell for wallet, activity, and experiences",
+        name: "LifeOS Business",
+        short_name: "LifeOS Business",
+        description: "LifeOS Business — operate every business OS from one shell",
         theme_color: "#0d7a6f",
         background_color: "#eef2f5",
         display: "standalone",

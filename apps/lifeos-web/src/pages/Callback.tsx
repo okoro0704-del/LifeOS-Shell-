@@ -66,7 +66,7 @@ export function CallbackPage() {
     <div className="welcome welcome--silent">
       <div className="welcome-atmosphere" aria-hidden />
       <div className="welcome-inner">
-        <p className="brand-hero">LifeOS</p>
+        <p className="brand-hero">LifeOS Business</p>
         {error ? (
           <>
             <h1>Could not connect</h1>
@@ -77,7 +77,7 @@ export function CallbackPage() {
           </>
         ) : (
           <p className="sr-only" aria-live="polite">
-            Entering LifeOS
+            Entering LifeOS Business
           </p>
         )}
       </div>

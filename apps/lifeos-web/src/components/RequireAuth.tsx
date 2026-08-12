@@ -11,7 +11,7 @@ export function RequireAuth() {
     return (
       <div className="welcome">
         <div className="welcome-inner">
-          <p className="brand-hero">LifeOS</p>
+          <p className="brand-hero">LifeOS Business</p>
           <p className="lead">Loading…</p>
         </div>
       </div>
@@ -22,12 +22,12 @@ export function RequireAuth() {
     return (
       <div className="welcome">
         <div className="welcome-inner">
-          <p className="brand-hero">LifeOS</p>
+          <p className="brand-hero">LifeOS Business</p>
           <StatusBanner
             title="Your session ended"
-            detail="Log into LifeOS again to continue."
+            detail="Log into LifeOS Business again to continue."
             action={
-              <Button onClick={() => navigate("/")}>Log into LifeOS →</Button>
+              <Button onClick={() => navigate("/")}>Log into LifeOS Business →</Button>
             }
           />
         </div>
@@ -41,10 +41,10 @@ export function RequireAuth() {
     return (
       <div className="welcome">
         <div className="welcome-inner">
-          <p className="brand-hero">LifeOS</p>
+          <p className="brand-hero">LifeOS Business</p>
           <StatusBanner
             title="Something went wrong"
-            detail="We couldn't load LifeOS. Try again in a moment."
+            detail="We couldn't load LifeOS Business. Try again in a moment."
             action={<Button onClick={() => window.location.reload()}>Try again</Button>}
           />
         </div>

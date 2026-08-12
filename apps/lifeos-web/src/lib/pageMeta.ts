@@ -80,5 +80,5 @@ export function resolvePageMeta(pathname: string): PageMeta | null {
     return { title: "Services", subtitle: "Everything LifeOS can book" };
   }
 
-  return { title: "LifeOS" };
+  return { title: "LifeOS Business" };
 }

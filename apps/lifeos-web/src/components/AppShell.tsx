@@ -97,7 +97,7 @@ export function AppShell() {
       <aside className="sidebar" aria-label="Primary">
         <div className="brand">
           <span className="brand-mark" aria-hidden />
-          <span className="brand-name">LifeOS</span>
+          <span className="brand-name">LifeOS Business</span>
         </div>
         <nav className="side-nav">
           {tabs.map((t) => (
@@ -244,9 +244,9 @@ export function AppShell() {
         ) : null}
 
         {showInstall && deferredPrompt ? (
-          <div className="install-banner" role="region" aria-label="Install LifeOS">
+          <div className="install-banner" role="region" aria-label="Install LifeOS Business">
             <div>
-              <strong>Install LifeOS</strong>
+              <strong>Install LifeOS Business</strong>
               <p className="muted small">Add to your home screen for everyday access.</p>
             </div>
             <div className="row-actions">
