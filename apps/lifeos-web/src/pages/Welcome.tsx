@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Avatar, Button, SecurityCard } from "@lifeos/ui";
+import { Avatar, Button } from "@lifeos/ui";
 import { authClient, authGatewayWeb, checkAuthGatewayReachable } from "../lib/api";
 import { useAuth } from "../hooks/useAuth";
 import { StatusBanner } from "../components/StatusBanner";
@@ -13,20 +13,23 @@ import {
 const BUSINESS_BOARDS = [
   {
     id: "operate",
-    title: "Operate every business OS",
-    detail: "Hotels, dining, wellness, and more — one shell for every experience you run.",
+    index: "01",
+    title: "Every business OS",
+    detail: "Hotels, dining, wellness — one shell.",
     tone: "a",
   },
   {
     id: "commerce",
-    title: "Book, order, and get paid",
-    detail: "Unified commerce across your services — customers stay in LifeOS Business.",
+    index: "02",
+    title: "Book · order · settle",
+    detail: "Commerce stays inside LifeOS Business.",
     tone: "b",
   },
   {
     id: "trust",
-    title: "Identity that stays sovereign",
-    detail: "Passkey unlock on this device. No passwords. Gateway credentials never leave the vault.",
+    index: "03",
+    title: "Passkey unlock",
+    detail: "Face ID or fingerprint. Credentials stay local.",
     tone: "c",
   },
 ] as const;
@@ -51,7 +54,7 @@ export function WelcomePage() {
   useEffect(() => {
     const id = window.setInterval(() => {
       setBoardIndex((i) => (i + 1) % BUSINESS_BOARDS.length);
-    }, 4500);
+    }, 4200);
     return () => window.clearInterval(id);
   }, []);
 
@@ -89,9 +92,13 @@ export function WelcomePage() {
   return (
     <div className="welcome welcome--business">
       <div className="welcome-atmosphere" aria-hidden />
+      <div className="welcome-grid" aria-hidden />
       <div className="welcome-inner welcome-inner--business">
         <header className="welcome-brand-block">
-          <p className="brand-hero">LifeOS Business</p>
+          <p className="brand-hero">
+            LifeOS <span className="brand-hero__product">Business</span>
+          </p>
+          <p className="welcome-brand-meta mono">identity · commerce · ops</p>
         </header>
 
         <section className="welcome-boards" aria-roledescription="carousel" aria-label="LifeOS Business">
@@ -102,7 +109,10 @@ export function WelcomePage() {
                 className={`welcome-board welcome-board--${board.tone}`}
                 aria-hidden={BUSINESS_BOARDS[boardIndex].id !== board.id}
               >
-                <p className="welcome-board__eyebrow">LifeOS Business</p>
+                <div className="welcome-board__top">
+                  <span className="welcome-board__index mono">{board.index}</span>
+                  <span className="welcome-board__tag mono">module</span>
+                </div>
                 <h2 className="welcome-board__title">{board.title}</h2>
                 <p className="welcome-board__detail">{board.detail}</p>
               </article>
@@ -124,18 +134,6 @@ export function WelcomePage() {
         </section>
 
         <div className="welcome-login">
-          {returning ? (
-            <>
-              <h1>Welcome back</h1>
-              <p className="lead">Your account is ready on this device.</p>
-            </>
-          ) : (
-            <>
-              <h1>Log into LifeOS Business</h1>
-              <p className="lead">Enter with your passkey — biometric unlock stays on this device.</p>
-            </>
-          )}
-
           {status === "session_expired" ? (
             <StatusBanner
               title="Your session ended"
@@ -162,21 +160,17 @@ export function WelcomePage() {
           ) : null}
 
           {returning ? (
-            <div className="returning-card">
+            <div className="welcome-auth">
               <div className="returning-card__who">
-                <Avatar name={returning.displayName} size="lg" src={returning.avatarUrl} />
+                <Avatar name={returning.displayName} size="md" src={returning.avatarUrl} />
                 <div>
                   <strong className="returning-card__name">{returning.firstName}</strong>
-                  <div className="muted small">
+                  <div className="muted small mono">
                     {[returning.deviceName, returning.trustId].filter(Boolean).join(" · ")}
                   </div>
                 </div>
               </div>
-              <Button
-                className="full-width"
-                disabled={gatewayUp === false}
-                onClick={enterLifeOS}
-              >
+              <Button className="full-width" disabled={gatewayUp === false} onClick={enterLifeOS}>
                 Enter LifeOS Business
               </Button>
               <button type="button" className="returning-card__switch" onClick={switchAccount}>
@@ -187,30 +181,17 @@ export function WelcomePage() {
               </button>
             </div>
           ) : (
-            <SecurityCard
-              eyebrow="LifeOS Business"
-              title="Log into LifeOS Business"
-              detail="Sign in once. Next time, Enter LifeOS Business unlocks this device with Face ID or fingerprint."
-              action={
-                <>
-                  <Button
-                    className="full-width"
-                    disabled={gatewayUp === false}
-                    onClick={startFresh}
-                  >
-                    Log into LifeOS Business →
-                  </Button>
-                  <button
-                    type="button"
-                    className="returning-card__device-code"
-                    onClick={openDeviceCodeLogin}
-                    style={{ marginTop: "0.75rem", width: "100%" }}
-                  >
-                    I have a device code
-                  </button>
-                </>
-              }
-            />
+            <div className="welcome-auth">
+              <p className="welcome-auth__label mono">secure entry</p>
+              <h1>Log into LifeOS Business</h1>
+              <p className="lead">Passkey unlock — Face ID or fingerprint on this device.</p>
+              <Button className="full-width" disabled={gatewayUp === false} onClick={startFresh}>
+                Log into LifeOS Business →
+              </Button>
+              <button type="button" className="returning-card__device-code" onClick={openDeviceCodeLogin}>
+                I have a device code
+              </button>
+            </div>
           )}
         </div>
       </div>
