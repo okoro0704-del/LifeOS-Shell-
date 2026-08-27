@@ -3,6 +3,7 @@ import cors from "@fastify/cors";
 import cookie from "@fastify/cookie";
 import { config } from "./lib/config.js";
 import { container } from "./container.js";
+import { HttpElfComProvider } from "./adapters/elfcom-http.js";
 import { authRoutes } from "./routes/auth.js";
 import { profileRoutes } from "./routes/profile.js";
 import { walletRoutes } from "./routes/wallet.js";
@@ -17,6 +18,11 @@ import { commandRoutes } from "./command/routes.js";
 import { actionRoutes } from "./routes/actions.js";
 import { bookingRoutes } from "./routes/bookings.js";
 import { wipeRoutes } from "./routes/wipe.js";
+import {
+  assertPrimitivesReady,
+  registerPrimitives,
+  type PrimitiveContainer,
+} from "./services/register-primitives.js";
 
 const app = Fastify({ logger: true });
 
@@ -30,13 +36,31 @@ await app.register(cookie, {
   secret: config.cookieSecret,
 });
 
+if (config.elfcomMode === "http") {
+  container.bindElfCom(
+    new HttpElfComProvider({
+      baseUrl: config.elfcomBaseUrl,
+      nodeSecret: config.elfcomNodeSecret,
+    }),
+  );
+}
+
 const sovereignStatus = container.boot();
+
+/** Phase F — 6 independent primitive engines (local stubs or remote HTTP). */
+export const primitives: PrimitiveContainer = registerPrimitives(process.env);
+const primitivesReady = await assertPrimitivesReady(primitives);
 
 app.get("/health", async () => ({
   ok: true,
   service: "lifeos-api",
   trustIdApi: config.trustIdApi,
   modules: sovereignStatus,
+  primitives: {
+    mode: config.primitivesMode,
+    count: primitivesReady.count,
+    ids: primitivesReady.ids,
+  },
 }));
 
 await experienceProtocolRoutes(app);

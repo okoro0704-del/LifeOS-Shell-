@@ -20,7 +20,9 @@
     "db:seed": "npm run db:seed -w @lifeos/api",
     "icons": "node scripts/generate-icons.mjs",
     "setup": "npm install && npm run icons && npm run build -w @lifeos/shared && npm run build -w @lifeos/auth-client && npm run build -w @lifeos/token-network && npm run build -w @lifeos/experience-sdk && npm run build -w @lifeos/ui && npm run db:generate && npm run db:push && npm run db:seed",
-    "test": "npm run test -w @lifeos/api"
+    "test": "npm run test -w @lifeos/api",
+    "test:e2e": "npm run test:e2e -w @lifeos/api",
+    "typecheck": "npm run build -w @lifeos/shared && npm run typecheck -w @lifeos/api"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

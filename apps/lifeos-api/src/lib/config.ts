@@ -59,4 +59,18 @@ export const config = {
       (process.env.ZK_DEV_RELAXED ?? "true").toLowerCase() !== "false"),
   /** OAuth client id used as ZK audience. */
   trustIdClientId: process.env.TRUSTID_CLIENT_ID ?? "lifeos_mock_public",
+  /**
+   * ElfCom sovereign messaging node.
+   * - unset / unbound: default UnboundElfComMessagingProvider
+   * - http: HttpElfComProvider → ELFCOM_BASE_URL
+   */
+  elfcomMode: (process.env.ELFCOM_MODE ?? "unbound") as "unbound" | "http",
+  elfcomBaseUrl: process.env.ELFCOM_BASE_URL ?? "http://localhost:8791",
+  elfcomNodeSecret: process.env.ELFCOM_NODE_SECRET ?? "elfcom-dev-node-secret-change-me",
+  /** Phase F — local stubs vs remote HTTP engines for the 6-primitive container. */
+  primitivesMode: (process.env.PRIMITIVES_MODE ?? "local") as "local" | "remote",
+  fundzmanUrl: process.env.FUNDZMAN_URL ?? "",
+  sovereignDriveUrl: process.env.SOVEREIGN_DRIVE_URL ?? "",
+  jobsEngineUrl: process.env.JOBS_ENGINE_URL ?? "",
+  distributorUrl: process.env.DISTRIBUTOR_URL ?? "",
 };
