@@ -33,6 +33,7 @@ model User {
   actionRecords  ActionRecord[]
   personalPlans  PersonalPlan[]
   bookings       Booking[]
+  installedApps  InstalledApp[]
 }
 
 model Session {
@@ -271,4 +272,35 @@ model PersonalPlan {
   updatedAt DateTime @updatedAt
 
   @@index([userId, createdAt])
+}
+
+/// Portal-provisioned vertical bound into the user's LifeOS shell (Universal Shell projection).
+model InstalledApp {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trustId        String
+  appId          String
+  tenantId       String
+  displayName    String
+  icon           String?
+  osType         String   @default("other")
+  audience       String   @default("business")
+  experienceId   String?
+  experienceUrl  String
+  approvedOrigin String
+  subdomain      String
+  standaloneUrl  String
+  shellDeepLink  String
+  launchUrl      String   @default("")
+  preset         String?
+  badgeCount     Int      @default(0)
+  status         String   @default("active")
+  metadata       String   @default("{}")
+  installedAt    DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, appId, tenantId])
+  @@index([trustId, status])
+  @@index([userId, status])
 }

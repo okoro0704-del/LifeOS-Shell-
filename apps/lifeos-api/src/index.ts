@@ -18,6 +18,12 @@ import { commandRoutes } from "./command/routes.js";
 import { actionRoutes } from "./routes/actions.js";
 import { bookingRoutes } from "./routes/bookings.js";
 import { wipeRoutes } from "./routes/wipe.js";
+import { distributorRoutes } from "./routes/distributor.js";
+import { finproveProxyRoutes } from "./routes/finprove-proxy.js";
+import {
+  RemoteFinproveLedgerAdapter,
+  RemoteFinprovePaymentAdapter,
+} from "./services/remote/remote-finprove-adapter.js";
 import {
   assertPrimitivesReady,
   registerPrimitives,
@@ -29,7 +35,14 @@ const app = Fastify({ logger: true });
 await app.register(cors, {
   origin: config.corsOrigins,
   credentials: true,
-  allowedHeaders: ["Content-Type", "Authorization", "X-LifeOS-Session"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-LifeOS-Session",
+    "X-Trust-Id",
+    "X-Master-Device-Bound",
+    "X-Master-Challenge",
+  ],
 });
 
 await app.register(cookie, {
@@ -43,6 +56,17 @@ if (config.elfcomMode === "http") {
       nodeSecret: config.elfcomNodeSecret,
     }),
   );
+}
+
+if (config.finproveBind || config.finproveUrl) {
+  const payment = new RemoteFinprovePaymentAdapter(config.finproveUrl);
+  const ledger = new RemoteFinproveLedgerAdapter(config.finproveUrl);
+  const healthy = config.finproveBind ? true : (await payment.health()).ok;
+  if (healthy) {
+    container.bindFinProvPayment(payment);
+    container.bindFinProvFiat(payment);
+    container.bindFinProvLedger(ledger);
+  }
 }
 
 const sovereignStatus = container.boot();
@@ -61,6 +85,10 @@ app.get("/health", async () => ({
     count: primitivesReady.count,
     ids: primitivesReady.ids,
   },
+  finprove: {
+    url: config.finproveUrl,
+    bound: container.getFinProvPayment().bound,
+  },
 }));
 
 await experienceProtocolRoutes(app);
@@ -77,6 +105,8 @@ await commandRoutes(app);
 await actionRoutes(app);
 await bookingRoutes(app);
 await wipeRoutes(app);
+await distributorRoutes(app);
+await finproveProxyRoutes(app);
 
 await app.listen({ port: config.port, host: config.host });
 console.log(`LifeOS API listening on http://${config.host}:${config.port}`);

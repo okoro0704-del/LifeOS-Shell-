@@ -49,6 +49,15 @@ const BusinessPage = lazy(() =>
 const MessagesPage = lazy(() =>
   import("./pages/Messages").then((m) => ({ default: m.MessagesPage })),
 );
+const ShellAppPage = lazy(() =>
+  import("./pages/ShellApp").then((m) => ({ default: m.ShellAppPage })),
+);
+const ServiceOSCatalogPage = lazy(() =>
+  import("./routes/app/serviceos").then((m) => ({ default: m.ServiceOSCatalogPage })),
+);
+const ServiceOSTrackPage = lazy(() =>
+  import("./routes/app/serviceos").then((m) => ({ default: m.ServiceOSTrackPage })),
+);
 
 function PageFallback() {
   return (
@@ -131,6 +140,31 @@ function ThemedApp() {
                 element={
                   <Suspense fallback={<PageFallback />}>
                     <MessagesPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="shell/:appId"
+                element={
+                  <Suspense fallback={<PageFallback />}>
+                    <ShellAppPage />
+                  </Suspense>
+                }
+              />
+              <Route path="serviceos" element={<Navigate to="/app/serviceos/catalog" replace />} />
+              <Route
+                path="serviceos/catalog"
+                element={
+                  <Suspense fallback={<PageFallback />}>
+                    <ServiceOSCatalogPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="serviceos/track/:bookingId"
+                element={
+                  <Suspense fallback={<PageFallback />}>
+                    <ServiceOSTrackPage />
                   </Suspense>
                 }
               />

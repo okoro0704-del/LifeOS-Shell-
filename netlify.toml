@@ -4,7 +4,7 @@
 # HospitalityOS business PWAs are built into dist/hos for same-origin iframe loading.
 
 [build]
-  command = "npm install && npm run build -w @lifeos/shared && npm run build -w @lifeos/auth-client && npm run build -w @lifeos/experience-sdk && npm run build -w @lifeos/ui && npm run build -w @lifeos/web && HOS_BASE=/hos/ VITE_LIFEOS_API=/api VITE_LIFEOS_WEB=https://lifeos011.netlify.app npm run build -w @lifeos/mock-hospitalityos && mkdir -p apps/lifeos-web/dist/hos && cp -R apps/mock-hospitalityos/dist/. apps/lifeos-web/dist/hos/"
+  command = "npm install && npm run build -w @lifeos/shared && npm run build -w @lifeos/shell-core && npm run build -w @lifeos/shell-ui && npm run build -w @lifeos/auth-client && npm run build -w @lifeos/experience-sdk && npm run build -w @lifeos/ui && npm run build -w @lifeos/web && HOS_BASE=/hos/ VITE_LIFEOS_API=/api VITE_LIFEOS_WEB=https://lifeos011.netlify.app npm run build -w @lifeos/mock-hospitalityos && mkdir -p apps/lifeos-web/dist/hos && cp -R apps/mock-hospitalityos/dist/. apps/lifeos-web/dist/hos/"
   publish = "apps/lifeos-web/dist"
 
 [build.environment]

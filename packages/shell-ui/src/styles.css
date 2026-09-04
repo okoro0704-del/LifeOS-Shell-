@@ -1,0 +1,237 @@
+.los-ual {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.35rem 0.5rem 0.75rem;
+}
+
+.los-ual__label {
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.65;
+  font-weight: 650;
+}
+
+.los-ual__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.los-ual__tab {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0.45rem 0.5rem;
+  border-radius: 0.55rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.los-ual__tab:hover,
+.los-ual__tab.is-active {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.los-ual__glyph,
+.los-ual__icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.4rem;
+  flex-shrink: 0;
+}
+
+.los-ual__glyph {
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.los-ual__glyph--emoji {
+  background: transparent;
+  font-size: 1.05rem;
+  font-weight: 400;
+}
+
+.los-ual__icon {
+  object-fit: cover;
+}
+
+.los-ual__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.los-ual__name {
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.los-ual__pill {
+  align-self: flex-start;
+  font-size: 0.62rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.12rem 0.4rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  opacity: 0.9;
+}
+
+.los-ual__badge {
+  margin-left: auto;
+  min-width: 1.2rem;
+  height: 1.2rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.los-ual__empty,
+.los-ual__loading {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.los-app-viewport {
+  display: flex;
+  flex-direction: column;
+  min-height: 60vh;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.los-app-viewport__chrome {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.los-app-viewport__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.los-app-viewport__sso {
+  margin-left: auto;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.los-app-viewport__close {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.los-app-viewport__frame {
+  flex: 1;
+  width: 100%;
+  min-height: 55vh;
+  border: 0;
+  background: #fff;
+}
+
+.los-app-viewport__loading,
+.los-app-viewport__error,
+.los-app-viewport--error {
+  padding: 1rem;
+  font-size: 0.9rem;
+}
+
+.los-tos__preset {
+  font-size: 0.78rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.los-tos__tabs {
+  display: inline-flex;
+  gap: 0.2rem;
+  padding: 0.15rem;
+  border-radius: 0.45rem;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.los-tos__tabs button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.25rem 0.45rem;
+  border-radius: 0.35rem;
+  cursor: pointer;
+}
+
+.los-tos__tabs button.is-active {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+
+.los-tos__action {
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.los-sos-modal {
+  position: absolute;
+  right: 1rem;
+  top: 3.5rem;
+  width: min(360px, calc(100% - 2rem));
+  background: color-mix(in srgb, canvas 92%, transparent);
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem;
+  z-index: 4;
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.18);
+}
+
+.los-sos-viewport {
+  position: relative;
+}
+
+.los-sos-modal header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}

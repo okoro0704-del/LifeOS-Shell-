@@ -8,21 +8,25 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -n api,web,hos -c teal,cyan,magenta \"npm:dev:api\" \"npm:dev:web\" \"npm:dev:hospitality\"",
+    "dev": "concurrently -n api,web,hos,finprove -c teal,cyan,magenta,green \"npm:dev:api\" \"npm:dev:web\" \"npm:dev:hospitality\" \"npm:dev:finprove\"",
     "dev:api": "npm run dev -w @lifeos/api",
+    "dev:finprove": "npm run dev:finprove --prefix ../FINPROV",
     "dev:web": "npm run dev -w @lifeos/web",
     "dev:hospitality": "npm run dev -w @lifeos/mock-hospitalityos",
-    "build": "npm run build -w @lifeos/shared && npm run build -w @lifeos/auth-client && npm run build -w @lifeos/token-network && npm run build -w @lifeos/experience-sdk && npm run build -w @lifeos/ui && npm run build -w @lifeos/api && npm run build -w @lifeos/web && npm run build -w @lifeos/mock-hospitalityos",
+    "build": "npm run build -w @lifeos/shared && npm run build -w @lifeos/shell-core && npm run build -w @lifeos/shell-ui && npm run build -w @lifeos/auth-client && npm run build -w @lifeos/token-network && npm run build -w @lifeos/experience-sdk && npm run build -w @lifeos/ui && npm run build -w @lifeos/api && npm run build -w @lifeos/web && npm run build -w @lifeos/mock-hospitalityos",
     "build:api": "npm run build -w @lifeos/shared && npm run build -w @lifeos/experience-sdk && npm run build -w @lifeos/token-network && npm run db:generate -w @lifeos/api && npm run build -w @lifeos/api",
     "start": "npm run db:push -w @lifeos/api && npm run db:seed -w @lifeos/api && npm run start -w @lifeos/api",
     "db:generate": "npm run db:generate -w @lifeos/api",
     "db:push": "npm run db:push -w @lifeos/api",
     "db:seed": "npm run db:seed -w @lifeos/api",
     "icons": "node scripts/generate-icons.mjs",
-    "setup": "npm install && npm run icons && npm run build -w @lifeos/shared && npm run build -w @lifeos/auth-client && npm run build -w @lifeos/token-network && npm run build -w @lifeos/experience-sdk && npm run build -w @lifeos/ui && npm run db:generate && npm run db:push && npm run db:seed",
+    "setup": "npm install && npm run icons && npm run build -w @lifeos/shared && npm run build -w @lifeos/shell-core && npm run build -w @lifeos/shell-ui && npm run build -w @lifeos/auth-client && npm run build -w @lifeos/token-network && npm run build -w @lifeos/experience-sdk && npm run build -w @lifeos/ui && npm run db:generate && npm run db:push && npm run db:seed",
     "test": "npm run test -w @lifeos/api",
     "test:e2e": "npm run test:e2e -w @lifeos/api",
-    "typecheck": "npm run build -w @lifeos/shared && npm run typecheck -w @lifeos/api"
+    "test:shell": "npm run test:shell -w @lifeos/portal",
+    "test:transportation": "npm run test:transportation -w @lifeos/shell",
+    "test:serviceos": "npm run test:serviceos -w @lifeos/shell && npm run test:serviceos -w @lifeos/web",
+    "typecheck": "npm run build -w @lifeos/shared && npm run build -w @lifeos/shell-core && npm run build -w @lifeos/shell-ui && npm run typecheck -w @lifeos/api"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

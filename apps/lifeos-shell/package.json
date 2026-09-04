@@ -1,0 +1,21 @@
+{
+  "name": "@lifeos/shell",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:transportation": "vitest run test/transportation-projection.test.ts",
+    "test:serviceos": "vitest run test/serviceos-projection.test.ts"
+  },
+  "dependencies": {
+    "@lifeos/shared": "*",
+    "@lifeos/shell-core": "*",
+    "@lifeos/portal": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.9"
+  }
+}

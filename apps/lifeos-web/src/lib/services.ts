@@ -241,6 +241,13 @@ export const connectionService = {
     api<{ ok: boolean }>(`/connections/${id}`, { method: "DELETE" }),
 };
 
+export const installedAppsService = {
+  list: () =>
+    api<{ apps: import("@lifeos/shared").InstalledAppManifest[] }>(
+      "/v1/user/installed-apps",
+    ),
+};
+
 export const activityService = {
   list: () => api<{ activities: ActivityItem[] }>("/activity"),
 };

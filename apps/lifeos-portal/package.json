@@ -1,0 +1,23 @@
+{
+  "name": "@lifeos/portal",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./api/registry.ts",
+    "./api/registry.js": "./api/registry.ts"
+  },
+  "scripts": {
+    "test": "tsx --test test/**/*.test.ts",
+    "test:shell": "tsx --test test/shell-projection.test.ts"
+  },
+  "dependencies": {
+    "@lifeos/shared": "*",
+    "@lifeos/shell-core": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  }
+}

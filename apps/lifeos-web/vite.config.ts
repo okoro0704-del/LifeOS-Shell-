@@ -79,4 +79,9 @@ export default defineConfig({
       },
     },
   },
+  define: {
+    "import.meta.env.VITE_SERVICEOS_API_URL": JSON.stringify(
+      process.env.VITE_SERVICEOS_API_URL || process.env.SERVICEOS_API_URL || "http://localhost:8920",
+    ),
+  },
 });

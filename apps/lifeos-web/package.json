@@ -6,12 +6,16 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:serviceos": "vitest run test/serviceos-render.test.tsx"
   },
   "dependencies": {
     "@lifeos/auth-client": "*",
     "@lifeos/experience-sdk": "*",
     "@lifeos/shared": "*",
+    "@lifeos/shell-core": "*",
+    "@lifeos/shell-ui": "*",
     "@lifeos/ui": "*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -23,6 +27,11 @@
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.8.2",
     "vite": "^6.2.2",
-    "vite-plugin-pwa": "^0.21.1"
+    "vite-plugin-pwa": "^0.21.1",
+    "vitest": "^3.2.4",
+    "jsdom": "^26.1.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1"
   }
 }

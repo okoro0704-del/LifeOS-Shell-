@@ -13,9 +13,12 @@ import {
   IconTicket,
   IconWallet,
 } from "@lifeos/ui";
+import type { InstalledAppManifest } from "@lifeos/shared";
+import { UniversalAppLauncher } from "@lifeos/shell-ui";
+import { shellPathForApp } from "@lifeos/shell-core";
 import { useAuth } from "../hooks/useAuth";
 import { useCommandLayer } from "../hooks/useCommandLayer";
-import { notificationService } from "../lib/services";
+import { installedAppsService, notificationService } from "../lib/services";
 import { CommandOverlay } from "./CommandOverlay";
 import { PageTopBar } from "./PageTopBar";
 import { VerificationStars } from "./VerificationStars";
@@ -53,6 +56,8 @@ export function AppShell() {
     prompt: () => Promise<void>;
   } | null>(null);
   const [showInstall, setShowInstall] = useState(false);
+  const [installedApps, setInstalledApps] = useState<InstalledAppManifest[]>([]);
+  const [appsLoading, setAppsLoading] = useState(true);
   const avatarSrc = user?.preferences?.avatarUrl ?? null;
   const firstName = user?.firstName || user?.displayName?.split(" ")[0] || "there";
   const onExplore = location.pathname.startsWith("/app/services/explore");
@@ -67,6 +72,11 @@ export function AppShell() {
 
   useEffect(() => {
     void notificationService.list().then((d) => setUnread(d.unreadCount)).catch(() => undefined);
+    void installedAppsService
+      .list()
+      .then((d) => setInstalledApps(d.apps ?? []))
+      .catch(() => setInstalledApps([]))
+      .finally(() => setAppsLoading(false));
     const on = () => setOffline(false);
     const off = () => setOffline(true);
     window.addEventListener("online", on);
@@ -171,6 +181,12 @@ export function AppShell() {
             </span>
             Saved
           </NavLink>
+          <div className="side-nav-divider" aria-hidden />
+          <UniversalAppLauncher
+            apps={installedApps}
+            loading={appsLoading}
+            onLaunch={(app) => navigate(shellPathForApp(app))}
+          />
         </nav>
         {user ? (
           <button

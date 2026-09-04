@@ -11,6 +11,13 @@ export function resolvePageMeta(pathname: string): PageMeta | null {
   const path = pathname.replace(/\/+$/, "") || "/";
   if (path === "/app") return null;
 
+  if (path.startsWith("/app/serviceos/track")) {
+    return { title: "Live tracking", subtitle: "Your professional is on the way" };
+  }
+  if (path.startsWith("/app/serviceos")) {
+    return { title: "ServiceOS", subtitle: "Book an at-home visit" };
+  }
+
   if (path.startsWith("/app/discover")) {
     return { title: "Explore", subtitle: "Businesses deployed on LifeOS" };
   }

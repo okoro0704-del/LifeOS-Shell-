@@ -1,8 +1,8 @@
-# DataZone Sovereign Storage Node — Architecture Spec
+# DataZone Sovereign Storage Node ï¿½ Architecture Spec
 
 **Status:** Ready for active development  
 **Port:** `IDataZoneStorageProvider` (`apps/lifeos-api/src/ports/datazone.ts`)  
-**Shell today:** Unbound — `GET /storage/status` reports `module_unbound`; `POST /storage/objects` returns 503 until bound.
+**Shell today:** Unbound ï¿½ `GET /storage/status` reports `module_unbound`; `POST /storage/objects` returns 503 until bound.
 
 LifeOS is a **gateway**, not a storage engine. DataZone is an independent sovereign node that owns ciphertext-at-rest. LifeOS talks to it only through the DI port.
 
@@ -13,7 +13,7 @@ LifeOS is a **gateway**, not a storage engine. DataZone is an independent sovere
 ```text
 ???????????????????????????????????????????????????????????????
 ? TrustID (IdP)                                               ?
-?  Zero-PII ZK claims · Tier1 vault · Tier2 X3DH / guardians  ?
+?  Zero-PII ZK claims ï¿½ Tier1 vault ï¿½ Tier2 X3DH / guardians  ?
 ???????????????????????????????????????????????????????????????
                             ? OAuth + ZK session handshake
                             ?
@@ -28,15 +28,15 @@ LifeOS is a **gateway**, not a storage engine. DataZone is an independent sovere
                             ?
 ???????????????????????????????????????????????????????????????
 ? DataZone Sovereign Node                                     ?
-?  Object store · namespace ACLs · optional client E2E seal   ?
-?  No PII index · No TrustID private keys · No LifeOS DB blobs?
+?  Object store ï¿½ namespace ACLs ï¿½ optional client E2E seal   ?
+?  No PII index ï¿½ No TrustID private keys ï¿½ No LifeOS DB blobs?
 ???????????????????????????????????????????????????????????????
 ```
 
 **Hard rules**
 
-1. LifeOS never embeds S3/MinIO/FS drivers — only the adapter.
-2. Object **namespaces** are keyed by LifeOS `userId` / experience scope — never by email or phone.
+1. LifeOS never embeds S3/MinIO/FS drivers ï¿½ only the adapter.
+2. Object **namespaces** are keyed by LifeOS `userId` / experience scope ï¿½ never by email or phone.
 3. Prefer **client-sealed** payloads (Tier 1 vault / X3DH) when content is sensitive; DataZone stores opaque bytes.
 4. TrustID does not host DataZone data. Secondary-device vault metadata may use TrustID X3DH blind relay; durable blobs go to DataZone.
 
@@ -71,7 +71,7 @@ export interface IDataZoneStorageProvider {
 }
 ```
 
-### Suggested V1 extensions (additive — do not break the port)
+### Suggested V1 extensions (additive ï¿½ do not break the port)
 
 Keep the interface stable for LifeOS; put richer ops on the **node HTTP API**, then optionally widen the port later:
 
@@ -97,9 +97,9 @@ key       = path-like, max 512 chars, no ".." segments
 
 Examples:
 
-- `u:clx…/preferences.json` — shell prefs backup
-- `xp:hospitality:clx…/bookings/2026-08.json` — experience-scoped
-- `sys:lifeos/registry-snapshot.json` — operator only
+- `u:clxï¿½/preferences.json` ï¿½ shell prefs backup
+- `xp:hospitality:clxï¿½/bookings/2026-08.json` ï¿½ experience-scoped
+- `sys:lifeos/registry-snapshot.json` ï¿½ operator only
 
 ### 3.2 LifeOS ? adapter (in-process)
 
@@ -168,7 +168,7 @@ DataZone verifies `aud`, `exp`, and that requested `namespace` ? `ns`.
 | `etag` | Content hash (SHA-256 hex) |
 | `ciphertext_hint` | `none` \| `client_sealed` \| `node_sealed` |
 | `created_at` / `updated_at` | |
-| `owner_sub` | From JWT `sub` — not email |
+| `owner_sub` | From JWT `sub` ï¿½ not email |
 
 Plaintext search indexes are **out of scope** for V1.
 
@@ -178,14 +178,14 @@ Plaintext search indexes are **out of scope** for V1.
 
 | Layer | Responsibility |
 |-------|----------------|
-| TrustID | Identity / ZK / device trust — no blob storage |
+| TrustID | Identity / ZK / device trust ï¿½ no blob storage |
 | LifeOS | Session auth, namespace ACL, port binding |
 | DataZone | AuthZ on capability JWT, durable bytes, optional server-side AES if configured |
 | Client | Tier 1 seal before `put` when content is sensitive |
 
 - At-rest encryption: node disk volume encryption **required**; optional per-object AES-GCM with DEK in node KMS/`SEAL_KEY`.
 - Transport: TLS; prefer mTLS between LifeOS and DataZone in production.
-- Audit: node logs `{ sub, ns, key, op, etag }` — never body bytes.
+- Audit: node logs `{ sub, ns, key, op, etag }` ï¿½ never body bytes.
 - Wipe: honor LifeOS account wipe by deleting `u:{userId}/**` (call from LifeOS wipe hook).
 
 ---
@@ -205,13 +205,13 @@ LifeOS/
         ports/datazone.ts  # unchanged contract
 ```
 
-Alternatively a separate `DataZone` monorepo that publishes `@lifeos/datazone-adapter` — same port, different deploy unit.
+Alternatively a separate `DataZone` monorepo that publishes `@lifeos/datazone-adapter` ï¿½ same port, different deploy unit.
 
 ---
 
 ## 6. Initialization / bootstrap sequence
 
-### Phase A — Local in-process (day 1)
+### Phase A ï¿½ Local in-process (day 1)
 
 Fastest path to green `/storage/*` without a second process:
 
@@ -234,19 +234,19 @@ container.boot();
 4. Update `sovereign-ports.test.ts` for optional bound mode.
 5. Smoke: session ? `POST /storage/objects` ? `GET` ? `DELETE`.
 
-### Phase B — Sovereign node process
+### Phase B ï¿½ Sovereign node process
 
 1. Scaffold `apps/datazone-node` (Fastify + Prisma + local blob dir).
-2. Implement wire API §3.3 + JWT verify.
+2. Implement wire API ï¿½3.3 + JWT verify.
 3. Implement `HttpDataZoneProvider` in LifeOS (`DATAZONE_MODE=http`, `DATAZONE_BASE_URL`, `DATAZONE_NODE_SECRET`).
 4. `container.bindDataZone(new HttpDataZoneProvider(...))`.
 5. Deploy DataZone as its own Railway/Fly service; LifeOS only holds URL + secret.
 
-### Phase C — Production hardening
+### Phase C ï¿½ Production hardening
 
 1. mTLS or SPIFFE between LifeOS ? DataZone.
 2. Multipart + size quotas per namespace.
-3. Experience-scoped grants (`xp:…`) issued at experience handoff.
+3. Experience-scoped grants (`xp:ï¿½`) issued at experience handoff.
 4. Hook account wipe ? namespace purge.
 5. Optional: client-sealed object convention documented for TrustID vault backups.
 
@@ -283,6 +283,6 @@ container.boot();
 | LifeOS storage routes | Already stubbed |
 | LifeOS wipe | Add namespace delete |
 | TrustID | None required for V1; later vault-backup object format |
-| Experience SDK | Optional Phase C grants — not required to bind the port |
+| Experience SDK | Optional Phase C grants ï¿½ not required to bind the port |
 
 **Start here:** Phase A `LocalFsDataZoneProvider` + widen `storage.ts`, then extract the node.

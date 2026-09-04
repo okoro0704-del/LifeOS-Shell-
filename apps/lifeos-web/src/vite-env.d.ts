@@ -8,6 +8,7 @@ interface ImportMetaEnv {
   readonly VITE_TRUSTID_SCOPES: string;
   readonly VITE_LIFEOS_API: string;
   readonly VITE_TRUSTID_WEB: string;
+  readonly VITE_SERVICEOS_API_URL?: string;
 }
 
 interface ImportMeta {

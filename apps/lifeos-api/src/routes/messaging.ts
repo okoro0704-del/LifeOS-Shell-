@@ -18,7 +18,7 @@ const sendBody = z.object({
   body: z.string().min(1).max(4000),
 });
 
-/** ElfCom routing hooks — empty until a messaging node is bound. */
+/** ElfCom routing hooks — bound via container.bindElfCom(HttpElfComProvider). */
 export async function messagingRoutes(app: FastifyInstance) {
   app.get("/messaging/status", { preHandler: requireSession }, async () => {
     const elf = container.getElfCom();
@@ -43,6 +43,39 @@ export async function messagingRoutes(app: FastifyInstance) {
       throw err;
     }
   });
+
+  app.get<{ Params: { threadId: string } }>(
+    "/messaging/threads/:threadId",
+    { preHandler: requireSession },
+    async (req, reply) => {
+      const elf = container.getElfCom();
+      if (!elf.bound) return elfcomUnavailable(reply);
+      try {
+        const thread = await elf.getThread(req.lifeosUser!.trustId, req.params.threadId);
+        if (!thread) return reply.code(404).send({ error: "not_found" });
+        return { thread };
+      } catch (err) {
+        if (err instanceof ModuleUnboundError) return elfcomUnavailable(reply);
+        throw err;
+      }
+    },
+  );
+
+  app.get<{ Params: { threadId: string } }>(
+    "/messaging/threads/:threadId/messages",
+    { preHandler: requireSession },
+    async (req, reply) => {
+      const elf = container.getElfCom();
+      if (!elf.bound) return elfcomUnavailable(reply);
+      try {
+        const messages = await elf.listMessages(req.lifeosUser!.trustId, req.params.threadId);
+        return { messages };
+      } catch (err) {
+        if (err instanceof ModuleUnboundError) return elfcomUnavailable(reply);
+        throw err;
+      }
+    },
+  );
 
   app.post("/messaging/send", { preHandler: requireSession }, async (req, reply) => {
     const body = sendBody.parse(req.body);
