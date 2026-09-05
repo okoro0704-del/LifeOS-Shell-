@@ -27,20 +27,20 @@ export function resolvePageMeta(pathname: string): PageMeta | null {
     return { title: "Shared settings" };
   }
 
-  if (path === "/app/personal") {
-    return { title: "Home", subtitle: "Consume & patronize" };
+  if (path === "/app/personal" || path === "/app/personal/main") {
+    return { title: "Main", subtitle: "Personal kernel" };
   }
-  if (path.startsWith("/app/personal/vault")) {
-    return { title: "Activity", subtitle: "Redirected from vault" };
+  if (path.startsWith("/app/personal/offline") || path.startsWith("/app/personal/vault")) {
+    return { title: "Offline", subtitle: "Vault kernel" };
   }
-  if (path.startsWith("/app/personal/discovery")) {
-    return { title: "Finance", subtitle: "Your money in this space" };
+  if (path.startsWith("/app/personal/free") || path.startsWith("/app/personal/discovery")) {
+    return { title: "Free", subtitle: "Discovery kernel" };
   }
   if (path.startsWith("/app/personal/finance")) {
-    return { title: "Finance", subtitle: "Your money in this space" };
+    return { title: "Finance", subtitle: "Business money view" };
   }
   if (path === "/app/business") {
-    return { title: "Business", subtitle: "Operations home" };
+    return { title: "Business", subtitle: "Consume & patronize" };
   }
   if (path.startsWith("/app/business/modules")) {
     return { title: "Modules", subtitle: "Enabled business verticals" };

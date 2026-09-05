@@ -1,4 +1,4 @@
-import { useCallback, useRef, type MouseEvent, type TouchEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspace, type WorkspaceMode } from "../../context/WorkspaceContext";
 import { triggerWorkspaceHaptic } from "../../lib/mobileBridge";
@@ -9,6 +9,8 @@ const OPTIONS: { mode: WorkspaceMode; label: string }[] = [
   { mode: "BUSINESS", label: "Business" },
 ];
 
+const DOUBLE_TAP_MS = 450;
+
 export type WorkspaceToggleProps = {
   onModeChange?: (mode: WorkspaceMode) => void;
   /** Compact control for bottom nav — double-tap flips space. */
@@ -17,7 +19,7 @@ export type WorkspaceToggleProps = {
 
 /**
  * Personal ↔ Business space switch.
- * Double-tap (or double-click) flips to the other space and opens its home.
+ * Double-tap (or double-click) flips to the other space and opens its home (Personal → Main).
  */
 export function WorkspaceToggle({
   onModeChange,
@@ -26,6 +28,8 @@ export function WorkspaceToggle({
   const { mode, setMode } = useWorkspace();
   const navigate = useNavigate();
   const lastTap = useRef(0);
+  const [hint, setHint] = useState(false);
+  const hintTimer = useRef<number | null>(null);
 
   const flipSpace = useCallback(() => {
     const next: WorkspaceMode = mode === "PERSONAL" ? "BUSINESS" : "PERSONAL";
@@ -33,32 +37,51 @@ export function WorkspaceToggle({
     setMode(next);
     onModeChange?.(next);
     navigate(workspaceHomePath(next));
+    setHint(false);
   }, [mode, setMode, onModeChange, navigate]);
 
-  const onDoubleTapTarget = useCallback(
-    (e: MouseEvent | TouchEvent) => {
-      const now = Date.now();
-      if (now - lastTap.current < 380) {
-        e.preventDefault();
-        lastTap.current = 0;
-        flipSpace();
-        return;
-      }
-      lastTap.current = now;
+  const registerTap = useCallback(() => {
+    const now = Date.now();
+    if (now - lastTap.current < DOUBLE_TAP_MS) {
+      lastTap.current = 0;
+      if (hintTimer.current) window.clearTimeout(hintTimer.current);
+      flipSpace();
+      return true;
+    }
+    lastTap.current = now;
+    setHint(true);
+    if (hintTimer.current) window.clearTimeout(hintTimer.current);
+    hintTimer.current = window.setTimeout(() => setHint(false), DOUBLE_TAP_MS + 50);
+    return false;
+  }, [flipSpace]);
+
+  useEffect(() => {
+    return () => {
+      if (hintTimer.current) window.clearTimeout(hintTimer.current);
+    };
+  }, []);
+
+  const onPointerUp = useCallback(
+    (e: PointerEvent) => {
+      // Ignore secondary buttons / pen barrels
+      if (e.button !== 0 && e.pointerType === "mouse") return;
+      e.preventDefault();
+      registerTap();
     },
-    [flipSpace],
+    [registerTap],
   );
 
   if (variant === "space") {
     return (
       <button
         type="button"
-        className="bottom-item bottom-item--space"
+        className={`bottom-item bottom-item--space${hint ? " is-armed" : ""}`}
         aria-label={`Space: ${mode === "PERSONAL" ? "Personal" : "Business"}. Double-tap to switch.`}
         title="Double-tap to switch space"
-        onClick={onDoubleTapTarget}
+        onPointerUp={onPointerUp}
         onDoubleClick={(e) => {
           e.preventDefault();
+          lastTap.current = 0;
           flipSpace();
         }}
       >
@@ -67,7 +90,7 @@ export function WorkspaceToggle({
         </span>
         <span>Space</span>
         <span className="bottom-item__sub">
-          {mode === "PERSONAL" ? "Personal" : "Business"}
+          {hint ? "Tap again" : mode === "PERSONAL" ? "Personal" : "Business"}
         </span>
       </button>
     );
@@ -91,9 +114,10 @@ export function WorkspaceToggle({
             type="button"
             className={`workspace-toggle__btn${active ? " is-active" : ""}`}
             aria-pressed={active}
-            onClick={() => {
+            onPointerUp={(e) => {
+              if (e.button !== 0 && e.pointerType === "mouse") return;
               const now = Date.now();
-              if (now - lastTap.current < 380) {
+              if (now - lastTap.current < DOUBLE_TAP_MS) {
                 lastTap.current = 0;
                 flipSpace();
                 return;
@@ -103,6 +127,7 @@ export function WorkspaceToggle({
               void triggerWorkspaceHaptic();
               setMode(opt.mode);
               onModeChange?.(opt.mode);
+              navigate(workspaceHomePath(opt.mode));
             }}
           >
             {opt.label}

@@ -91,6 +91,7 @@ export function AppShell() {
     location.pathname === "/app/" ||
     location.pathname.replace(/\/+$/, "") === "/app" ||
     location.pathname === "/app/personal" ||
+    location.pathname === "/app/personal/main" ||
     location.pathname === "/app/business";
   const pageMeta = isHome ? null : resolvePageMeta(location.pathname);
   const tabs = useMemo(() => primaryNavForMode(mode), [mode]);
@@ -100,8 +101,8 @@ export function AppShell() {
   );
   const brandName = "LifeOS";
 
-  const handleModeChange = (next: WorkspaceMode) => {
-    navigate(workspaceHomePath(next));
+  const handleModeChange = (_next: WorkspaceMode) => {
+    // Navigation is handled by WorkspaceToggle → workspaceHomePath
   };
 
   useEffect(() => {

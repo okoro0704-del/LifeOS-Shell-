@@ -4831,3 +4831,62 @@ button.los-wallet__action:disabled {
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+
+/* —— Personal kernels —— */
+.personal-kernel-gestures {
+  position: relative;
+  min-height: 100%;
+}
+
+.personal-kernel-edge {
+  position: fixed;
+  top: 20%;
+  bottom: 20%;
+  width: 1.35rem;
+  z-index: 40;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  cursor: w-resize;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.personal-kernel-edge--left {
+  left: 0;
+  cursor: w-resize;
+}
+
+.personal-kernel-edge--right {
+  right: 0;
+  cursor: e-resize;
+}
+
+.personal-kernel-badge {
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 0 0 0.35rem;
+}
+
+.personal-kernel-rail {
+  display: flex;
+  justify-content: center;
+  gap: 1.25rem;
+  margin-top: 1.75rem;
+  font-size: 0.85rem;
+}
+
+.personal-kernel-rail a {
+  opacity: 0.65;
+  text-decoration: none;
+  color: inherit;
+}
+
+.personal-kernel-rail__active {
+  font-weight: 650;
+}
+
+.bottom-item--space.is-armed {
+  outline: 2px solid color-mix(in srgb, currentColor 35%, transparent);
+  outline-offset: 2px;
+}

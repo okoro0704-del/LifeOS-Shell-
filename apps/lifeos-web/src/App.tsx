@@ -67,7 +67,7 @@ const SharedRoutes = lazy(() =>
   import("./routes/sharedRoutes").then((m) => ({ default: m.SharedRoutes })),
 );
 const BusinessHomePage = lazy(() =>
-  import("./pages/workspace/WorkspacePlaceholders").then((m) => ({
+  import("./pages/business/BusinessHomePage").then((m) => ({
     default: m.BusinessHomePage,
   })),
 );

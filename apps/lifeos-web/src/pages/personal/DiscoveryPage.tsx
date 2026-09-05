@@ -6,7 +6,7 @@ import {
 } from "../../lib/digiconomyClient";
 import { StatusBanner } from "../../components/StatusBanner";
 
-/** Personal discovery feed — Digiconomy Kernel 2 / federated LifeOS catalog. */
+/** Free kernel — open discovery feed. */
 export function DiscoveryPage() {
   const [items, setItems] = useState<PersonalDiscoveryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,9 +32,10 @@ export function DiscoveryPage() {
   return (
     <div className="page personal-page">
       <header className="page-header">
-        <h1>Discovery</h1>
+        <p className="personal-kernel-badge muted small">Personal · Free</p>
+        <h1>Free</h1>
         <p className="muted">
-          Personal feed, ecosystem updates, and federated content from Digiconomy / LifeOS.
+          Open feed and federated discovery. Double-tap left edge or swipe toward Main / Offline.
         </p>
       </header>
 

@@ -6,26 +6,25 @@ import { dirname, join } from "node:path";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 describe("personal consumer space wiring", () => {
-  it("PersonalRoutes mounts finance and redirects vault/discovery", () => {
+  it("PersonalRoutes mounts Offline · Main · Free kernels", () => {
     const src = readFileSync(join(root, "src/routes/personalRoutes.tsx"), "utf8");
-    expect(src).toContain("FinancePage");
     expect(src).toContain("PersonalHomePage");
-    expect(src).toContain('path="vault"');
-    expect(src).toContain('to="/app/activity"');
-    expect(src).toContain('path="discovery"');
-    expect(src).toContain('to="/app/personal/finance"');
-    expect(src).not.toContain("VaultPage");
-    expect(src).not.toContain("DiscoveryPage");
+    expect(src).toContain("VaultPage");
+    expect(src).toContain("DiscoveryPage");
+    expect(src).toContain('path="offline"');
+    expect(src).toContain('path="free"');
+    expect(src).toContain("PersonalKernelGestures");
   });
 
-  it("primary nav is Home · Activity · Finance (no Vault)", () => {
+  it("primary nav is Offline · Main · Free for Personal; Business is consume", () => {
     const src = readFileSync(join(root, "src/components/shell/nav.ts"), "utf8");
-    expect(src).toContain('label: "Home"');
+    expect(src).toContain('label: "Offline"');
+    expect(src).toContain('label: "Main"');
+    expect(src).toContain('label: "Free"');
+    expect(src).toContain("/app/personal/offline");
+    expect(src).toContain("/app/personal/free");
     expect(src).toContain('label: "Activity"');
-    expect(src).toContain('label: "Finance"');
-    expect(src).toContain("/app/activity");
-    expect(src).toContain("/app/personal/finance");
-    expect(src).not.toContain("/app/personal/vault");
+    expect(src).toContain("/app/business");
   });
 
   it("App mounts personal/* routes", () => {

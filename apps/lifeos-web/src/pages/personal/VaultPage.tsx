@@ -14,7 +14,7 @@ function formatBytes(n?: number | null) {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-/** Secure personal vault — Digiconomy Kernel 1 port under LifeOS Personal. */
+/** Offline kernel — encrypted personal vault. */
 export function VaultPage() {
   const [items, setItems] = useState<PersonalVaultItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,10 +71,11 @@ export function VaultPage() {
   return (
     <div className="page personal-page">
       <header className="page-header">
-        <h1>Vault</h1>
+        <p className="personal-kernel-badge muted small">Personal · Offline</p>
+        <h1>Offline</h1>
         <p className="muted">
-          Encrypted personal documents, keys, and assets. Metadata only — TrustID session stays
-          local to LifeOS.
+          Vault kernel — encrypted documents, keys, and assets. Double-tap right edge or swipe for
+          Main / Free.
         </p>
       </header>
 

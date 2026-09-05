@@ -2,17 +2,18 @@ import { Link } from "react-router-dom";
 import { AskLifeOSTrigger } from "../../components/CommandOverlay";
 
 /**
- * Consumer space home — patronize businesses and consume content.
- * Digiconomy vault kernels (offline / main / free) live in the personal user app.
+ * Personal Main kernel — default on login and when switching into Personal.
+ * Offline ← Main → Free (swipe or edge double-tap).
  */
 export function PersonalHomePage() {
   return (
     <div className="page personal-page">
       <header className="page-header">
+        <p className="personal-kernel-badge muted small">Personal · Main</p>
         <h1>LifeOS</h1>
         <p className="muted">
-          Discover and patronize businesses. Ask LifeOS anything — by text or voice — in this space
-          or Business.
+          Your personal shell. Swipe or double-tap left for Offline, right for Free. Double-tap Space
+          to enter Business.
         </p>
       </header>
 
@@ -22,35 +23,38 @@ export function PersonalHomePage() {
 
       <ul className="personal-home-grid">
         <li>
-          <Link to="/app/activity" className="personal-home-card">
-            <strong>Activity</strong>
-            <span className="muted small">Orders, bookings, and recent moves</span>
+          <Link to="/app/personal/offline" className="personal-home-card">
+            <strong>Offline</strong>
+            <span className="muted small">Vault kernel — documents, keys, private assets</span>
           </Link>
         </li>
         <li>
-          <Link to="/app/personal/finance" className="personal-home-card">
-            <strong>Finance</strong>
-            <span className="muted small">Your money view in this space</span>
+          <Link to="/app/personal/free" className="personal-home-card">
+            <strong>Free</strong>
+            <span className="muted small">Open feed and federated discovery</span>
           </Link>
         </li>
         <li>
-          <Link to="/app/services/explore" className="personal-home-card">
-            <strong>Explore</strong>
-            <span className="muted small">Browse services and patronize businesses</span>
+          <Link to="/app/shared/identity" className="personal-home-card">
+            <strong>Identity</strong>
+            <span className="muted small">TrustID and verification</span>
           </Link>
         </li>
         <li>
-          <Link to="/app/discover" className="personal-home-card">
-            <strong>Discover</strong>
-            <span className="muted small">Offerings from the LifeOS registry</span>
+          <Link to="/app/shared/bridge" className="personal-home-card">
+            <strong>Bridge</strong>
+            <span className="muted small">Link personal artifacts into Business</span>
           </Link>
         </li>
       </ul>
 
-      <p className="muted small personal-kernel-note">
-        Personal vault kernels (offline, main, free space) open in your Digiconomy personal app —
-        not in this LifeOS consumer shell.
-      </p>
+      <nav className="personal-kernel-rail" aria-label="Personal kernels">
+        <Link to="/app/personal/offline">Offline</Link>
+        <span className="personal-kernel-rail__active" aria-current="page">
+          Main
+        </span>
+        <Link to="/app/personal/free">Free</Link>
+      </nav>
     </div>
   );
 }
