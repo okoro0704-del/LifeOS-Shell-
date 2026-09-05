@@ -101,7 +101,8 @@ export function AppShell() {
   );
   const brandName = "LifeOS";
 
-  // Keep workspace mode aligned with the route (Personal kernels vs Business home).
+  // Keep workspace mode aligned with personal/business home routes only.
+  // Do not fight mid-navigation when mode was just flipped.
   useEffect(() => {
     const path = location.pathname.replace(/\/+$/, "") || "/";
     if (path === "/app/personal" || path.startsWith("/app/personal/")) {
@@ -113,9 +114,7 @@ export function AppShell() {
     }
   }, [location.pathname, mode, setMode]);
 
-  const handleModeChange = (_next: WorkspaceMode) => {
-    // Navigation is handled by WorkspaceToggle → workspaceHomePath
-  };
+  const handleModeChange = (_next: WorkspaceMode) => {};
 
   useEffect(() => {
     void notificationService.list().then((d) => setUnread(d.unreadCount)).catch(() => undefined);

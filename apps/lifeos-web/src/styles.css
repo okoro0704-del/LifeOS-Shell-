@@ -1,4 +1,4 @@
-/* LifeOS app chrome — tokens from @lifeos/ui */
+/* LifeOS app chrome â tokens from @lifeos/ui */
 
 * {
   box-sizing: border-box;
@@ -805,7 +805,7 @@ a {
   padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 1.75rem);
 }
 
-/* Top bar — greeting + stars under name + actions */
+/* Top bar â greeting + stars under name + actions */
 .app-header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -858,7 +858,7 @@ a {
   flex-shrink: 0;
 }
 
-/* Non-home pages — centered title + back */
+/* Non-home pages â centered title + back */
 .page-topbar {
   display: grid;
   grid-template-columns: 2.75rem minmax(0, 1fr) 2.75rem;
@@ -1092,7 +1092,7 @@ a {
   }
 }
 
-/* Bottom nav — Instagram-style floating pill */
+/* Bottom nav â Instagram-style floating pill */
 .bottom-nav {
   position: fixed;
   left: 0;
@@ -1104,9 +1104,10 @@ a {
   grid-template-columns: repeat(5, 1fr);
   background: transparent;
   border-top: 0;
-  z-index: 20;
+  z-index: 60;
   color: var(--los-muted);
   pointer-events: none;
+  touch-action: manipulation;
 }
 
 .bottom-nav > * {
@@ -1146,6 +1147,12 @@ a {
   font-weight: 650;
   min-height: calc(var(--nav-h) - 0.4rem);
   border-radius: 999px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
   transition:
     color var(--los-duration-fast) ease,
     background var(--los-duration-fast) ease,
@@ -2567,7 +2574,7 @@ button.list-row {
   color: inherit;
 }
 
-/* Sprint 4 — Command Layer */
+/* Sprint 4 â Command Layer */
 .home-command {
   display: grid;
   gap: 0.35rem;
@@ -2664,7 +2671,7 @@ button.list-row {
   }
 }
 
-/* Home Services — pictorial tiles */
+/* Home Services â pictorial tiles */
 .services-pictorial {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3516,7 +3523,7 @@ button.los-wallet__action:disabled {
   border: 0;
 }
 
-/* Services — vertical “video list” browse */
+/* Services â vertical âvideo listâ browse */
 .services-page {
   gap: var(--los-space-4);
   padding-bottom: 2rem;
@@ -4493,7 +4500,7 @@ button.los-wallet__action:disabled {
   gap: 0.65rem;
 }
 
-/* �� Personal workspace (Digiconomy port) �� */
+/* ï¿½ï¿½ Personal workspace (Digiconomy port) ï¿½ï¿½ */
 .personal-page .page-header h1 {
   margin-bottom: 0.35rem;
 }
@@ -4717,7 +4724,7 @@ button.los-wallet__action:disabled {
   color: color-mix(in srgb, #a33 80%, currentColor);
 }
 
-/* �� Shared settings �� */
+/*  Shared settings  */
 .shared-card {
   padding: 1rem 1.1rem;
   margin-bottom: 0.85rem;
@@ -4773,9 +4780,16 @@ button.los-wallet__action:disabled {
   font-size: 0.86rem;
 }
 
-/* �� Space switch (bottom nav) �� */
+/*  Space switch (bottom nav)  */
 .bottom-item--space {
   position: relative;
+  z-index: 2;
+  min-width: 3.25rem;
+}
+
+.bottom-item--space:active {
+  color: var(--los-accent);
+  transform: scale(0.96);
 }
 
 .bottom-item__sub {
@@ -4832,7 +4846,7 @@ button.los-wallet__action:disabled {
   letter-spacing: 0.04em;
 }
 
-/* �� Personal kernels �� */
+/*  Personal kernels  */
 .personal-kernel-gestures {
   position: relative;
   min-height: 100%;
@@ -4840,16 +4854,18 @@ button.los-wallet__action:disabled {
 
 .personal-kernel-edge {
   position: fixed;
-  top: 20%;
-  bottom: 20%;
-  width: 1.35rem;
-  z-index: 40;
+  top: 18%;
+  /* Stay clear of floating bottom nav so Space stays tappable */
+  bottom: calc(var(--nav-h) + 2.75rem + var(--safe-bottom));
+  width: 1.1rem;
+  z-index: 15;
   border: 0;
   padding: 0;
   margin: 0;
   background: transparent;
   cursor: w-resize;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .personal-kernel-edge--left {

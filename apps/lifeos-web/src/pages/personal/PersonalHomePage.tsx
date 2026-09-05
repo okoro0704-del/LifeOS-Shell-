@@ -12,8 +12,8 @@ export function PersonalHomePage() {
         <p className="personal-kernel-badge muted small">Personal · Main</p>
         <h1>LifeOS</h1>
         <p className="muted">
-          Your personal shell. Swipe or double-tap left for Offline, right for Free. Double-tap Space
-          to enter Business.
+          Your personal shell. Swipe or double-tap left for Offline; tap right for Free. Tap Space to
+          enter Business.
         </p>
       </header>
 

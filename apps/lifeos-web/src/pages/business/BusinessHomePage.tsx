@@ -11,8 +11,8 @@ export function BusinessHomePage() {
         <p className="personal-kernel-badge muted small">Business</p>
         <h1>LifeOS</h1>
         <p className="muted">
-          Discover and patronize businesses. Ask LifeOS by text or voice. Double-tap Space to return
-          to Personal Main.
+          Discover and patronize businesses. Ask LifeOS by text or voice. Tap Space to return to
+          Personal Main.
         </p>
       </header>
 
