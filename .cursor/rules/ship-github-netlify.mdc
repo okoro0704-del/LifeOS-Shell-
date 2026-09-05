@@ -1,0 +1,14 @@
+---
+description: Always commit, push to GitHub, and ship Netlify after meaningful work
+alwaysApply: true
+---
+
+# Ship to GitHub + Netlify
+
+When finishing meaningful app changes for LifeOS:
+
+1. **Commit** with a clear message (unless the user only asked for exploration/advice).
+2. **Push** to `origin` on the current branch (`git push -u origin HEAD` when needed).
+3. **Netlify** deploys from GitHub — confirm the push landed; if deploy needs a kick or env check, use the Netlify site / CLI. Do not leave finished work only local.
+
+Do not force-push `main`/`master`. Do not commit secrets (`.env`, credentials).
