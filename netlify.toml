@@ -16,7 +16,7 @@
 # Also declared in public/_redirects (publish folder) — keep both in sync.
 [[redirects]]
   from = "/api/*"
-  to = "https://lucid-integrity-production.up.railway.app/:splat"
+  to = "https://lifeos-shell-production.up.railway.app/:splat"
   status = 200
   force = true
 
