@@ -68,7 +68,7 @@ function isBusinessDetailPath(pathname: string): boolean {
 
 export function AppShell() {
   const { user } = useAuth();
-  const { mode } = useWorkspace();
+  const { mode, setMode } = useWorkspace();
   const location = useLocation();
   const navigate = useNavigate();
   const { openCommand } = useCommandLayer();
@@ -100,6 +100,18 @@ export function AppShell() {
     [installedApps, mode],
   );
   const brandName = "LifeOS";
+
+  // Keep workspace mode aligned with the route (Personal kernels vs Business home).
+  useEffect(() => {
+    const path = location.pathname.replace(/\/+$/, "") || "/";
+    if (path === "/app/personal" || path.startsWith("/app/personal/")) {
+      if (mode !== "PERSONAL") setMode("PERSONAL");
+      return;
+    }
+    if (path === "/app/business" || path.startsWith("/app/business/")) {
+      if (mode !== "BUSINESS") setMode("BUSINESS");
+    }
+  }, [location.pathname, mode, setMode]);
 
   const handleModeChange = (_next: WorkspaceMode) => {
     // Navigation is handled by WorkspaceToggle → workspaceHomePath

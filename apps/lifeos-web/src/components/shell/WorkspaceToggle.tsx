@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspace, type WorkspaceMode } from "../../context/WorkspaceContext";
 import { triggerWorkspaceHaptic } from "../../lib/mobileBridge";
@@ -9,7 +9,9 @@ const OPTIONS: { mode: WorkspaceMode; label: string }[] = [
   { mode: "BUSINESS", label: "Business" },
 ];
 
-const DOUBLE_TAP_MS = 450;
+/** Forgiving window so mobile double-taps register. */
+const DOUBLE_TAP_MS = 650;
+const COOLDOWN_MS = 400;
 
 export type WorkspaceToggleProps = {
   onModeChange?: (mode: WorkspaceMode) => void;
@@ -19,7 +21,7 @@ export type WorkspaceToggleProps = {
 
 /**
  * Personal ↔ Business space switch.
- * Double-tap (or double-click) flips to the other space and opens its home (Personal → Main).
+ * Double-tap flips space and lands on that space's home (Personal → Main kernel).
  */
 export function WorkspaceToggle({
   onModeChange,
@@ -27,62 +29,72 @@ export function WorkspaceToggle({
 }: WorkspaceToggleProps) {
   const { mode, setMode } = useWorkspace();
   const navigate = useNavigate();
-  const lastTap = useRef(0);
-  const [hint, setHint] = useState(false);
-  const hintTimer = useRef<number | null>(null);
+  const lastTapAt = useRef(0);
+  const lastFlipAt = useRef(0);
+  const [armed, setArmed] = useState(false);
+  const armTimer = useRef<number | null>(null);
 
   const flipSpace = useCallback(() => {
+    const now = Date.now();
+    if (now - lastFlipAt.current < COOLDOWN_MS) return;
+    lastFlipAt.current = now;
+    lastTapAt.current = 0;
+    setArmed(false);
+    if (armTimer.current) window.clearTimeout(armTimer.current);
+
     const next: WorkspaceMode = mode === "PERSONAL" ? "BUSINESS" : "PERSONAL";
     void triggerWorkspaceHaptic();
     setMode(next);
     onModeChange?.(next);
-    navigate(workspaceHomePath(next));
-    setHint(false);
+    navigate(workspaceHomePath(next), { replace: false });
   }, [mode, setMode, onModeChange, navigate]);
 
-  const registerTap = useCallback(() => {
+  const onSpaceActivate = useCallback(() => {
     const now = Date.now();
-    if (now - lastTap.current < DOUBLE_TAP_MS) {
-      lastTap.current = 0;
-      if (hintTimer.current) window.clearTimeout(hintTimer.current);
+    if (now - lastFlipAt.current < COOLDOWN_MS) return;
+
+    if (now - lastTapAt.current < DOUBLE_TAP_MS) {
       flipSpace();
-      return true;
+      return;
     }
-    lastTap.current = now;
-    setHint(true);
-    if (hintTimer.current) window.clearTimeout(hintTimer.current);
-    hintTimer.current = window.setTimeout(() => setHint(false), DOUBLE_TAP_MS + 50);
-    return false;
+
+    lastTapAt.current = now;
+    setArmed(true);
+    if (armTimer.current) window.clearTimeout(armTimer.current);
+    armTimer.current = window.setTimeout(() => {
+      setArmed(false);
+      lastTapAt.current = 0;
+    }, DOUBLE_TAP_MS);
   }, [flipSpace]);
 
   useEffect(() => {
     return () => {
-      if (hintTimer.current) window.clearTimeout(hintTimer.current);
+      if (armTimer.current) window.clearTimeout(armTimer.current);
     };
   }, []);
-
-  const onPointerUp = useCallback(
-    (e: PointerEvent) => {
-      // Ignore secondary buttons / pen barrels
-      if (e.button !== 0 && e.pointerType === "mouse") return;
-      e.preventDefault();
-      registerTap();
-    },
-    [registerTap],
-  );
 
   if (variant === "space") {
     return (
       <button
         type="button"
-        className={`bottom-item bottom-item--space${hint ? " is-armed" : ""}`}
+        className={`bottom-item bottom-item--space${armed ? " is-armed" : ""}`}
         aria-label={`Space: ${mode === "PERSONAL" ? "Personal" : "Business"}. Double-tap to switch.`}
         title="Double-tap to switch space"
-        onPointerUp={onPointerUp}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onSpaceActivate();
+        }}
         onDoubleClick={(e) => {
           e.preventDefault();
-          lastTap.current = 0;
+          e.stopPropagation();
           flipSpace();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onSpaceActivate();
+          }
         }}
       >
         <span className="bottom-icon bottom-icon--space" aria-hidden>
@@ -90,7 +102,7 @@ export function WorkspaceToggle({
         </span>
         <span>Space</span>
         <span className="bottom-item__sub">
-          {hint ? "Tap again" : mode === "PERSONAL" ? "Personal" : "Business"}
+          {armed ? "Tap again" : mode === "PERSONAL" ? "Personal" : "Business"}
         </span>
       </button>
     );
@@ -100,11 +112,7 @@ export function WorkspaceToggle({
     <div
       className="workspace-toggle"
       role="group"
-      aria-label="Space — double-tap to flip Personal and Business"
-      onDoubleClick={(e) => {
-        e.preventDefault();
-        flipSpace();
-      }}
+      aria-label="Space — tap a side, or double-tap to flip"
     >
       {OPTIONS.map((opt) => {
         const active = mode === opt.mode;
@@ -114,20 +122,23 @@ export function WorkspaceToggle({
             type="button"
             className={`workspace-toggle__btn${active ? " is-active" : ""}`}
             aria-pressed={active}
-            onPointerUp={(e) => {
-              if (e.button !== 0 && e.pointerType === "mouse") return;
+            onClick={() => {
               const now = Date.now();
-              if (now - lastTap.current < DOUBLE_TAP_MS) {
-                lastTap.current = 0;
+              if (now - lastTapAt.current < DOUBLE_TAP_MS) {
+                lastTapAt.current = 0;
                 flipSpace();
                 return;
               }
-              lastTap.current = now;
+              lastTapAt.current = now;
               if (opt.mode === mode) return;
               void triggerWorkspaceHaptic();
               setMode(opt.mode);
               onModeChange?.(opt.mode);
               navigate(workspaceHomePath(opt.mode));
+            }}
+            onDoubleClick={(e) => {
+              e.preventDefault();
+              flipSpace();
             }}
           >
             {opt.label}

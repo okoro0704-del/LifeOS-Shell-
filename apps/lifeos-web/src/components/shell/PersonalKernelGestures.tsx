@@ -12,10 +12,11 @@ import { triggerWorkspaceHaptic } from "../../lib/mobileBridge";
 const SWIPE_MIN_PX = 56;
 
 /**
- * Personal-space kernel gestures:
- * - Swipe / double-tap left edge → Offline
- * - Center (login & space switch) → Main
- * - Swipe / double-tap right edge → Free
+ * Personal kernels: Offline ← Main → Free
+ * - Double-tap left edge → Offline
+ * - Login / space switch → Main
+ * - Tap right edge → Free
+ * - Horizontal swipe between kernels
  */
 export function PersonalKernelGestures({ children }: { children: ReactNode }) {
   const { mode } = useWorkspace();
@@ -23,7 +24,6 @@ export function PersonalKernelGestures({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const touchX = useRef<number | null>(null);
   const leftTap = useRef(0);
-  const rightTap = useRef(0);
 
   const goKernel = useCallback(
     (kernel: PersonalKernel) => {
@@ -61,19 +61,7 @@ export function PersonalKernelGestures({ children }: { children: ReactNode }) {
     if (end == null) return;
     const dx = end - start;
     if (Math.abs(dx) < SWIPE_MIN_PX) return;
-    // Finger moves left → next kernel (toward Free); right → Offline
     shiftKernel(dx < 0 ? 1 : -1);
-  };
-
-  const onEdgePointer = (side: "left" | "right") => {
-    const now = Date.now();
-    const ref = side === "left" ? leftTap : rightTap;
-    if (now - ref.current < 400) {
-      ref.current = 0;
-      goKernel(side === "left" ? "offline" : "free");
-      return;
-    }
-    ref.current = now;
   };
 
   return (
@@ -86,13 +74,21 @@ export function PersonalKernelGestures({ children }: { children: ReactNode }) {
         type="button"
         className="personal-kernel-edge personal-kernel-edge--left"
         aria-label="Double-tap for Offline kernel"
-        onClick={() => onEdgePointer("left")}
+        onClick={() => {
+          const now = Date.now();
+          if (now - leftTap.current < 450) {
+            leftTap.current = 0;
+            goKernel("offline");
+            return;
+          }
+          leftTap.current = now;
+        }}
       />
       <button
         type="button"
         className="personal-kernel-edge personal-kernel-edge--right"
-        aria-label="Double-tap for Free kernel"
-        onClick={() => onEdgePointer("right")}
+        aria-label="Tap for Free kernel"
+        onClick={() => goKernel("free")}
       />
       {children}
     </div>
