@@ -12,3 +12,14 @@ dev-dist/
 coverage/
 .keys/
 *.pem
+apps/lifeos-web/android/.gradle/
+apps/lifeos-web/android/app/build/
+apps/lifeos-web/android/build/
+apps/lifeos-web/android/local.properties/
+apps/lifeos-web/android/local.properties
+apps/lifeos-web/android/captures/
+apps/lifeos-web/ios/App/Pods/
+apps/lifeos-web/ios/App/App/public/
+apps/lifeos-web/android/app/src/main/assets/public/
+.tmp-pg-tunnel.*
+apps/lifeos-web/tsconfig.tsbuildinfo

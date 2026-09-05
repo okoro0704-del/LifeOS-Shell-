@@ -606,6 +606,9 @@ a {
   min-height: 100dvh;
   display: grid;
   grid-template-columns: 1fr;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 }
 
 .sidebar {
@@ -645,6 +648,71 @@ a {
   font-family: var(--los-display);
   font-size: 1.25rem;
   font-weight: 650;
+}
+
+.sidebar-workspace {
+  margin: 0 0 1rem;
+}
+
+.side-nav-section {
+  display: block;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  font-weight: 650;
+  padding: 0.35rem 0.5rem 0.15rem;
+}
+
+.workspace-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.2rem;
+  border-radius: 0.55rem;
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  background: color-mix(in srgb, currentColor 6%, transparent);
+  width: 100%;
+}
+
+.workspace-toggle__btn {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 650;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.workspace-toggle__btn:hover {
+  opacity: 1;
+}
+
+.workspace-toggle__btn.is-active {
+  opacity: 1;
+  background: color-mix(in srgb, var(--los-surface, #fff) 88%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.app-header__workspace {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .app-header__workspace {
+    display: block;
+    margin-right: 0.35rem;
+  }
+
+  .app-header__workspace .workspace-toggle {
+    width: auto;
+    min-width: 11rem;
+  }
 }
 
 .side-nav {
@@ -4423,4 +4491,284 @@ button.los-wallet__action:disabled {
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
+}
+
+/* ï¿½ï¿½ Personal workspace (Digiconomy port) ï¿½ï¿½ */
+.personal-page .page-header h1 {
+  margin-bottom: 0.35rem;
+}
+
+.personal-home-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+}
+
+.personal-home-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1rem 1.1rem;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  text-decoration: none;
+  color: inherit;
+  background: color-mix(in srgb, currentColor 4%, transparent);
+}
+
+.personal-home-card:hover {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.personal-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  padding: 1.25rem;
+  margin: 0 0 1.25rem;
+  border-radius: 0.85rem;
+  border: 1px dashed color-mix(in srgb, currentColor 28%, transparent);
+  cursor: pointer;
+}
+
+.personal-dropzone.is-drag,
+.personal-dropzone:hover {
+  border-color: color-mix(in srgb, var(--los-accent, #0d7a6f) 60%, transparent);
+  background: color-mix(in srgb, var(--los-accent, #0d7a6f) 8%, transparent);
+}
+
+.personal-dropzone.is-busy {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.personal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.personal-list__row,
+.personal-list__static {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.65rem;
+  border: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.personal-list__static {
+  cursor: default;
+}
+
+.personal-list__kind,
+.personal-feed__kind,
+.personal-tx {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.personal-list__title {
+  flex: 1;
+  font-weight: 600;
+}
+
+.personal-feed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.personal-feed__card {
+  display: flex;
+  gap: 0.85rem;
+  padding: 0.85rem;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.personal-feed__thumb {
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 0.5rem;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.personal-feed__thumb--empty {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.personal-feed__body h2 {
+  margin: 0.15rem 0 0.35rem;
+  font-size: 1.05rem;
+}
+
+.personal-finance-hero {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  padding: 1.1rem 1.2rem;
+  margin-bottom: 1rem;
+  border-radius: 0.85rem;
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  background: color-mix(in srgb, currentColor 5%, transparent);
+}
+
+.personal-finance-hero__value {
+  margin: 0.15rem 0;
+  font-size: clamp(1.6rem, 4vw, 2.1rem);
+  font-weight: 700;
+  font-family: var(--los-display);
+}
+
+.personal-finance-hero__sub {
+  margin: 0.15rem 0;
+  font-size: 1.2rem;
+  font-weight: 650;
+}
+
+.personal-section-title {
+  font-size: 0.95rem;
+  margin: 0 0 0.65rem;
+}
+
+.personal-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: color-mix(in srgb, #000 45%, transparent);
+}
+
+.personal-modal__panel {
+  width: min(28rem, 100%);
+  max-height: 85vh;
+  overflow: auto;
+  padding: 1rem 1.1rem 1.25rem;
+  border-radius: 0.85rem;
+  background: var(--los-surface, #fff);
+  color: inherit;
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.personal-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.personal-modal__head h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.personal-meta {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0 0 0.75rem;
+}
+
+.personal-meta div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.personal-meta dt {
+  opacity: 0.65;
+}
+
+.personal-meta dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.personal-tx.in {
+  color: color-mix(in srgb, #1a7f4b 80%, currentColor);
+}
+
+.personal-tx.out {
+  color: color-mix(in srgb, #a33 80%, currentColor);
+}
+
+/* —— Shared settings —— */
+.shared-card {
+  padding: 1rem 1.1rem;
+  margin-bottom: 0.85rem;
+  border-radius: 0.85rem;
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  background: color-mix(in srgb, currentColor 4%, transparent);
+}
+
+.shared-card h2 {
+  margin: 0 0 0.65rem;
+  font-size: 1rem;
+}
+
+.shared-did {
+  word-break: break-all;
+  font-size: 0.9rem;
+  margin: 0 0 0.75rem;
+}
+
+.shared-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0.45rem 0;
+  font-size: 0.92rem;
+}
+
+.shared-bridge-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.shared-bridge-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.shared-bridge-form select {
+  font: inherit;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.45rem;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  background: transparent;
+  color: inherit;
+}
+
+.nav-item--compact {
+  padding-left: 0.85rem;
+  font-size: 0.86rem;
 }

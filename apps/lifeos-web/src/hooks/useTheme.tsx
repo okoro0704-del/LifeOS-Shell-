@@ -20,6 +20,8 @@ type ThemeContextValue = {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 const STORAGE_KEY = "lifeos.theme";
 
+import { configureMobileStatusBar } from "../lib/mobileBridge";
+
 function applyTheme(theme: ThemePreference) {
   document.documentElement.setAttribute("data-theme", theme);
   const resolved =
@@ -31,6 +33,7 @@ function applyTheme(theme: ThemePreference) {
   const color = resolved === "dark" ? "#0f1419" : "#0d7a6f";
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute("content", color);
+  void configureMobileStatusBar(resolved === "dark");
 }
 
 export function ThemeProvider({

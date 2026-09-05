@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AuthClientError } from "@lifeos/auth-client";
 import { ApiError, authClient, storeSessionToken, userFacingMessage } from "../lib/api";
+import { storeTrustIdToken } from "../auth/trustId";
 import { meService } from "../lib/services";
 import { useAuth } from "../hooks/useAuth";
 import { StatusBanner } from "../components/StatusBanner";
@@ -47,6 +48,7 @@ export function CallbackPage() {
         if (!data.sessionToken) {
           throw new ApiError("Session token missing from LifeOS response.", 502, "lifeos_unavailable");
         }
+        storeTrustIdToken(tokens.access_token);
         storeSessionToken(data.sessionToken);
         saveReturningIdentity(data.user);
         markIntroSeen();

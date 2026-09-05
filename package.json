@@ -26,6 +26,12 @@
     "test:shell": "npm run test:shell -w @lifeos/portal",
     "test:transportation": "npm run test:transportation -w @lifeos/shell",
     "test:serviceos": "npm run test:serviceos -w @lifeos/shell && npm run test:serviceos -w @lifeos/web",
+    "desktop:dev": "npm run desktop:dev -w @lifeos/web",
+    "desktop:build": "npm run desktop:build -w @lifeos/web",
+    "mobile:sync": "npm run mobile:sync -w @lifeos/web",
+    "mobile:open:android": "npm run mobile:open:android -w @lifeos/web",
+    "mobile:open:ios": "npm run mobile:open:ios -w @lifeos/web",
+    "deploy:distribution": "npx tsx scripts/deploy-distribution.ts",
     "typecheck": "npm run build -w @lifeos/shared && npm run build -w @lifeos/shell-core && npm run build -w @lifeos/shell-ui && npm run typecheck -w @lifeos/api"
   },
   "devDependencies": {

@@ -199,6 +199,16 @@ export interface LifeOsPreferences {
   quickAccess: QuickAccessPreferences;
   /** Optional profile photo as a data URL (client-uploaded). */
   avatarUrl?: string | null;
+  /** Require local biometric/PIN before Personal Vault / Finance. */
+  biometricLockEnabled?: boolean;
+  /** Desktop tray / OS notifications. */
+  notifyDesktop?: boolean;
+  /** Capacitor push channel. */
+  notifyMobilePush?: boolean;
+  /** In-app notification center. */
+  notifyInApp?: boolean;
+  /** When in PERSONAL mode, still alert for Business updates. */
+  notifyBusinessWhilePersonal?: boolean;
 }
 
 export const DEFAULT_PREFERENCES: LifeOsPreferences = {
@@ -210,6 +220,11 @@ export const DEFAULT_PREFERENCES: LifeOsPreferences = {
   openExperiencesIn: "embed",
   quickAccess: { ...DEFAULT_QUICK_ACCESS_PREFS },
   avatarUrl: null,
+  biometricLockEnabled: false,
+  notifyDesktop: true,
+  notifyMobilePush: true,
+  notifyInApp: true,
+  notifyBusinessWhilePersonal: false,
 };
 
 export type ActivityKind =

@@ -1,41 +1,45 @@
-import { useEffect, useState, type ComponentType, type SVGProps } from "react";
+import { useEffect, useMemo, useState, type ComponentType, type SVGProps } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Avatar,
-  IconActivity,
   IconBell,
   IconBook,
-  IconExplore,
-  IconHome,
   IconLink,
   IconMessage,
   IconSearch,
   IconTicket,
-  IconWallet,
 } from "@lifeos/ui";
 import type { InstalledAppManifest } from "@lifeos/shared";
 import { UniversalAppLauncher } from "@lifeos/shell-ui";
 import { shellPathForApp } from "@lifeos/shell-core";
 import { useAuth } from "../hooks/useAuth";
 import { useCommandLayer } from "../hooks/useCommandLayer";
+import { useWorkspace, type WorkspaceMode } from "../context/WorkspaceContext";
 import { installedAppsService, notificationService } from "../lib/services";
 import { CommandOverlay } from "./CommandOverlay";
 import { PageTopBar } from "./PageTopBar";
 import { VerificationStars } from "./VerificationStars";
 import { resolvePageMeta } from "../lib/pageMeta";
+import { WorkspaceToggle } from "./shell/WorkspaceToggle";
+import { primaryNavForMode, workspaceHomePath, type ShellNavItem } from "./shell/nav";
 
 type IconComp = ComponentType<SVGProps<SVGSVGElement> & { size?: number }>;
 
-const tabs: {
-  to: string;
-  end?: boolean;
-  label: string;
-  Icon: IconComp;
-}[] = [
-  { to: "/app", end: true, label: "Home", Icon: IconHome },
-  { to: "/app/discover", label: "Explore", Icon: IconExplore },
-  { to: "/app/wallet", label: "Finance", Icon: IconWallet },
-  { to: "/app/activity", label: "Activity", Icon: IconActivity },
+const sharedLinks: { to: string; label: string; Icon: IconComp; ask?: boolean }[] = [
+  { to: "/app/messages", label: "Messages", Icon: IconMessage },
+  { to: "/app/search", label: "Ask LifeOS", Icon: IconSearch, ask: true },
+  { to: "/app/notifications", label: "Inbox", Icon: IconBell },
+  { to: "/app/connections", label: "Connections", Icon: IconLink },
+  { to: "/app/plans", label: "Today", Icon: IconTicket },
+  { to: "/app/saved", label: "Saved", Icon: IconBook },
+];
+
+const sharedSettingsLinks: { to: string; label: string }[] = [
+  { to: "/app/shared/identity", label: "Identity (TrustID)" },
+  { to: "/app/shared/security", label: "Security & devices" },
+  { to: "/app/shared/notifications", label: "ElfCom & alerts" },
+  { to: "/app/shared/bridge", label: "Cross-space bridge" },
+  { to: "/app/profile", label: "Profile" },
 ];
 
 function timeGreeting() {
@@ -45,8 +49,26 @@ function timeGreeting() {
   return "Good evening";
 }
 
+function filterAppsForMode(
+  apps: InstalledAppManifest[],
+  mode: WorkspaceMode,
+): InstalledAppManifest[] {
+  if (mode === "PERSONAL") {
+    return apps.filter((a) => a.audience === "personal");
+  }
+  return apps.filter((a) => a.audience !== "personal");
+}
+
+function isBusinessDetailPath(pathname: string): boolean {
+  if (pathname === "/app/business" || pathname.startsWith("/app/business/modules")) {
+    return false;
+  }
+  return Boolean(pathname.match(/^\/app\/business\/[^/]+$/));
+}
+
 export function AppShell() {
   const { user } = useAuth();
+  const { mode } = useWorkspace();
   const location = useLocation();
   const navigate = useNavigate();
   const { openCommand } = useCommandLayer();
@@ -62,13 +84,25 @@ export function AppShell() {
   const firstName = user?.firstName || user?.displayName?.split(" ")[0] || "there";
   const onExplore = location.pathname.startsWith("/app/services/explore");
   const isImmersive =
-    location.pathname.startsWith("/app/business/") ||
+    isBusinessDetailPath(location.pathname) ||
     Boolean(location.pathname.match(/^\/app\/services\/explore\/[^/]+$/));
   const isHome =
     location.pathname === "/app" ||
     location.pathname === "/app/" ||
-    location.pathname.replace(/\/+$/, "") === "/app";
+    location.pathname.replace(/\/+$/, "") === "/app" ||
+    location.pathname === "/app/personal" ||
+    location.pathname === "/app/business";
   const pageMeta = isHome ? null : resolvePageMeta(location.pathname);
+  const tabs = useMemo(() => primaryNavForMode(mode), [mode]);
+  const launcherApps = useMemo(
+    () => filterAppsForMode(installedApps, mode),
+    [installedApps, mode],
+  );
+  const brandName = mode === "PERSONAL" ? "LifeOS Personal" : "LifeOS Business";
+
+  const handleModeChange = (next: WorkspaceMode) => {
+    navigate(workspaceHomePath(next));
+  };
 
   useEffect(() => {
     void notificationService.list().then((d) => setUnread(d.unreadCount)).catch(() => undefined);
@@ -107,10 +141,13 @@ export function AppShell() {
       <aside className="sidebar" aria-label="Primary">
         <div className="brand">
           <span className="brand-mark" aria-hidden />
-          <span className="brand-name">LifeOS Business</span>
+          <span className="brand-name">{brandName}</span>
+        </div>
+        <div className="sidebar-workspace">
+          <WorkspaceToggle onModeChange={handleModeChange} />
         </div>
         <nav className="side-nav">
-          {tabs.map((t) => (
+          {tabs.map((t: ShellNavItem) => (
             <NavLink
               key={t.to}
               to={t.to}
@@ -124,69 +161,53 @@ export function AppShell() {
             </NavLink>
           ))}
           <div className="side-nav-divider" aria-hidden />
-          <NavLink
-            to="/app/messages"
-            className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
-          >
-            <span className="nav-icon" aria-hidden>
-              <IconMessage size={20} />
-            </span>
-            Messages
-          </NavLink>
-          <NavLink
-            to="/app/search"
-            className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
-            onClick={(e) => {
-              e.preventDefault();
-              openCommand(undefined, "ask");
-            }}
-          >
-            <span className="nav-icon" aria-hidden>
-              <IconSearch size={20} />
-            </span>
-            Ask LifeOS
-          </NavLink>
-          <NavLink
-            to="/app/notifications"
-            className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
-          >
-            <span className="nav-icon" aria-hidden>
-              <IconBell size={20} />
-            </span>
-            Notifications
-            {unread ? (
-              <span className="nav-count" aria-label={`${unread} unread`}>
-                {unread}
+          <span className="side-nav-section">Shared</span>
+          {sharedLinks.map((t) => (
+            <NavLink
+              key={t.to}
+              to={t.to}
+              className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
+              onClick={
+                t.ask
+                  ? (e) => {
+                      e.preventDefault();
+                      openCommand(undefined, "ask");
+                    }
+                  : undefined
+              }
+            >
+              <span className="nav-icon" aria-hidden>
+                <t.Icon size={20} />
               </span>
-            ) : null}
-          </NavLink>
-          <NavLink
-            to="/app/connections"
-            className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
-          >
-            <span className="nav-icon" aria-hidden>
-              <IconLink size={20} />
-            </span>
-            Connections
-          </NavLink>
-          <NavLink to="/app/plans" className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}>
-            <span className="nav-icon" aria-hidden>
-              <IconTicket size={20} />
-            </span>
-            Today
-          </NavLink>
-          <NavLink to="/app/saved" className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}>
-            <span className="nav-icon" aria-hidden>
-              <IconBook size={20} />
-            </span>
-            Saved
-          </NavLink>
+              {t.label}
+              {t.to === "/app/notifications" && unread ? (
+                <span className="nav-count" aria-label={`${unread} unread`}>
+                  {unread}
+                </span>
+              ) : null}
+            </NavLink>
+          ))}
           <div className="side-nav-divider" aria-hidden />
-          <UniversalAppLauncher
-            apps={installedApps}
-            loading={appsLoading}
-            onLaunch={(app) => navigate(shellPathForApp(app))}
-          />
+          <span className="side-nav-section">Shared settings</span>
+          {sharedSettingsLinks.map((t) => (
+            <NavLink
+              key={t.to}
+              to={t.to}
+              className={({ isActive }) => `nav-item nav-item--compact${isActive ? " active" : ""}`}
+            >
+              {t.label}
+            </NavLink>
+          ))}
+          {(mode === "BUSINESS" || launcherApps.length > 0) && (
+            <>
+              <div className="side-nav-divider" aria-hidden />
+              <UniversalAppLauncher
+                apps={launcherApps}
+                loading={appsLoading}
+                onLaunch={(app) => navigate(shellPathForApp(app))}
+              />
+            </>
+          )}
         </nav>
         {user ? (
           <button
@@ -213,6 +234,9 @@ export function AppShell() {
               <VerificationStars />
             </div>
             <div className="app-header__actions">
+              <div className="app-header__workspace">
+                <WorkspaceToggle onModeChange={handleModeChange} />
+              </div>
               <NavLink
                 to="/app/messages"
                 className="icon-btn icon-btn--lg"
@@ -260,9 +284,9 @@ export function AppShell() {
         ) : null}
 
         {showInstall && deferredPrompt ? (
-          <div className="install-banner" role="region" aria-label="Install LifeOS Business">
+          <div className="install-banner" role="region" aria-label={`Install ${brandName}`}>
             <div>
-              <strong>Install LifeOS Business</strong>
+              <strong>Install {brandName}</strong>
               <p className="muted small">Add to your home screen for everyday access.</p>
             </div>
             <div className="row-actions">
@@ -325,7 +349,7 @@ export function AppShell() {
               aria-label={onExplore ? "Close services discover" : "Discover services"}
               aria-pressed={onExplore}
               onClick={() => {
-                if (onExplore) navigate("/app");
+                if (onExplore) navigate(workspaceHomePath(mode));
                 else navigate("/app/services/explore");
               }}
             >

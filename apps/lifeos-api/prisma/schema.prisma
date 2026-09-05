@@ -34,15 +34,23 @@ model User {
   personalPlans  PersonalPlan[]
   bookings       Booking[]
   installedApps  InstalledApp[]
+  personalVault  PersonalVaultItem[]
+  businessMembers BusinessMember[]
+  deviceSessions DeviceSession[]
+  bridgeLinks    CrossSpaceBridge[] @relation("BridgeOwner")
 }
 
 model Session {
-  id        String   @id @default(cuid())
-  tokenHash String   @unique
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  platform   String?
+  deviceLabel String?
+  userAgent  String?
+  revokedAt  DateTime?
 }
 
 /// Approved business experiences — only these may be loaded by the shell.
@@ -304,3 +312,98 @@ model InstalledApp {
   @@index([trustId, status])
   @@index([userId, status])
 }
+
+/// Digiconomy-ported personal vault entries (encrypted metadata only — zero raw PII).
+model PersonalVaultItem {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String
+  kind         String   @default("document")
+  mimeType     String?
+  sizeBytes    Int?
+  previewHint  String?
+  encryptedMeta String  @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId, createdAt])
+}
+
+/// Business org for workspace membership (TrustID-safe — no email PII).
+model Business {
+  id        String             @id @default(cuid())
+  name      String
+  slug      String             @unique
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  members   BusinessMember[]
+  bridges   CrossSpaceBridge[]
+}
+
+model BusinessMember {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       String   @default("member")
+  status     String   @default("active")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([businessId, userId])
+  @@index([userId, status])
+}
+
+/// Registered desktop/mobile clients (Tauri / Capacitor).
+model DeviceSession {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform    String
+  deviceLabel String
+  lastSeenAt  DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  revokedAt   DateTime?
+
+  @@index([userId, revokedAt])
+}
+
+/// Cross-space link: personal vault item referenced into a business module (no file duplication).
+model CrossSpaceBridge {
+  id                  String   @id @default(cuid())
+  ownerUserId         String
+  owner               User     @relation("BridgeOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  personalVaultItemId String
+  targetBusinessId    String
+  business            Business @relation(fields: [targetBusinessId], references: [id], onDelete: Cascade)
+  targetModule        String   @default("financeos")
+  status              String   @default("active")
+  bridgedAt           DateTime @default(now())
+  metadata            String   @default("{}")
+
+  @@unique([personalVaultItemId, targetBusinessId, targetModule])
+  @@index([ownerUserId, bridgedAt])
+  @@index([targetBusinessId, status])
+}
+
+/// Published shell/desktop/mobile release metadata (artifact stored as opaque bytes or URL).
+model ReleaseArtifact {
+  id            String   @id @default(cuid())
+  appId         String
+  version       String
+  platform      String
+  filename      String
+  contentType   String   @default("application/octet-stream")
+  sizeBytes     Int
+  /// Optional object URL / hub path — raw bytes may be omitted for large binaries.
+  artifactUrl   String?
+  sha256        String?
+  elfcomNotified Boolean @default(false)
+  createdAt     DateTime @default(now())
+
+  @@index([appId, platform, createdAt])
+  @@unique([appId, version, platform])
+}
+

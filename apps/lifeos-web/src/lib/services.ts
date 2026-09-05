@@ -248,6 +248,116 @@ export const installedAppsService = {
     ),
 };
 
+export const sharedService = {
+  identity: () =>
+    api<{
+      trustId: string;
+      did: string;
+      displayName: string;
+      zkVerified: boolean;
+      trustTier: number | null;
+      identityStatus: string | null;
+      sessionStatus: string;
+      zeroPii: boolean;
+      publicVerificationKeys: Array<{
+        id: string;
+        type: string;
+        controller: string;
+        publicKeyMultibase: string;
+      }>;
+      memberships: Array<{
+        id: string;
+        role: string;
+        businessId: string;
+        businessName: string;
+        businessSlug: string;
+      }>;
+    }>("/v1/shared/identity"),
+  exportBackup: () =>
+    api<{ backup: Record<string, unknown> }>("/v1/shared/identity/backup", {
+      method: "POST",
+    }),
+  security: () =>
+    api<{
+      biometricLockEnabled: boolean;
+      devices: Array<{
+        id: string;
+        platform: string;
+        deviceLabel: string;
+        lastSeenAt: string;
+        createdAt: string;
+      }>;
+      sessions: Array<{
+        id: string;
+        platform: string;
+        deviceLabel: string;
+        createdAt: string;
+        expiresAt: string;
+      }>;
+    }>("/v1/shared/security/devices"),
+  registerDevice: (input: { platform: string; deviceLabel: string }) =>
+    api("/v1/shared/security/devices/register", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  setBiometric: (enabled: boolean) =>
+    api<{ biometricLockEnabled: boolean }>("/v1/shared/security/biometric", {
+      method: "POST",
+      body: JSON.stringify({ enabled }),
+    }),
+  revokeSession: (sessionId: string) =>
+    api<{ ok: boolean }>(`/v1/shared/security/sessions/${sessionId}/revoke`, {
+      method: "POST",
+    }),
+  revokeDevice: (deviceId: string) =>
+    api<{ ok: boolean }>(`/v1/shared/security/devices/${deviceId}/revoke`, {
+      method: "POST",
+    }),
+  notificationPrefs: () =>
+    api<{
+      channels: { desktop: boolean; mobilePush: boolean; inApp: boolean };
+      filters: { businessWhilePersonal: boolean; marketingTips: boolean };
+    }>("/v1/shared/notifications"),
+  updateNotificationPrefs: (body: Record<string, boolean>): Promise<{
+    channels: { desktop: boolean; mobilePush: boolean; inApp: boolean };
+    filters: { businessWhilePersonal: boolean; marketingTips: boolean };
+  }> =>
+    api("/v1/shared/notifications", {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  bridge: () =>
+    api<{
+      vaultItems: Array<{ id: string; title: string; kind: string; createdAt: string }>;
+      businesses: Array<{ id: string; name: string; role: string }>;
+      audit: Array<{
+        id: string;
+        personalVaultItemId: string;
+        vaultTitle: string;
+        targetBusinessId: string;
+        businessName: string;
+        targetModule: string;
+        status: string;
+        bridgedAt: string;
+      }>;
+    }>("/v1/shared/bridge"),
+  transferBridge: (input: {
+    personalVaultItemId: string;
+    targetBusinessId: string;
+    targetModule?: string;
+  }) =>
+    api<{
+      success: boolean;
+      bridgedAt: string;
+      bridgeId: string;
+      targetBusinessId: string;
+      targetModule: string;
+    }>("/v1/shared/bridge/transfer", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+};
+
 export const activityService = {
   list: () => api<{ activities: ActivityItem[] }>("/activity"),
 };

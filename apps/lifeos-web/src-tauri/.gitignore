@@ -1,0 +1,4 @@
+# Tauri / Rust build artifacts
+/target/
+/gen/schemas/
+Cargo.lock

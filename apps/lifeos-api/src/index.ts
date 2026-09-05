@@ -20,6 +20,8 @@ import { bookingRoutes } from "./routes/bookings.js";
 import { wipeRoutes } from "./routes/wipe.js";
 import { distributorRoutes } from "./routes/distributor.js";
 import { finproveProxyRoutes } from "./routes/finprove-proxy.js";
+import { personalRoutes } from "./routes/personal.js";
+import { sharedRoutes } from "./routes/shared.js";
 import {
   RemoteFinproveLedgerAdapter,
   RemoteFinprovePaymentAdapter,
@@ -106,6 +108,8 @@ await actionRoutes(app);
 await bookingRoutes(app);
 await wipeRoutes(app);
 await distributorRoutes(app);
+await personalRoutes(app);
+await sharedRoutes(app);
 await finproveProxyRoutes(app);
 
 await app.listen({ port: config.port, host: config.host });

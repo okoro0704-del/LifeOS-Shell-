@@ -2,7 +2,11 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
+const host = process.env.TAURI_DEV_HOST;
+
 export default defineConfig({
+  clearScreen: false,
+  envPrefix: ["VITE_", "TAURI_"],
   plugins: [
     react(),
     VitePWA({
@@ -71,6 +75,17 @@ export default defineConfig({
   server: {
     port: 5174,
     strictPort: true,
+    host: host || false,
+    hmr: host
+      ? {
+          protocol: "ws",
+          host,
+          port: 5175,
+        }
+      : undefined,
+    watch: {
+      ignored: ["**/src-tauri/**"],
+    },
     proxy: {
       "/api": {
         target: "http://localhost:8790",
@@ -78,6 +93,12 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api/, ""),
       },
     },
+  },
+  build: {
+    // Tauri uses Chromium on Windows/macOS and WebKit on Linux.
+    target: process.env.TAURI_ENV_PLATFORM === "windows" ? "chrome105" : "safari13",
+    minify: !process.env.TAURI_ENV_DEBUG ? "esbuild" : false,
+    sourcemap: !!process.env.TAURI_ENV_DEBUG,
   },
   define: {
     "import.meta.env.VITE_SERVICEOS_API_URL": JSON.stringify(

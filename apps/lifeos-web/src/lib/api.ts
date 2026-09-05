@@ -115,6 +115,11 @@ export function markLoggedOut() {
   } catch {
     /* private mode / blocked storage */
   }
+  try {
+    localStorage.removeItem("lifeos.trustid.access_token");
+  } catch {
+    /* ignore */
+  }
 }
 
 function mapErrorCode(status: number, raw?: string): ApiErrorCode {

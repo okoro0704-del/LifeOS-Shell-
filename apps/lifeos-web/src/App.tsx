@@ -3,6 +3,8 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { ThemeProvider } from "./hooks/useTheme";
 import { CommandLayerProvider } from "./hooks/useCommandLayer";
+import { WorkspaceProvider, useWorkspace } from "./context/WorkspaceContext";
+import { workspaceHomePath } from "./components/shell/nav";
 import { AppShell } from "./components/AppShell";
 import { RequireAuth } from "./components/RequireAuth";
 import { WelcomePage } from "./pages/Welcome";
@@ -58,6 +60,22 @@ const ServiceOSCatalogPage = lazy(() =>
 const ServiceOSTrackPage = lazy(() =>
   import("./routes/app/serviceos").then((m) => ({ default: m.ServiceOSTrackPage })),
 );
+const PersonalRoutes = lazy(() =>
+  import("./routes/personalRoutes").then((m) => ({ default: m.PersonalRoutes })),
+);
+const SharedRoutes = lazy(() =>
+  import("./routes/sharedRoutes").then((m) => ({ default: m.SharedRoutes })),
+);
+const BusinessHomePage = lazy(() =>
+  import("./pages/workspace/WorkspacePlaceholders").then((m) => ({
+    default: m.BusinessHomePage,
+  })),
+);
+const BusinessModulesPage = lazy(() =>
+  import("./pages/workspace/WorkspacePlaceholders").then((m) => ({
+    default: m.BusinessModulesPage,
+  })),
+);
 
 function PageFallback() {
   return (
@@ -69,190 +87,230 @@ function PageFallback() {
   );
 }
 
+function WorkspaceHomeRedirect() {
+  const { mode } = useWorkspace();
+  return <Navigate to={workspaceHomePath(mode)} replace />;
+}
+
 function ThemedApp() {
   const { user } = useAuth();
   return (
     <ThemeProvider initial={user?.preferences.theme}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<WelcomePage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/callback" element={<CallbackPage />} />
-          <Route element={<RequireAuth />}>
-            <Route
-              path="/app"
-              element={
-                <CommandLayerProvider>
-                  <AppShell />
-                </CommandLayerProvider>
-              }
-            >
+      <WorkspaceProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<WelcomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/callback" element={<CallbackPage />} />
+            <Route element={<RequireAuth />}>
               <Route
-                index
+                path="/app"
                 element={
-                  <Suspense fallback={<PageFallback />}>
-                    <HomePage />
-                  </Suspense>
+                  <CommandLayerProvider>
+                    <AppShell />
+                  </CommandLayerProvider>
                 }
-              />
-              <Route
-                path="wallet"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <WalletPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="discover"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <DiscoverPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="activity"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <ActivityPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="profile"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <ProfilePage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="notifications"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <NotificationsPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="messages"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <MessagesPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="shell/:appId"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <ShellAppPage />
-                  </Suspense>
-                }
-              />
-              <Route path="serviceos" element={<Navigate to="/app/serviceos/catalog" replace />} />
-              <Route
-                path="serviceos/catalog"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <ServiceOSCatalogPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="serviceos/track/:bookingId"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <ServiceOSTrackPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="search"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <SearchPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="connections"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <ConnectionsPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="plans"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <PlansPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="saved"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <SavedPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="services"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <ServicesPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="services/explore"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <ServicesExplorePage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="services/explore/:conceptId"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <ServiceSellersPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="business/:businessId"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <BusinessPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="services/:category/feed"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <OfferingFeedPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="services/:category"
-                element={
-                  <Suspense fallback={<PageFallback />}>
-                    <ServiceCategoryPage />
-                  </Suspense>
-                }
-              />
+              >
+                <Route index element={<WorkspaceHomeRedirect />} />
+                <Route
+                  path="personal/*"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <PersonalRoutes />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="shared/*"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <SharedRoutes />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="business"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <BusinessHomePage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="business/modules"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <BusinessModulesPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="legacy-home"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <HomePage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="wallet"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <WalletPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="discover"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <DiscoverPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="activity"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <ActivityPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="profile"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <ProfilePage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="notifications"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <NotificationsPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="messages"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <MessagesPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="shell/:appId"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <ShellAppPage />
+                    </Suspense>
+                  }
+                />
+                <Route path="serviceos" element={<Navigate to="/app/serviceos/catalog" replace />} />
+                <Route
+                  path="serviceos/catalog"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <ServiceOSCatalogPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="serviceos/track/:bookingId"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <ServiceOSTrackPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="search"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <SearchPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="connections"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <ConnectionsPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="plans"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <PlansPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="saved"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <SavedPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="services"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <ServicesPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="services/explore"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <ServicesExplorePage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="services/explore/:conceptId"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <ServiceSellersPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="business/:businessId"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <BusinessPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="services/:category/feed"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <OfferingFeedPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="services/:category"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <ServiceCategoryPage />
+                    </Suspense>
+                  }
+                />
+              </Route>
             </Route>
-          </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </WorkspaceProvider>
     </ThemeProvider>
   );
 }

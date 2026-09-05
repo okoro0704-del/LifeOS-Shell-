@@ -11,6 +11,41 @@ export function resolvePageMeta(pathname: string): PageMeta | null {
   const path = pathname.replace(/\/+$/, "") || "/";
   if (path === "/app") return null;
 
+  if (path.startsWith("/app/shared/identity")) {
+    return { title: "Identity", subtitle: "TrustID DID & verification" };
+  }
+  if (path.startsWith("/app/shared/security")) {
+    return { title: "Security", subtitle: "Devices & biometric lock" };
+  }
+  if (path.startsWith("/app/shared/notifications")) {
+    return { title: "ElfCom alerts", subtitle: "Push & workspace filters" };
+  }
+  if (path.startsWith("/app/shared/bridge")) {
+    return { title: "Cross-space bridge", subtitle: "Personal → Business links" };
+  }
+  if (path.startsWith("/app/shared")) {
+    return { title: "Shared settings" };
+  }
+
+  if (path === "/app/personal") {
+    return { title: "Personal", subtitle: "Your LifeOS personal space" };
+  }
+  if (path.startsWith("/app/personal/vault")) {
+    return { title: "Vault", subtitle: "Private library" };
+  }
+  if (path.startsWith("/app/personal/discovery")) {
+    return { title: "Discovery", subtitle: "Free content & feeds" };
+  }
+  if (path.startsWith("/app/personal/finance")) {
+    return { title: "Personal finance", subtitle: "Your money view" };
+  }
+  if (path === "/app/business") {
+    return { title: "Business", subtitle: "Operations home" };
+  }
+  if (path.startsWith("/app/business/modules")) {
+    return { title: "Modules", subtitle: "Enabled business verticals" };
+  }
+
   if (path.startsWith("/app/serviceos/track")) {
     return { title: "Live tracking", subtitle: "Your professional is on the way" };
   }

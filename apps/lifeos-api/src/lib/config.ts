@@ -70,14 +70,12 @@ export const config = {
   /** Phase F — local stubs vs remote HTTP engines for the 6-primitive container. */
   primitivesMode: (process.env.PRIMITIVES_MODE ?? "local") as "local" | "remote",
   fundzmanUrl: process.env.FUNDZMAN_URL ?? "",
-  /** Standalone Finprove Engine — LifeOS Gateway reverse-proxies /api/v1/finprove/* here. */
-  finproveUrl: process.env.FINPROVE_URL ?? "http://localhost:4220",
-  /** Bind FinProv ports at boot when the engine answers /health. */
-  finproveBind: (process.env.FINPROVE_BIND ?? "").toLowerCase() === "true",
   sovereignDriveUrl: process.env.SOVEREIGN_DRIVE_URL ?? "",
   jobsEngineUrl: process.env.JOBS_ENGINE_URL ?? "",
   distributorUrl: process.env.DISTRIBUTOR_URL ?? "",
-  /** Headless Finprove Engine — payment broker on :4220 */
+  /** Headless Finprove Engine — payment broker (LifeOS Gateway may reverse-proxy). */
   finproveUrl: (process.env.FINPROVE_URL ?? "http://localhost:4220").replace(/\/$/, ""),
   finproveBind: (process.env.FINPROVE_BIND ?? "").toLowerCase() === "true",
+  /** Digiconomy Core Application API (optional personal finance bridge). */
+  digiconomyApiUrl: (process.env.DIGICONOMY_API_URL ?? "").replace(/\/$/, ""),
 };
