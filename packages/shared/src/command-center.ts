@@ -100,7 +100,7 @@ export const COMMAND_SHORTCUTS = [
   { id: "attention", label: "What needs attention?", query: "what needs my attention?" },
 ] as const;
 
-/** AI search — find offerings, places, plans. */
+/** AI search — find offerings, places, plans (shared across Personal + Business). */
 export const ASK_SHORTCUTS = [
   { id: "ask_hotels", label: "Hotel rooms nearby", query: "find hotel rooms near me" },
   { id: "ask_food", label: "Food & restaurants", query: "find restaurants near me" },
@@ -108,17 +108,35 @@ export const ASK_SHORTCUTS = [
   { id: "ask_cinema", label: "Cinema tonight", query: "cinema showtimes tonight" },
   { id: "ask_events", label: "Events this weekend", query: "events this weekend" },
   { id: "ask_nearby", label: "What's near me?", query: "what's near me?" },
+  { id: "ask_music", label: "Play Wizkid album", query: "play me Wizkid album" },
+  { id: "ask_book", label: "Search Otedola's book", query: "search Otedola book" },
 ] as const;
 
 /** AI task automation — book, pay, check in, manage. */
 export const TELL_SHORTCUTS = [
-  { id: "tell_book_spa", label: "Book a massage", query: "book a massage tomorrow" },
+  { id: "tell_book_spa", label: "Book a spa near me", query: "book me a spa appointment near me" },
   { id: "tell_book_dinner", label: "Reserve dinner", query: "book dinner tonight" },
   { id: "tell_book_room", label: "Book a hotel room", query: "book a hotel room" },
   { id: "tell_pay", label: "Pay an invoice", query: "pay my invoice" },
   { id: "tell_tickets", label: "Get cinema tickets", query: "buy cinema tickets" },
   { id: "tell_checkin", label: "Check in", query: "check in to my hotel" },
   { id: "tell_attention", label: "What needs attention?", query: "what needs my attention?" },
+] as const;
+
+/** Personal-space Ask chips (consumer / patronize). */
+export const ASK_SHORTCUTS_PERSONAL = [
+  { id: "ask_music", label: "Play Wizkid album", query: "play me Wizkid album" },
+  { id: "ask_book", label: "Search Otedola's book", query: "search Otedola book" },
+  { id: "ask_food", label: "Food near me", query: "find restaurants near me" },
+  { id: "ask_events", label: "Events this weekend", query: "events this weekend" },
+] as const;
+
+/** Business-space Ask / Tell chips (operate & book). */
+export const ASK_SHORTCUTS_BUSINESS = [
+  { id: "ask_spa", label: "Spa near me", query: "find spa near me" },
+  { id: "ask_hotels", label: "Hotel rooms", query: "find hotel rooms near me" },
+  { id: "ask_food", label: "Restaurants", query: "find restaurants near me" },
+  { id: "tell_book_spa", label: "Book a spa", query: "book me a spa appointment near me" },
 ] as const;
 
 export type CommandCenterMode = "ask" | "tell";

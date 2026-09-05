@@ -155,8 +155,8 @@ export function LoginPage() {
                 AUTH_BYPASS
                   ? "Continue in test mode to open LifeOS again."
                   : returning
-                    ? "Enter LifeOS Business again to continue."
-                    : "Log into LifeOS Business again to continue."
+                    ? "Enter LifeOS again to continue."
+                    : "Log into LifeOS again to continue."
               }
             />
           ) : null}
@@ -164,7 +164,7 @@ export function LoginPage() {
           {status === "lifeos_unavailable" ? (
             <StatusBanner
               title="Something went wrong"
-              detail="We couldn't load LifeOS Business. Try again in a moment."
+              detail="We couldn't load LifeOS. Try again in a moment."
             />
           ) : null}
 
@@ -189,7 +189,7 @@ export function LoginPage() {
           ) : returning ? (
             <div className="welcome-auth">
               <p className="welcome-auth__label mono">welcome back</p>
-              <h1>Enter LifeOS Business</h1>
+              <h1>Enter LifeOS</h1>
               <p className="lead">
                 One TrustID per phone. Unlock with Face ID or fingerprint on this device.
               </p>
@@ -206,7 +206,7 @@ export function LoginPage() {
           ) : (
             <div className="welcome-auth">
               <p className="welcome-auth__label mono">secure entry</p>
-              <h1>Log into LifeOS Business</h1>
+              <h1>Log into LifeOS</h1>
               <p className="lead">
                 Create TrustID once on this phone. After a server wipe, reset binding then create
                 again — old passkeys show &quot;Unknown credential&quot;.

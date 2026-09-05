@@ -6,12 +6,37 @@ import type {
   CommandOutcome,
   SearchResult,
 } from "@lifeos/shared";
-import { ASK_SHORTCUTS, TELL_SHORTCUTS } from "@lifeos/shared";
+import {
+  ASK_SHORTCUTS,
+  ASK_SHORTCUTS_BUSINESS,
+  ASK_SHORTCUTS_PERSONAL,
+  TELL_SHORTCUTS,
+} from "@lifeos/shared";
 import { Button, EmptyState, Skeleton } from "@lifeos/ui";
 import { commandService } from "../lib/services";
 import { useCommandLayer } from "../hooks/useCommandLayer";
 import { useFocusTrap } from "../hooks/useFocusTrap";
+import { useWorkspace } from "../context/WorkspaceContext";
 import { ActionPreview } from "./ActionPreview";
+
+type SpeechRecognitionLike = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start: () => void;
+  stop: () => void;
+  onresult: ((ev: { results: ArrayLike<{ 0: { transcript: string }; isFinal: boolean }> }) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+};
+
+function getSpeechRecognition(): (new () => SpeechRecognitionLike) | null {
+  const w = window as unknown as {
+    SpeechRecognition?: new () => SpeechRecognitionLike;
+    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+  };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
+}
 
 function applyOutcome(
   outcome: CommandOutcome & { sessionId?: string },
@@ -82,15 +107,19 @@ export function CommandOverlay() {
     sessionId,
     setSessionId,
   } = useCommandLayer();
+  const { mode: workspaceMode } = useWorkspace();
   const navigate = useNavigate();
   const mobile = useIsMobile();
   const panelRef = useRef<HTMLDivElement>(null);
   useFocusTrap(open, panelRef);
   const inputRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const listId = useId();
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirmBusy, setConfirmBusy] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(false);
   const [recent, setRecent] = useState<CommandHistoryEntry[]>([]);
   const [liveResults, setLiveResults] = useState<SearchResult[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -99,8 +128,65 @@ export function CommandOverlay() {
 
   const displayResults = pendingResults.length ? pendingResults : liveResults;
   const mode: PanelMode = preview ? "preview" : displayResults.length || message ? "results" : "idle";
-  const shortcuts = commandMode === "ask" ? ASK_SHORTCUTS : TELL_SHORTCUTS;
   const isAsk = commandMode === "ask";
+  const spaceAsk =
+    workspaceMode === "PERSONAL" ? ASK_SHORTCUTS_PERSONAL : ASK_SHORTCUTS_BUSINESS;
+  const shortcuts = isAsk
+    ? [...spaceAsk, ...ASK_SHORTCUTS.filter((s) => !spaceAsk.some((p) => p.id === s.id))].slice(0, 8)
+    : TELL_SHORTCUTS;
+
+  useEffect(() => {
+    setVoiceSupported(Boolean(getSpeechRecognition()));
+  }, []);
+
+  useEffect(() => {
+    if (!open) {
+      recognitionRef.current?.stop();
+      setListening(false);
+    }
+  }, [open]);
+
+  function toggleVoice() {
+    const Ctor = getSpeechRecognition();
+    if (!Ctor) {
+      setError("Voice isn't supported in this browser.");
+      return;
+    }
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+    const rec = new Ctor();
+    recognitionRef.current = rec;
+    rec.continuous = false;
+    rec.interimResults = true;
+    rec.lang = "en-US";
+    rec.onresult = (ev) => {
+      let transcript = "";
+      for (let i = 0; i < ev.results.length; i++) {
+        transcript += ev.results[i]![0]!.transcript;
+      }
+      setQuery(transcript);
+      const last = ev.results[ev.results.length - 1];
+      if (last?.isFinal && transcript.trim()) {
+        void runCommand(transcript.trim());
+      }
+    };
+    rec.onerror = () => {
+      setListening(false);
+      setError("Couldn't hear that — try again.");
+    };
+    rec.onend = () => setListening(false);
+    try {
+      rec.start();
+      setListening(true);
+      setError(null);
+    } catch {
+      setError("Microphone unavailable.");
+      setListening(false);
+    }
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -304,45 +390,68 @@ export function CommandOverlay() {
         >
           <label className="command-panel__label" htmlFor="ask-lifeos-input">
             {isAsk ? "Ask LifeOS" : "Tell LifeOS"}
+            <span className="command-panel__space-badge">
+              {workspaceMode === "PERSONAL" ? "Personal" : "Business"}
+            </span>
           </label>
-          <input
-            id="ask-lifeos-input"
-            ref={inputRef}
-            className="command-panel__input"
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setPendingResults([]);
-              setMessage(null);
-              setActiveIndex(0);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "ArrowDown") {
-                e.preventDefault();
-                setActiveIndex((i) => Math.min(i + 1, Math.max(flatItems.length - 1, 0)));
-              } else if (e.key === "ArrowUp") {
-                e.preventDefault();
-                setActiveIndex((i) => Math.max(i - 1, 0));
+          <div className="command-panel__input-row">
+            <input
+              id="ask-lifeos-input"
+              ref={inputRef}
+              className="command-panel__input"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setPendingResults([]);
+                setMessage(null);
+                setActiveIndex(0);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  setActiveIndex((i) => Math.min(i + 1, Math.max(flatItems.length - 1, 0)));
+                } else if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  setActiveIndex((i) => Math.max(i - 1, 0));
+                }
+              }}
+              placeholder={
+                isAsk
+                  ? workspaceMode === "PERSONAL"
+                    ? "Play music, find a book, search nearby…"
+                    : "Find a spa, hotel, or service near you…"
+                  : workspaceMode === "PERSONAL"
+                    ? "Tell LifeOS what to do…"
+                    : "Book a spa near me, reserve dinner…"
               }
-            }}
-            placeholder={
-              isAsk
-                ? "Search hotels, food, events, plans…"
-                : "Tell LifeOS what to do — book, pay, check in…"
-            }
-            autoComplete="off"
-            aria-autocomplete="list"
-            aria-controls={listId}
-            aria-activedescendant={flatItems[activeIndex] ? `${listId}-${activeIndex}` : undefined}
-          />
+              autoComplete="off"
+              aria-autocomplete="list"
+              aria-controls={listId}
+              aria-activedescendant={flatItems[activeIndex] ? `${listId}-${activeIndex}` : undefined}
+            />
+            {voiceSupported ? (
+              <button
+                type="button"
+                className={`command-panel__mic${listening ? " is-listening" : ""}`}
+                aria-pressed={listening}
+                aria-label={listening ? "Stop listening" : "Talk to LifeOS"}
+                title="Talk to LifeOS"
+                onClick={() => toggleVoice()}
+              >
+                {listening ? "●" : "◉"}
+              </button>
+            ) : null}
+          </div>
           <span className="command-panel__hint muted small">
-            {busy
-              ? isAsk
-                ? "Searching…"
-                : "Working on it…"
-              : isAsk
-                ? "AI-powered search · Enter to search"
-                : "AI-powered tasks · Enter to run · confirm when asked"}
+            {listening
+              ? "Listening…"
+              : busy
+                ? isAsk
+                  ? "Searching…"
+                  : "Working on it…"
+                : isAsk
+                  ? "Ask or talk · same in Personal & Business"
+                  : "Tell or talk · confirm when asked"}
           </span>
         </form>
 

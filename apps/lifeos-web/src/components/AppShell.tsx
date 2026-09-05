@@ -98,7 +98,7 @@ export function AppShell() {
     () => filterAppsForMode(installedApps, mode),
     [installedApps, mode],
   );
-  const brandName = mode === "PERSONAL" ? "LifeOS Personal" : "LifeOS Business";
+  const brandName = "LifeOS";
 
   const handleModeChange = (next: WorkspaceMode) => {
     navigate(workspaceHomePath(next));
@@ -355,7 +355,7 @@ export function AppShell() {
             >
               <span aria-hidden>{onExplore ? "×" : "+"}</span>
             </button>
-            {tabs.slice(2).map((t) => (
+            {tabs.slice(2, 3).map((t) => (
               <NavLink
                 key={t.to}
                 to={t.to}
@@ -368,6 +368,7 @@ export function AppShell() {
                 <span>{t.label}</span>
               </NavLink>
             ))}
+            <WorkspaceToggle variant="space" onModeChange={handleModeChange} />
           </nav>
         ) : null}
       </div>

@@ -45,10 +45,9 @@ export function FinancePage() {
   return (
     <div className="page personal-page">
       <header className="page-header">
-        <h1>Personal finance</h1>
+        <h1>Finance</h1>
         <p className="muted">
-          Individual net worth and private ledger activity. Business FinanceOS remains under Business
-          space.
+          Your money view in the consumer space. Business bookkeeping stays under Business Finance.
         </p>
       </header>
 

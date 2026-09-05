@@ -1,7 +1,6 @@
 import type { ComponentType, SVGProps } from "react";
 import {
   IconActivity,
-  IconBook,
   IconExplore,
   IconHome,
   IconWallet,
@@ -17,20 +16,25 @@ export type ShellNavItem = {
   Icon: IconComp;
 };
 
-/** Primary tabs for Personal space. */
+/**
+ * Consumer space (PERSONAL mode in this shell):
+ * Home · Activity · Finance — Space switch is separate.
+ * Vault lives in the Digiconomy personal app (offline / main / free kernels), not here.
+ */
 export const PERSONAL_PRIMARY_NAV: ShellNavItem[] = [
   { to: "/app/personal", end: true, label: "Home", Icon: IconHome },
-  { to: "/app/personal/vault", label: "Vault", Icon: IconBook },
-  { to: "/app/personal/discovery", label: "Discovery", Icon: IconExplore },
+  { to: "/app/activity", label: "Activity", Icon: IconActivity },
   { to: "/app/personal/finance", label: "Finance", Icon: IconWallet },
 ];
 
-/** Primary tabs for Business space. */
+/**
+ * Business workspace: Home · Explore · Finance — Space switch is separate.
+ * Ask LifeOS stays in shared nav for both spaces.
+ */
 export const BUSINESS_PRIMARY_NAV: ShellNavItem[] = [
   { to: "/app/business", end: true, label: "Home", Icon: IconHome },
   { to: "/app/discover", label: "Explore", Icon: IconExplore },
   { to: "/app/wallet", label: "Finance", Icon: IconWallet },
-  { to: "/app/activity", label: "Activity", Icon: IconActivity },
 ];
 
 export function primaryNavForMode(mode: WorkspaceMode): ShellNavItem[] {

@@ -13,16 +13,25 @@ describe("workspace Phase 1 wiring", () => {
     expect(src).toContain("lifeos_active_business_id");
   });
 
-  it("AppShell mounts WorkspaceToggle", () => {
+  it("AppShell mounts WorkspaceToggle with Space variant on bottom nav", () => {
     const src = readFileSync(join(root, "src/components/AppShell.tsx"), "utf8");
     expect(src).toContain("WorkspaceToggle");
     expect(src).toContain("primaryNavForMode");
+    expect(src).toContain('variant="space"');
+    expect(src).toContain('brandName = "LifeOS"');
+  });
+
+  it("WorkspaceToggle double-tap flips Personal ↔ Business", () => {
+    const src = readFileSync(join(root, "src/components/shell/WorkspaceToggle.tsx"), "utf8");
+    expect(src).toContain("flipSpace");
+    expect(src).toContain("Double-tap");
+    expect(src).toContain('variant === "space"');
   });
 
   it("App wraps with WorkspaceProvider", () => {
     const src = readFileSync(join(root, "src/App.tsx"), "utf8");
     expect(src).toContain("WorkspaceProvider");
-    expect(src).toContain('path="personal"');
+    expect(src).toContain('path="personal/*"');
     expect(src).toContain('path="business"');
   });
 });

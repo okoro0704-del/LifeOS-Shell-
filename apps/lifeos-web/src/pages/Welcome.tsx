@@ -17,7 +17,7 @@ const BUSINESS_BOARDS = [
     id: "commerce",
     index: "02",
     title: "Book · order · settle",
-    detail: "Unified commerce across your services — customers stay in LifeOS Business.",
+    detail: "Unified commerce across your services — customers stay in LifeOS.",
     tone: "b",
   },
   {
@@ -70,7 +70,7 @@ export function WelcomePage() {
           <p className="welcome-tagline">Operating system for everyday businesses</p>
         </header>
 
-        <section className="welcome-boards" aria-roledescription="carousel" aria-label="LifeOS Business">
+        <section className="welcome-boards" aria-roledescription="carousel" aria-label="LifeOS">
           <div className="welcome-boards__track" style={{ transform: `translateX(-${boardIndex * 100}%)` }}>
             {BUSINESS_BOARDS.map((board) => (
               <article

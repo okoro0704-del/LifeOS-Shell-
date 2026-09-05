@@ -35,9 +35,9 @@ export function PersonalHomePage() {
   return (
     <WorkspacePlaceholder
       title="Personal space"
-      detail="Your vault, discovery, and personal finance live here. Digiconomy modules will land in later phases."
-      ctaHref="/app/personal/vault"
-      ctaLabel="Open vault"
+      detail="Consume content and patronize businesses. Vault kernels live in Digiconomy."
+      ctaHref="/app/personal"
+      ctaLabel="Open personal home"
     />
   );
 }
@@ -45,8 +45,10 @@ export function PersonalHomePage() {
 export function PersonalVaultPage() {
   return (
     <WorkspacePlaceholder
-      title="Vault"
-      detail="Offline-capable personal library (Digiconomy Kernel 1) — coming next."
+      title="Activity"
+      detail="Vault moved to Digiconomy. Activity lives at /app/activity."
+      ctaHref="/app/activity"
+      ctaLabel="Open activity"
     />
   );
 }
@@ -54,8 +56,10 @@ export function PersonalVaultPage() {
 export function PersonalDiscoveryPage() {
   return (
     <WorkspacePlaceholder
-      title="Discovery"
-      detail="Free content discovery feed — ported from Digiconomy Kernel 2 in a later phase."
+      title="Finance"
+      detail="Discovery slot is now Finance in the consumer shell."
+      ctaHref="/app/personal/finance"
+      ctaLabel="Open finance"
     />
   );
 }
@@ -63,10 +67,10 @@ export function PersonalDiscoveryPage() {
 export function PersonalFinancePage() {
   return (
     <WorkspacePlaceholder
-      title="Personal finance"
-      detail="Personal money view. Shared TrustID wallet remains available under Finance in Business space."
-      ctaHref="/app/wallet"
-      ctaLabel="Open shared wallet"
+      title="Finance"
+      detail="Your money view in the consumer space."
+      ctaHref="/app/personal/finance"
+      ctaLabel="Open finance"
     />
   );
 }

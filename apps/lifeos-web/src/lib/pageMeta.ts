@@ -28,16 +28,16 @@ export function resolvePageMeta(pathname: string): PageMeta | null {
   }
 
   if (path === "/app/personal") {
-    return { title: "Personal", subtitle: "Your LifeOS personal space" };
+    return { title: "Home", subtitle: "Consume & patronize" };
   }
   if (path.startsWith("/app/personal/vault")) {
-    return { title: "Vault", subtitle: "Private library" };
+    return { title: "Activity", subtitle: "Redirected from vault" };
   }
   if (path.startsWith("/app/personal/discovery")) {
-    return { title: "Discovery", subtitle: "Free content & feeds" };
+    return { title: "Finance", subtitle: "Your money in this space" };
   }
   if (path.startsWith("/app/personal/finance")) {
-    return { title: "Personal finance", subtitle: "Your money view" };
+    return { title: "Finance", subtitle: "Your money in this space" };
   }
   if (path === "/app/business") {
     return { title: "Business", subtitle: "Operations home" };
@@ -122,5 +122,5 @@ export function resolvePageMeta(pathname: string): PageMeta | null {
     return { title: "Services", subtitle: "Everything LifeOS can book" };
   }
 
-  return { title: "LifeOS Business" };
+  return { title: "LifeOS" };
 }
