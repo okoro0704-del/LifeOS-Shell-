@@ -10,6 +10,8 @@ interface ImportMetaEnv {
   readonly VITE_TRUSTID_WEB: string;
   readonly VITE_SERVICEOS_API_URL?: string;
   readonly VITE_DIGICONOMY_API_URL?: string;
+  /** Temporary TrustID bypass for testing — pair with LIFEOS_AUTH_BYPASS on the API. */
+  readonly VITE_AUTH_BYPASS?: string;
 }
 
 interface ImportMeta {

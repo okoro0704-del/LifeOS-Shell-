@@ -174,10 +174,50 @@ async function main() {
       update: exp,
       create: exp,
     });
+
+    const appId =
+      exp.osType === "hospitality"
+        ? "hospitalityos"
+        : exp.osType === "transport"
+          ? "transportationos"
+          : exp.osType === "service"
+            ? "serviceos"
+            : exp.osType || "other";
+    const subdomain = exp.businessId.replace(/[^a-z0-9-]/gi, "-").toLowerCase().slice(0, 48) || exp.id;
+    await prisma.appCatalogEntry.upsert({
+      where: { appId_tenantId: { appId, tenantId: exp.businessId } },
+      create: {
+        appId,
+        tenantId: exp.businessId,
+        displayName: exp.displayName,
+        icon: exp.icon,
+        osType: exp.osType,
+        audience: "business",
+        experienceId: exp.id,
+        experienceUrl: exp.experienceUrl,
+        approvedOrigin: hospitalityOrigin,
+        subdomain,
+        launchUrl: exp.experienceUrl,
+        source: "seed",
+        status: "active",
+      },
+      update: {
+        displayName: exp.displayName,
+        icon: exp.icon,
+        osType: exp.osType,
+        experienceId: exp.id,
+        experienceUrl: exp.experienceUrl,
+        approvedOrigin: hospitalityOrigin,
+        subdomain,
+        launchUrl: exp.experienceUrl,
+        status: "active",
+        source: "seed",
+      },
+    });
   }
 
   console.log(
-    `Seeded ${experiences.length} experiences → ${hospitalityOrigin}${hos.base || ""}`,
+    `Seeded ${experiences.length} experiences + catalog → ${hospitalityOrigin}${hos.base || ""}`,
   );
 }
 

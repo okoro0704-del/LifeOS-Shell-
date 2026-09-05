@@ -1,12 +1,16 @@
 import type { FastifyInstance } from "fastify";
-import { createHash } from "node:crypto";
 import { z } from "zod";
 import { requireSession } from "../lib/auth.js";
 import { config } from "../lib/config.js";
 import { prisma } from "../lib/prisma.js";
+import { createHash } from "node:crypto";
 import {
   bootstrapTenant,
+  listAppCatalog,
   listInstalledAppsForUser,
+  syncCatalogFromExperiences,
+  syncInstalledAppsFromCatalog,
+  upsertCatalogEntry,
 } from "../services/installed-apps.js";
 
 function authorizeDistribution(req: { headers: Record<string, unknown> }): boolean {
@@ -15,8 +19,7 @@ function authorizeDistribution(req: { headers: Record<string, unknown> }): boole
     process.env.DISTRIBUTOR_SECRET ||
     "";
   if (!secret) {
-    // Allow in non-production when unset so local smoke tests work.
-    return config.isDev;
+    return config.isDev || config.authBypassEnabled;
   }
   const auth = String(req.headers.authorization ?? "");
   return auth === `Bearer ${secret}`;
@@ -97,14 +100,70 @@ export async function distributorRoutes(app: FastifyInstance) {
     }
   });
 
+  /** Global registry of published test / production apps (shell-first). */
+  app.get("/v1/distributor/registry", async () => {
+    await syncCatalogFromExperiences().catch(() => 0);
+    const apps = await listAppCatalog();
+    return { apps, count: apps.length };
+  });
+
+  /**
+   * Publish / update an app in the LifeOS registry so every user can sync it into their launcher.
+   * Auth: MASTER_DISTRIBUTION_SECRET, or open when LIFEOS_AUTH_BYPASS is enabled.
+   */
+  app.post("/v1/distributor/registry", async (req, reply) => {
+    if (!authorizeDistribution(req as { headers: Record<string, unknown> })) {
+      return reply.code(401).send({ error: "unauthorized" });
+    }
+    const body = z
+      .object({
+        appId: z.string().min(1).max(64),
+        tenantId: z.string().min(1).max(64),
+        displayName: z.string().min(1).max(120),
+        subdomain: z.string().min(1).max(63),
+        experienceUrl: z.string().url(),
+        approvedOrigin: z.string().min(1),
+        launchUrl: z.string().url().optional(),
+        icon: z.string().optional().nullable(),
+        osType: z.string().optional(),
+        audience: z.enum(["personal", "business"]).optional(),
+        experienceId: z.string().optional().nullable(),
+        preset: z.string().optional().nullable(),
+        badgeCount: z.number().int().min(0).optional(),
+      })
+      .parse(req.body);
+
+    const entry = await upsertCatalogEntry({
+      ...body,
+      icon: body.icon ?? null,
+      experienceId: body.experienceId ?? null,
+      preset: body.preset ?? null,
+      source: "registry_publish",
+    });
+    return reply.code(201).send({ ok: true, app: entry });
+  });
+
   app.get("/v1/user/installed-apps", { preHandler: requireSession }, async (req) => {
+    // Auto-stream catalog → launcher so new registry apps appear without a business PWA.
+    await syncInstalledAppsFromCatalog({
+      userId: req.lifeosUser!.id,
+      trustId: req.lifeosUser!.trustId,
+    }).catch(() => null);
     const apps = await listInstalledAppsForUser(req.lifeosUser!.id);
     return { apps };
   });
 
+  app.post("/v1/user/installed-apps/sync", { preHandler: requireSession }, async (req) => {
+    await syncCatalogFromExperiences().catch(() => 0);
+    const result = await syncInstalledAppsFromCatalog({
+      userId: req.lifeosUser!.id,
+      trustId: req.lifeosUser!.trustId,
+    });
+    return { ok: true, ...result, count: result.apps.length };
+  });
+
   /**
    * Master Distribution Hub — accept web/desktop/mobile release uploads.
-   * Accepts JSON `{ appId, version, platform, artifactBase64?, filename? }`.
    */
   app.post("/v1/releases", async (req, reply) => {
     if (!authorizeDistribution(req as { headers: Record<string, unknown> })) {

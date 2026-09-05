@@ -26,12 +26,24 @@ import type {
 import { api } from "./api";
 
 export const meService = {
-  get: () => api<{ user: LifeOsUserPublic; trustIdConnected: boolean }>("/me"),
+  get: () =>
+    api<{ user: LifeOsUserPublic; trustIdConnected: boolean; authBypass?: boolean }>("/me"),
   status: () =>
     api<{ status: "authenticated" | "unauthenticated" | "session_expired"; authenticated: boolean }>(
       "/auth/status",
     ),
   logout: () => api<{ ok: boolean }>("/auth/logout", { method: "POST" }),
+  /** Temporary TrustID bypass — requires LIFEOS_AUTH_BYPASS=true on the API. */
+  devSession: (opts?: { trustId?: string; displayName?: string }) =>
+    api<{
+      user: LifeOsUserPublic;
+      sessionToken: string;
+      expiresAt: string;
+      bypass: true;
+    }>("/auth/dev-session", {
+      method: "POST",
+      body: JSON.stringify(opts ?? {}),
+    }),
   createSession: (
     accessToken: string,
     opts?: {
@@ -246,6 +258,16 @@ export const installedAppsService = {
     api<{ apps: import("@lifeos/shared").InstalledAppManifest[] }>(
       "/v1/user/installed-apps",
     ),
+  sync: () =>
+    api<{
+      ok: boolean;
+      apps: import("@lifeos/shared").InstalledAppManifest[];
+      installed: number;
+      skipped: number;
+      count: number;
+    }>("/v1/user/installed-apps/sync", { method: "POST" }),
+  registry: () =>
+    api<{ apps: unknown[]; count: number }>("/v1/distributor/registry"),
 };
 
 export const sharedService = {

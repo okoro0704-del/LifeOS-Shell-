@@ -4,7 +4,6 @@ import type { DiscoverableOffering } from "@lifeos/shared";
 import { EmptyState, SearchBar, Skeleton } from "@lifeos/ui";
 import { discoverService } from "../lib/services";
 import {
-  MOCK_SERVICE_SELLERS,
   SERVICE_CONCEPTS,
   type ServiceConcept,
   type ServiceSeller,
@@ -56,10 +55,6 @@ export function ServiceSellersPage() {
     setLoading(true);
 
     void (async () => {
-      const mocks: SellerCard[] = (MOCK_SERVICE_SELLERS[concept.id] ?? []).map((m) => ({
-        ...m,
-        image: concept.posterUrl,
-      }));
       const fromApi: SellerCard[] = [];
 
       try {
@@ -71,7 +66,7 @@ export function ServiceSellersPage() {
         ]);
 
         const matchedOfferings = offerings.filter((o) => matchesConcept(o, concept));
-        const seen = new Set(mocks.map((m) => m.businessId));
+        const seen = new Set<string>();
 
         for (const o of matchedOfferings) {
           if (seen.has(o.businessId)) continue;
@@ -89,7 +84,7 @@ export function ServiceSellersPage() {
           });
         }
 
-        if (!mocks.length && !fromApi.length) {
+        if (!fromApi.length) {
           for (const b of businesses.filter((x) => x.category === concept.category)) {
             if (seen.has(b.businessId)) continue;
             seen.add(b.businessId);
@@ -106,16 +101,16 @@ export function ServiceSellersPage() {
           }
         }
       } catch {
-        /* mocks still apply */
+        /* leave empty — no mock fillers */
       }
 
       if (cancelled) return;
 
-      const merged = [...mocks, ...fromApi].sort((a, b) => {
+      fromApi.sort((a, b) => {
         if (a.available !== b.available) return a.available ? -1 : 1;
         return a.businessName.localeCompare(b.businessName);
       });
-      setSellers(merged);
+      setSellers(fromApi);
       setLoading(false);
     })();
 

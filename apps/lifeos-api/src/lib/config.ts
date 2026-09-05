@@ -78,4 +78,13 @@ export const config = {
   finproveBind: (process.env.FINPROVE_BIND ?? "").toLowerCase() === "true",
   /** Digiconomy Core Application API (optional personal finance bridge). */
   digiconomyApiUrl: (process.env.DIGICONOMY_API_URL ?? "").replace(/\/$/, ""),
+  /**
+   * Temporary TrustID bypass for local / staging testing.
+   * Set LIFEOS_AUTH_BYPASS=true to mint sessions without OAuth.
+   * Unset to reconnect TrustID. Prefer keeping false in public production.
+   */
+  authBypassEnabled: (process.env.LIFEOS_AUTH_BYPASS ?? "").toLowerCase() === "true",
+  /** Stable fake TrustID used when auth bypass is on. */
+  authBypassTrustId: (process.env.LIFEOS_DEV_TRUST_ID ?? "TD-DEV-BYPASS").trim(),
+  authBypassDisplayName: (process.env.LIFEOS_DEV_DISPLAY_NAME ?? "Dev Tester").trim(),
 };

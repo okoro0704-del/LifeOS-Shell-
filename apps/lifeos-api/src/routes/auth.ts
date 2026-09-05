@@ -67,64 +67,17 @@ async function ensureWelcomeContent(userId: string) {
   const existing = await prisma.activity.count({ where: { userId } });
   if (existing > 0) return;
 
-  const now = Date.now();
   await prisma.activity.createMany({
     data: [
       {
         userId,
         kind: "account",
         title: "Welcome to LifeOS",
-        detail: "Your LifeOS profile is connected via the LifeOS Gateway.",
+        detail: "Your shell is ready. Installed apps stream from the LifeOS registry.",
         source: "lifeos",
         status: "completed",
-        deepLink: "/app/profile",
-        createdAt: new Date(now - 1000),
-      },
-      {
-        userId,
-        kind: "wallet_transfer",
-        title: "Finance ready when FinProv binds",
-        detail: "Wallet rails await the FinProv sovereign node.",
-        source: "lifeos",
-        amount: null,
-        status: "completed",
-        deepLink: "/app/wallet",
-        createdAt: new Date(now - 86400000 * 3),
-      },
-      {
-        userId,
-        kind: "hotel_booking",
-        title: "Booking confirmed",
-        detail: "Sunrise Hotel",
-        source: "hospitalityos",
-        amount: "50 TOK",
-        status: "completed",
-        experienceId: "exp_sunrise_hotel",
-        deepLink: "/app/discover?open=exp_sunrise_hotel",
-        createdAt: new Date(now - 86400000),
-      },
-      {
-        userId,
-        kind: "payment",
-        title: "Payment placeholder",
-        detail: "Settlement will run through FinProv when bound.",
-        source: "token-network",
-        amount: "50 TOK",
-        status: "completed",
-        deepLink: "/app/wallet",
-        createdAt: new Date(now - 86400000 + 60000),
-      },
-      {
-        userId,
-        kind: "restaurant_order",
-        title: "Restaurant order ready",
-        detail: "Grand Restaurant",
-        source: "hospitalityos",
-        amount: "28 TOK",
-        status: "completed",
-        experienceId: "exp_grand_restaurant",
-        deepLink: "/app/discover?open=exp_grand_restaurant",
-        createdAt: new Date(now - 3600000),
+        deepLink: "/app",
+        createdAt: new Date(),
       },
     ],
   });
@@ -133,49 +86,10 @@ async function ensureWelcomeContent(userId: string) {
     data: [
       {
         userId,
-        title: "Your LifeOS session was created",
-        body: "You signed in through the LifeOS Gateway. Manage devices in LifeOS Gateway.",
-        source: "lifeos",
-        category: "Security",
-      },
-      {
-        userId,
-        title: "Your hotel check-in is available",
-        body: "Sunrise Hotel is ready for check-in.",
-        source: "hospitalityos",
-        category: "Business",
-        actionId: "CHECK_IN",
-        actionParams: JSON.stringify({
-          experienceId: "exp_sunrise_hotel",
-          bookingId: "preview_booking",
-        }),
-      },
-      {
-        userId,
-        title: "Payment completed",
-        body: "Your payment of 50 TOK was completed (mock).",
-        source: "token-network",
-        category: "Wallet",
-        actionId: "OPEN_WALLET",
-        actionParams: "{}",
-      },
-      {
-        userId,
-        title: "Restaurant order ready",
-        body: "Your restaurant order is ready.",
-        source: "hospitalityos",
-        category: "Business",
-        actionId: "OPEN_EXPERIENCE",
-        actionParams: JSON.stringify({ experienceId: "exp_grand_restaurant" }),
-      },
-      {
-        userId,
-        title: "New business experience available",
-        body: "Grand Restaurant is now discoverable in LifeOS.",
+        title: "LifeOS session ready",
+        body: "Apps you publish to the registry appear in your launcher automatically.",
         source: "lifeos",
         category: "System",
-        actionId: "DISCOVER_BUSINESSES",
-        actionParams: "{}",
       },
     ],
   });
@@ -191,8 +105,77 @@ export async function authRoutes(app: FastifyInstance) {
   });
 
   app.get("/auth/trustid-health", async () => {
+    if (config.authBypassEnabled) {
+      return { available: false, bypass: true };
+    }
     const available = await checkTrustIdAvailable();
-    return { available };
+    return { available, bypass: false };
+  });
+
+  /**
+   * Temporary TrustID bypass — mint a real LifeOS session without OAuth.
+   * Enable with LIFEOS_AUTH_BYPASS=true; unset to restore TrustID login.
+   */
+  app.post("/auth/dev-session", async (req, reply) => {
+    if (!config.authBypassEnabled) {
+      return reply.code(404).send({ error: "not_found" });
+    }
+
+    const body = z
+      .object({
+        trustId: z.string().min(3).max(64).optional(),
+        displayName: z.string().min(1).max(80).optional(),
+      })
+      .parse(req.body ?? {});
+
+    const trustId = (body.trustId ?? config.authBypassTrustId).trim();
+    const displayName = (body.displayName ?? config.authBypassDisplayName).trim();
+
+    const user = await prisma.user.upsert({
+      where: { trustId },
+      create: {
+        trustId,
+        displayName,
+        trustTier: 1,
+        identityStatus: "dev_bypass",
+        preferences: JSON.stringify(DEFAULT_PREFERENCES),
+        lastLoginAt: new Date(),
+      },
+      update: {
+        displayName,
+        identityStatus: "dev_bypass",
+        lastLoginAt: new Date(),
+      },
+    });
+
+    await ensureWelcomeContent(user.id);
+
+    const { syncCatalogFromExperiences, syncInstalledAppsFromCatalog } = await import(
+      "../services/installed-apps.js"
+    );
+    await syncCatalogFromExperiences().catch(() => 0);
+    await syncInstalledAppsFromCatalog({ userId: user.id, trustId }).catch(() => null);
+
+    const rawToken = randomToken(32);
+    const expiresAt = new Date(Date.now() + config.sessionTtlHours * 3600_000);
+    await prisma.session.create({
+      data: { tokenHash: hashSecret(rawToken), userId: user.id, expiresAt },
+    });
+
+    await auditLog(AUDIT_EVENTS.SESSION_CREATED, {
+      userId: user.id,
+      detail: { trustId, bypass: true },
+    });
+
+    setSessionCookie(reply, rawToken, expiresAt);
+
+    return {
+      user: toPublicUser(user),
+      sessionToken: rawToken,
+      expiresAt: expiresAt.toISOString(),
+      bypass: true,
+      zk: { verified: false, claimCount: 0 },
+    };
   });
 
   app.post("/auth/session", async (req, reply) => {
@@ -330,6 +313,10 @@ export async function authRoutes(app: FastifyInstance) {
 
   app.get("/me", { preHandler: requireSession }, async (req) => {
     const user = await prisma.user.findUniqueOrThrow({ where: { id: req.lifeosUser!.id } });
-    return { user: toPublicUser(user), trustIdConnected: true };
+    return {
+      user: toPublicUser(user),
+      trustIdConnected: !config.authBypassEnabled,
+      authBypass: config.authBypassEnabled,
+    };
   });
 }

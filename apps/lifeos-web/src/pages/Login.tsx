@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@lifeos/ui";
-import { authClient, authGatewayWeb, checkAuthGatewayReachable } from "../lib/api";
+import {
+  authClient,
+  authGatewayWeb,
+  checkAuthGatewayReachable,
+  storeSessionToken,
+  cacheUser,
+} from "../lib/api";
 import { useAuth } from "../hooks/useAuth";
 import { StatusBanner } from "../components/StatusBanner";
 import {
@@ -10,16 +16,21 @@ import {
   type ReturningIdentity,
 } from "../lib/returningIdentity";
 import { hasSeenIntro, markIntroSeen } from "../lib/introSeen";
+import { meService } from "../lib/services";
+
+const AUTH_BYPASS = (import.meta.env.VITE_AUTH_BYPASS ?? "").toLowerCase() === "true";
 
 /**
  * Login surface. Returning users land here directly (intro is skipped).
- * One TrustID per phone — Create is hidden while a returning binding exists.
+ * When VITE_AUTH_BYPASS=true, TrustID OAuth is skipped (temporary testing).
  */
 export function LoginPage() {
-  const { user, loading, status } = useAuth();
+  const { user, loading, status, refresh } = useAuth();
   const navigate = useNavigate();
   const [gatewayUp, setGatewayUp] = useState<boolean | null>(null);
   const [returning, setReturning] = useState<ReturningIdentity | null>(() => getReturningIdentity());
+  const [bypassError, setBypassError] = useState<string | null>(null);
+  const [bypassBusy, setBypassBusy] = useState(false);
   const entering = useRef(false);
 
   useEffect(() => {
@@ -27,6 +38,10 @@ export function LoginPage() {
   }, [loading, user, navigate]);
 
   useEffect(() => {
+    if (AUTH_BYPASS) {
+      setGatewayUp(true);
+      return;
+    }
     void checkAuthGatewayReachable().then(setGatewayUp);
   }, []);
 
@@ -34,7 +49,30 @@ export function LoginPage() {
     if (!hasSeenIntro()) markIntroSeen();
   }, []);
 
+  async function enterBypass() {
+    if (entering.current || bypassBusy) return;
+    entering.current = true;
+    setBypassBusy(true);
+    setBypassError(null);
+    try {
+      const res = await meService.devSession();
+      storeSessionToken(res.sessionToken);
+      cacheUser(res.user);
+      await refresh();
+      navigate("/app", { replace: true });
+    } catch (err) {
+      setBypassError(err instanceof Error ? err.message : "Dev session failed");
+      entering.current = false;
+    } finally {
+      setBypassBusy(false);
+    }
+  }
+
   function enterLifeOS() {
+    if (AUTH_BYPASS) {
+      void enterBypass();
+      return;
+    }
     if (!returning || entering.current || gatewayUp === false) return;
     entering.current = true;
     void authClient.beginLogin({
@@ -47,6 +85,10 @@ export function LoginPage() {
   }
 
   function startFresh() {
+    if (AUTH_BYPASS) {
+      void enterBypass();
+      return;
+    }
     if (entering.current || gatewayUp === false) return;
     entering.current = true;
     void authClient.beginLogin({ prompt: "login", silentUi: true });
@@ -64,6 +106,10 @@ export function LoginPage() {
   }
 
   function openRegister() {
+    if (AUTH_BYPASS) {
+      void enterBypass();
+      return;
+    }
     if (entering.current || returning) return;
     const register = new URL("/register", authGatewayWeb);
     register.searchParams.set("source", "lifeos");
@@ -71,6 +117,10 @@ export function LoginPage() {
   }
 
   function openDeviceCodeLogin() {
+    if (AUTH_BYPASS) {
+      void enterBypass();
+      return;
+    }
     if (entering.current) return;
     const enroll = new URL("/enroll", authGatewayWeb);
     enroll.searchParams.set("source", "lifeos");
@@ -89,13 +139,24 @@ export function LoginPage() {
         </header>
 
         <div className="welcome-login">
+          {AUTH_BYPASS ? (
+            <StatusBanner
+              title="TrustID bypass enabled"
+              detail="Temporary test mode — set VITE_AUTH_BYPASS=false and LIFEOS_AUTH_BYPASS=false to reconnect TrustID."
+            />
+          ) : null}
+
+          {bypassError ? <StatusBanner title="Bypass login failed" detail={bypassError} /> : null}
+
           {status === "session_expired" ? (
             <StatusBanner
               title="Your session ended"
               detail={
-                returning
-                  ? "Enter LifeOS Business again to continue."
-                  : "Log into LifeOS Business again to continue."
+                AUTH_BYPASS
+                  ? "Continue in test mode to open LifeOS again."
+                  : returning
+                    ? "Enter LifeOS Business again to continue."
+                    : "Log into LifeOS Business again to continue."
               }
             />
           ) : null}
@@ -107,14 +168,25 @@ export function LoginPage() {
             />
           ) : null}
 
-          {gatewayUp === false ? (
+          {!AUTH_BYPASS && gatewayUp === false ? (
             <StatusBanner
               title="LifeOS Gateway unavailable"
               detail="Please try again shortly."
             />
           ) : null}
 
-          {returning ? (
+          {AUTH_BYPASS ? (
+            <div className="welcome-auth">
+              <p className="welcome-auth__label mono">test mode</p>
+              <h1>Continue without TrustID</h1>
+              <p className="lead">
+                Opens a local LifeOS session and streams apps from the registry into your launcher.
+              </p>
+              <Button className="full-width" disabled={bypassBusy} onClick={() => void enterBypass()}>
+                {bypassBusy ? "Entering…" : "Enter LifeOS (bypass)"}
+              </Button>
+            </div>
+          ) : returning ? (
             <div className="welcome-auth">
               <p className="welcome-auth__label mono">welcome back</p>
               <h1>Enter LifeOS Business</h1>

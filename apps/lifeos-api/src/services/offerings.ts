@@ -7,11 +7,11 @@ import type {
   OfferingType,
 } from "@lifeos/shared";
 import { rankOfferings } from "./offering-ranking.js";
+import { ExperienceOfferingProvider } from "./experience-offerings.js";
 
 /**
  * Offering discovery provider — LifeOS consumes normalized offerings.
- * HospitalityOS (and peers) remain catalog / commerce source of truth.
- * This mock is a discovery projection until a live catalog HTTP feed exists.
+ * Default provider streams Experience registry rows (no hard-coded mock catalog).
  */
 export interface OfferingProvider {
   list(filters?: OfferingFilters): Promise<DiscoverableOffering[]>;
@@ -878,7 +878,7 @@ export class MockOfferingProvider implements OfferingProvider {
 let provider: OfferingProvider | null = null;
 
 export function getOfferingProvider(): OfferingProvider {
-  if (!provider) provider = new MockOfferingProvider();
+  if (!provider) provider = new ExperienceOfferingProvider();
   return provider;
 }
 

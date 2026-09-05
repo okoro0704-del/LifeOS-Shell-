@@ -407,3 +407,28 @@ model ReleaseArtifact {
   @@unique([appId, version, platform])
 }
 
+/// Global published app registry — LifeOS launcher streams from here (no business PWA required).
+model AppCatalogEntry {
+  id              String   @id @default(cuid())
+  appId           String
+  tenantId        String
+  displayName     String
+  icon            String?
+  osType          String   @default("other")
+  audience        String   @default("business")
+  experienceId    String?
+  experienceUrl   String
+  approvedOrigin  String
+  subdomain       String
+  launchUrl       String
+  preset          String?
+  badgeCount      Int      @default(0)
+  status          String   @default("active")
+  source          String   @default("registry")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([appId, tenantId])
+  @@index([status, updatedAt])
+}
+
