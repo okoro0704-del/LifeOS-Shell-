@@ -35,7 +35,8 @@ export function DiscoveryPage() {
         <p className="personal-kernel-badge muted small">Personal · Free</p>
         <h1>Free</h1>
         <p className="muted">
-          Open feed and federated discovery. Double-tap left edge or swipe toward Main / Offline.
+          Open feed and federated discovery. Double-tap the left half of the screen twice for
+          Offline.
         </p>
       </header>
 

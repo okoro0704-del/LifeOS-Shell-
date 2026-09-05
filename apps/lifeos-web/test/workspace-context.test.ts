@@ -21,11 +21,12 @@ describe("workspace Phase 1 wiring", () => {
     expect(src).toContain('brandName = "LifeOS"');
   });
 
-  it("WorkspaceToggle double-tap flips Personal ↔ Business", () => {
+  it("WorkspaceToggle flips Personal ↔ Business on tap", () => {
     const src = readFileSync(join(root, "src/components/shell/WorkspaceToggle.tsx"), "utf8");
     expect(src).toContain("flipSpace");
-    expect(src).toContain("Double-tap");
+    expect(src).toContain("onTouchEnd");
     expect(src).toContain('variant === "space"');
+    expect(src).toContain("personalLandingPath");
   });
 
   it("App wraps with WorkspaceProvider", () => {

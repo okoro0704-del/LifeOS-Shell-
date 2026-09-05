@@ -1,9 +1,7 @@
 import type { ComponentType, SVGProps } from "react";
 import {
   IconActivity,
-  IconExplore,
   IconHome,
-  IconShield,
   IconWallet,
 } from "@lifeos/ui";
 import type { WorkspaceMode } from "../../context/WorkspaceContext";
@@ -19,15 +17,18 @@ export type ShellNavItem = {
 
 export type PersonalKernel = "offline" | "main" | "free";
 
-/** Personal space — three kernels: Offline · Main · Free */
+/**
+ * Personal space bottom tabs (kernels are body gestures, not tabs):
+ * Home · Activity · Finance — Space switch is separate.
+ */
 export const PERSONAL_PRIMARY_NAV: ShellNavItem[] = [
-  { to: "/app/personal/offline", label: "Offline", Icon: IconShield },
-  { to: "/app/personal", end: true, label: "Main", Icon: IconHome },
-  { to: "/app/personal/free", label: "Free", Icon: IconExplore },
+  { to: "/app/personal", end: true, label: "Home", Icon: IconHome },
+  { to: "/app/activity", label: "Activity", Icon: IconActivity },
+  { to: "/app/personal/finance", label: "Finance", Icon: IconWallet },
 ];
 
 /**
- * Business space — consume & patronize (was mislabeled Personal).
+ * Business space — consume & patronize.
  * Home · Activity · Finance — Space switch is separate.
  */
 export const BUSINESS_PRIMARY_NAV: ShellNavItem[] = [
@@ -55,6 +56,7 @@ export function personalKernelFromPath(pathname: string): PersonalKernel | null 
   if (path === "/app/personal/offline" || path === "/app/personal/vault") return "offline";
   if (path === "/app/personal/free" || path === "/app/personal/discovery") return "free";
   if (path === "/app/personal" || path === "/app/personal/main") return "main";
+  if (path.startsWith("/app/personal/")) return "main";
   return null;
 }
 

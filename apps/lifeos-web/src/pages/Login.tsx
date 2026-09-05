@@ -9,6 +9,7 @@ import {
   cacheUser,
 } from "../lib/api";
 import { useAuth } from "../hooks/useAuth";
+import { useWorkspace } from "../context/WorkspaceContext";
 import { StatusBanner } from "../components/StatusBanner";
 import {
   clearReturningIdentity,
@@ -17,15 +18,18 @@ import {
 } from "../lib/returningIdentity";
 import { hasSeenIntro, markIntroSeen } from "../lib/introSeen";
 import { meService } from "../lib/services";
+import { personalLandingPath } from "../lib/personalConnectivity";
 
 const AUTH_BYPASS = (import.meta.env.VITE_AUTH_BYPASS ?? "").toLowerCase() === "true";
 
 /**
  * Login surface. Returning users land here directly (intro is skipped).
  * When VITE_AUTH_BYPASS=true, TrustID OAuth is skipped (temporary testing).
+ * Successful login always enters Personal space (Offline if no network).
  */
 export function LoginPage() {
   const { user, loading, status, refresh } = useAuth();
+  const { setMode } = useWorkspace();
   const navigate = useNavigate();
   const [gatewayUp, setGatewayUp] = useState<boolean | null>(null);
   const [returning, setReturning] = useState<ReturningIdentity | null>(() => getReturningIdentity());
@@ -34,8 +38,11 @@ export function LoginPage() {
   const entering = useRef(false);
 
   useEffect(() => {
-    if (!loading && user) navigate("/app", { replace: true });
-  }, [loading, user, navigate]);
+    if (!loading && user) {
+      setMode("PERSONAL");
+      navigate(personalLandingPath(), { replace: true });
+    }
+  }, [loading, user, navigate, setMode]);
 
   useEffect(() => {
     if (AUTH_BYPASS) {
@@ -59,7 +66,8 @@ export function LoginPage() {
       storeSessionToken(res.sessionToken);
       cacheUser(res.user);
       await refresh();
-      navigate("/app", { replace: true });
+      setMode("PERSONAL");
+      navigate(personalLandingPath(), { replace: true });
     } catch (err) {
       setBypassError(err instanceof Error ? err.message : "Dev session failed");
       entering.current = false;

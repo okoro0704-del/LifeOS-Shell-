@@ -1,95 +1,112 @@
-import { useCallback, useRef, type ReactNode, type TouchEvent } from "react";
+import { useCallback, useRef, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useWorkspace } from "../../context/WorkspaceContext";
-import {
-  PERSONAL_KERNEL_ORDER,
-  personalKernelFromPath,
-  personalKernelPath,
-  type PersonalKernel,
-} from "./nav";
+import { personalKernelFromPath, personalKernelPath, type PersonalKernel } from "./nav";
 import { triggerWorkspaceHaptic } from "../../lib/mobileBridge";
+import { authClient } from "../../lib/api";
+import {
+  isAuthBypass,
+  markNeedsFaceOnKernelSwitch,
+  needsFaceOnKernelSwitch,
+  setPendingKernel,
+} from "../../lib/personalConnectivity";
 
-const SWIPE_MIN_PX = 56;
+const DOUBLE_TAP_MS = 480;
 
 /**
- * Personal kernels: Offline ← Main → Free
- * - Double-tap left edge → Offline
- * - Login / space switch → Main
- * - Tap right edge → Free
- * - Horizontal swipe between kernels
+ * Personal kernel body gestures (not bottom tabs):
+ * - Double-tap left half of the app body → Offline
+ * - Double-tap right half of the app body → Free
+ * - Main is default on login / online
+ *
+ * After reconnecting to the internet, the next kernel switch launches TrustID face scan.
  */
 export function PersonalKernelGestures({ children }: { children: ReactNode }) {
   const { mode } = useWorkspace();
   const location = useLocation();
   const navigate = useNavigate();
-  const touchX = useRef<number | null>(null);
   const leftTap = useRef(0);
+  const rightTap = useRef(0);
+  const touchHandled = useRef(false);
 
   const goKernel = useCallback(
     (kernel: PersonalKernel) => {
-      const current = personalKernelFromPath(location.pathname);
+      const current = personalKernelFromPath(location.pathname) ?? "main";
       if (current === kernel) return;
+
+      const online = typeof navigator === "undefined" ? true : navigator.onLine;
+      const leavingOffline = current === "offline" && kernel !== "offline";
+      const requireFace =
+        online && !isAuthBypass() && (needsFaceOnKernelSwitch() || leavingOffline);
+
+      if (requireFace) {
+        setPendingKernel(kernel);
+        markNeedsFaceOnKernelSwitch(false);
+        void triggerWorkspaceHaptic();
+        void authClient.beginLogin({
+          preferPasskey: true,
+          silentUi: true,
+          prompt: "login",
+        });
+        return;
+      }
+
       void triggerWorkspaceHaptic();
       navigate(personalKernelPath(kernel));
     },
     [location.pathname, navigate],
   );
 
-  const shiftKernel = useCallback(
-    (dir: -1 | 1) => {
-      const current = personalKernelFromPath(location.pathname) ?? "main";
-      const idx = PERSONAL_KERNEL_ORDER.indexOf(current);
-      const next = PERSONAL_KERNEL_ORDER[idx + dir];
-      if (next) goKernel(next);
+  const onBodyActivate = useCallback(
+    (clientX: number, target: EventTarget | null) => {
+      const el = target instanceof Element ? target : null;
+      if (
+        el?.closest(
+          ".bottom-nav, .app-header, .sidebar, .page-topbar, .command-overlay, a, button, input, textarea, select, label",
+        )
+      ) {
+        return;
+      }
+
+      const width = typeof window !== "undefined" ? window.innerWidth : 0;
+      if (!width) return;
+      const side: "left" | "right" = clientX < width / 2 ? "left" : "right";
+      const now = Date.now();
+      const ref = side === "left" ? leftTap : rightTap;
+      const other = side === "left" ? rightTap : leftTap;
+      other.current = 0;
+
+      if (now - ref.current < DOUBLE_TAP_MS) {
+        ref.current = 0;
+        goKernel(side === "left" ? "offline" : "free");
+        return;
+      }
+      ref.current = now;
     },
-    [location.pathname, goKernel],
+    [goKernel],
   );
 
   if (mode !== "PERSONAL") {
     return <>{children}</>;
   }
 
-  const onTouchStart = (e: TouchEvent) => {
-    touchX.current = e.changedTouches[0]?.clientX ?? null;
-  };
-
-  const onTouchEnd = (e: TouchEvent) => {
-    const start = touchX.current;
-    touchX.current = null;
-    if (start == null) return;
-    const end = e.changedTouches[0]?.clientX;
-    if (end == null) return;
-    const dx = end - start;
-    if (Math.abs(dx) < SWIPE_MIN_PX) return;
-    shiftKernel(dx < 0 ? 1 : -1);
-  };
-
   return (
     <div
       className="personal-kernel-gestures"
-      onTouchStart={onTouchStart}
-      onTouchEnd={onTouchEnd}
+      onTouchEnd={(e) => {
+        const t = e.changedTouches[0];
+        if (!t) return;
+        touchHandled.current = true;
+        onBodyActivate(t.clientX, e.target);
+        window.setTimeout(() => {
+          touchHandled.current = false;
+        }, 400);
+      }}
+      onClick={(e) => {
+        if (touchHandled.current) return;
+        onBodyActivate(e.clientX, e.target);
+      }}
     >
-      <button
-        type="button"
-        className="personal-kernel-edge personal-kernel-edge--left"
-        aria-label="Double-tap for Offline kernel"
-        onClick={() => {
-          const now = Date.now();
-          if (now - leftTap.current < 450) {
-            leftTap.current = 0;
-            goKernel("offline");
-            return;
-          }
-          leftTap.current = now;
-        }}
-      />
-      <button
-        type="button"
-        className="personal-kernel-edge personal-kernel-edge--right"
-        aria-label="Tap for Free kernel"
-        onClick={() => goKernel("free")}
-      />
       {children}
     </div>
   );

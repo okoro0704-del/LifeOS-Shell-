@@ -1,10 +1,10 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { ThemeProvider } from "./hooks/useTheme";
 import { CommandLayerProvider } from "./hooks/useCommandLayer";
 import { WorkspaceProvider, useWorkspace } from "./context/WorkspaceContext";
-import { workspaceHomePath } from "./components/shell/nav";
+import { personalLandingPath } from "./lib/personalConnectivity";
 import { AppShell } from "./components/AppShell";
 import { RequireAuth } from "./components/RequireAuth";
 import { WelcomePage } from "./pages/Welcome";
@@ -88,8 +88,11 @@ function PageFallback() {
 }
 
 function WorkspaceHomeRedirect() {
-  const { mode } = useWorkspace();
-  return <Navigate to={workspaceHomePath(mode)} replace />;
+  const { setMode } = useWorkspace();
+  useEffect(() => {
+    setMode("PERSONAL");
+  }, [setMode]);
+  return <Navigate to={personalLandingPath()} replace />;
 }
 
 function ThemedApp() {

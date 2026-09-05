@@ -2,6 +2,7 @@ import { useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspace, type WorkspaceMode } from "../../context/WorkspaceContext";
 import { triggerWorkspaceHaptic } from "../../lib/mobileBridge";
+import { personalLandingPath } from "../../lib/personalConnectivity";
 import { workspaceHomePath } from "./nav";
 
 const OPTIONS: { mode: WorkspaceMode; label: string }[] = [
@@ -41,7 +42,7 @@ export function WorkspaceToggle({
     void triggerWorkspaceHaptic();
     setMode(next);
     onModeChange?.(next);
-    navigate(workspaceHomePath(next));
+    navigate(next === "PERSONAL" ? personalLandingPath() : workspaceHomePath(next));
   }, [mode, setMode, onModeChange, navigate]);
 
   const goToMode = useCallback(
@@ -53,7 +54,7 @@ export function WorkspaceToggle({
       void triggerWorkspaceHaptic();
       setMode(next);
       onModeChange?.(next);
-      navigate(workspaceHomePath(next));
+      navigate(next === "PERSONAL" ? personalLandingPath() : workspaceHomePath(next));
     },
     [mode, setMode, onModeChange, navigate],
   );

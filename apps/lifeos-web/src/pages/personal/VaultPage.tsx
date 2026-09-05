@@ -74,8 +74,8 @@ export function VaultPage() {
         <p className="personal-kernel-badge muted small">Personal · Offline</p>
         <h1>Offline</h1>
         <p className="muted">
-          Vault kernel — encrypted documents, keys, and assets. Double-tap right edge or swipe for
-          Main / Free.
+          Vault kernel — encrypted documents, keys, and assets. Double-tap the right half of the
+          screen twice for Free, or open Home from the bottom tabs for Main.
         </p>
       </header>
 

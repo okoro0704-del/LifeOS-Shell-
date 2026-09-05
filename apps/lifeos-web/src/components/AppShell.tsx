@@ -16,6 +16,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useCommandLayer } from "../hooks/useCommandLayer";
 import { useWorkspace, type WorkspaceMode } from "../context/WorkspaceContext";
 import { installedAppsService, notificationService } from "../lib/services";
+import { markNeedsFaceOnKernelSwitch } from "../lib/personalConnectivity";
 import { CommandOverlay } from "./CommandOverlay";
 import { PageTopBar } from "./PageTopBar";
 import { VerificationStars } from "./VerificationStars";
@@ -74,6 +75,7 @@ export function AppShell() {
   const { openCommand } = useCommandLayer();
   const [unread, setUnread] = useState(0);
   const [offline, setOffline] = useState(!navigator.onLine);
+  const [backOnlineNotice, setBackOnlineNotice] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<{
     prompt: () => Promise<void>;
   } | null>(null);
@@ -123,15 +125,25 @@ export function AppShell() {
       .then((d) => setInstalledApps(d.apps ?? []))
       .catch(() => setInstalledApps([]))
       .finally(() => setAppsLoading(false));
-    const on = () => setOffline(false);
-    const off = () => setOffline(true);
+    const on = () => {
+      setOffline(false);
+      setBackOnlineNotice(true);
+      markNeedsFaceOnKernelSwitch(true);
+    };
+    const off = () => {
+      setOffline(true);
+      setBackOnlineNotice(false);
+      if (mode === "PERSONAL") {
+        navigate("/app/personal/offline");
+      }
+    };
     window.addEventListener("online", on);
     window.addEventListener("offline", off);
     return () => {
       window.removeEventListener("online", on);
       window.removeEventListener("offline", off);
     };
-  }, []);
+  }, [mode, navigate]);
 
   useEffect(() => {
     const dismissed = sessionStorage.getItem("lifeos.install.dismissed");
@@ -291,7 +303,23 @@ export function AppShell() {
         {offline ? (
           <div className="offline-banner" role="status">
             <strong>You&apos;re offline</strong>
-            <span>Showing your latest saved information.</span>
+            <span>Personal Offline kernel — vault and cached content.</span>
+          </div>
+        ) : null}
+
+        {backOnlineNotice && !offline ? (
+          <div className="online-banner" role="status">
+            <strong>You&apos;re back online</strong>
+            <span>
+              Switching kernels will ask TrustID to scan your face.{" "}
+              <button
+                type="button"
+                className="online-banner__dismiss"
+                onClick={() => setBackOnlineNotice(false)}
+              >
+                Dismiss
+              </button>
+            </span>
           </div>
         ) : null}
 

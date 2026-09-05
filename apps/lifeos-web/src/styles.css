@@ -4906,3 +4906,43 @@ button.los-wallet__action:disabled {
   outline: 2px solid color-mix(in srgb, currentColor 35%, transparent);
   outline-offset: 2px;
 }
+
+.online-banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  align-items: baseline;
+  padding: 0.65rem 1rem;
+  background: color-mix(in srgb, var(--los-accent) 14%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--los-accent) 28%, transparent);
+  font-size: 0.85rem;
+}
+
+.online-banner__dismiss {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+}
+
+.personal-section-title {
+  font-size: 0.95rem;
+  font-weight: 650;
+  margin: 0 0 0.75rem;
+}
+
+.personal-home-grid--media {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.personal-home-card--media strong {
+  font-size: 1.05rem;
+}
+
+/* Kernel edges removed — body double-tap handles Offline / Free */
+.personal-kernel-edge {
+  display: none !important;
+}

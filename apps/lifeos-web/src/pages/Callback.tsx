@@ -8,12 +8,16 @@ import { useAuth } from "../hooks/useAuth";
 import { StatusBanner } from "../components/StatusBanner";
 import { saveReturningIdentity } from "../lib/returningIdentity";
 import { markIntroSeen } from "../lib/introSeen";
+import { consumePendingKernel, personalLandingPath } from "../lib/personalConnectivity";
+import { personalKernelPath } from "../components/shell/nav";
+import { useWorkspace } from "../context/WorkspaceContext";
 
 /** Silent return surface — no handshake status chatter. */
 export function CallbackPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const { setUser } = useAuth();
+  const { setMode } = useWorkspace();
   const [error, setError] = useState<string | null>(null);
   const started = useRef(false);
 
@@ -53,7 +57,9 @@ export function CallbackPage() {
         saveReturningIdentity(data.user);
         markIntroSeen();
         setUser(data.user);
-        navigate("/app", { replace: true });
+        setMode("PERSONAL");
+        const pending = consumePendingKernel();
+        navigate(pending ? personalKernelPath(pending) : personalLandingPath(), { replace: true });
       } catch (err) {
         if (err instanceof AuthClientError) {
           setError(err.message);
@@ -64,7 +70,7 @@ export function CallbackPage() {
         }
       }
     })();
-  }, [params, navigate, setUser]);
+  }, [params, navigate, setUser, setMode]);
 
   return (
     <div className="welcome welcome--silent">
