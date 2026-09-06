@@ -30,11 +30,11 @@ export function resolvePageMeta(pathname: string): PageMeta | null {
   if (path === "/app/personal" || path === "/app/personal/main" || path === "/app/personal/post") {
     return { title: "Post", subtitle: "Home" };
   }
+  if (path.startsWith("/app/personal/products") || path.match(/\/personal\/(free|offline)\/products/)) {
+    return { title: "Products", subtitle: "Software from creators" };
+  }
   if (path.startsWith("/app/personal/reels")) {
     return { title: "Reels", subtitle: "Home" };
-  }
-  if (path.startsWith("/app/personal/connects")) {
-    return { title: "Connects", subtitle: "Home" };
   }
   if (path.startsWith("/app/personal/communities")) {
     return { title: "Communities", subtitle: "Home" };

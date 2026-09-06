@@ -24,6 +24,7 @@ const ProfilePage = lazy(() => import("./pages/Profile").then((m) => ({ default:
 const NotificationsPage = lazy(() =>
   import("./pages/Notifications").then((m) => ({ default: m.NotificationsPage })),
 );
+const ElComPage = lazy(() => import("./pages/ElComPage").then((m) => ({ default: m.ElComPage })));
 const SearchPage = lazy(() => import("./pages/Search").then((m) => ({ default: m.SearchPage })));
 const ConnectionsPage = lazy(() =>
   import("./pages/Connections").then((m) => ({ default: m.ConnectionsPage })),
@@ -200,6 +201,14 @@ function ThemedApp() {
                   element={
                     <Suspense fallback={<PageFallback />}>
                       <MessagesPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="elcom"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <ElComPage />
                     </Suspense>
                   }
                 />

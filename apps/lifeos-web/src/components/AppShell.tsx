@@ -92,6 +92,7 @@ export function AppShell() {
     location.pathname.endsWith("/plus");
   const isImmersive =
     isBusinessDetailPath(location.pathname) ||
+    pathNorm === "/app/elcom" ||
     Boolean(location.pathname.match(/^\/app\/services\/explore\/[^/]+$/));
   const isBusinessHome = pathNorm === "/app/business";
   const isHome =
@@ -102,11 +103,11 @@ export function AppShell() {
   /** Personal Home / LearnVerse / Streamify use their own glass chrome. */
   const hideChrome =
     mode === "PERSONAL" &&
-    (/^\/app\/personal\/(post|reels|connects|communities|search)$/.test(pathNorm) ||
-      /^\/app\/personal\/(free|offline)\/(post|reels|connects|communities|search)$/.test(pathNorm) ||
+    (/^\/app\/personal\/(post|reels|products|communities|search)$/.test(pathNorm) ||
+      /^\/app\/personal\/(free|offline)\/(post|reels|products|communities|search)$/.test(pathNorm) ||
       /\/personal(\/(free|offline))?\/(learnverse|streamify)/.test(pathNorm) ||
       pathNorm === "/app/personal");
-  const pageMeta = isHome || hideChrome ? null : resolvePageMeta(location.pathname);
+  const pageMeta = isHome || hideChrome || pathNorm === "/app/elcom" ? null : resolvePageMeta(location.pathname);
   const tabs = useMemo(
     () => primaryNavForMode(mode, personalKernel),
     [mode, personalKernel],

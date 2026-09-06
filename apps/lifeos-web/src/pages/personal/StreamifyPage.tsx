@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { MediaFeed } from "../../components/MediaFeed";
+import { ElComFloat } from "../../components/ElComFloat";
+import { SegmentGlassBar } from "../../components/SegmentGlassBar";
 import { catalogByKinds, type MediaItem } from "../../lib/personalCatalog";
 import { personalKernelFromPath, personalNavBase, type PersonalKernel } from "../../components/shell/nav";
 import { applyWatchedOffline } from "../../lib/personalMonetization";
@@ -18,18 +20,16 @@ function useKernel(): PersonalKernel {
 
 function Shell({ active, children }: { active: string; children: ReactNode }) {
   const kernel = useKernel();
-  const navigate = useNavigate();
   const base = `${personalNavBase(kernel)}/streamify`;
   const home = `${personalNavBase(kernel)}/post`;
   const [scrolled, setScrolled] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
 
   const tabs = [
-    { to: base, label: "Content", id: "content" },
+    { to: base, end: true, label: "Content", id: "content" },
     { to: `${base}/music`, label: "Music", id: "music" },
     { to: `${base}/podcast`, label: "Podcast", id: "podcast" },
     { to: `${base}/videos`, label: "Videos", id: "videos" },
-    { to: `${base}/search`, label: "Search", id: "search" },
   ];
 
   useEffect(() => {
@@ -42,29 +42,19 @@ function Shell({ active, children }: { active: string; children: ReactNode }) {
 
   return (
     <div className={`page personal-page personal-page--surface${scrolled ? " is-scrolled" : ""}`}>
-      <nav className={`segment-topbar segment-topbar--glass${scrolled ? " is-pinned" : ""}`} aria-label="Streamify">
-        {scrolled ? (
-          <button type="button" className="segment-topbar__back" aria-label="Back" onClick={() => navigate(home)}>
-            ←
-          </button>
-        ) : null}
-        {tabs.map((t) => (
-          <a
-            key={t.id}
-            href={t.to}
-            className={`segment-topbar__tab${active === t.id ? " is-active" : ""}`}
-            onClick={(e) => {
-              e.preventDefault();
-              navigate(t.to);
-            }}
-          >
-            {t.label}
-          </a>
-        ))}
-      </nav>
+      <SegmentGlassBar
+        tabs={tabs}
+        activeId={active}
+        scrolled={scrolled}
+        showBack
+        searchTo={`${base}/search`}
+        backTo={home}
+        ariaLabel="Streamify"
+      />
       <div className="surface-scroll" ref={bodyRef}>
         {children}
       </div>
+      <ElComFloat />
     </div>
   );
 }
@@ -123,8 +113,9 @@ export function StreamifySearchPage() {
         className="surface-search"
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Search Streamify…"
+        placeholder="Search…"
         aria-label="Search Streamify"
+        autoFocus
       />
       <MediaFeed items={hits} empty="No matches." gatePremium={kernel === "main"} />
     </Shell>

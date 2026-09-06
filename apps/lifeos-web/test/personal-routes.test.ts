@@ -9,7 +9,7 @@ describe("personal consumer space wiring", () => {
   it("PersonalRoutes mounts kernel Home tabs and LearnVerse Edu", () => {
     const src = readFileSync(join(root, "src/routes/personalRoutes.tsx"), "utf8");
     expect(src).toContain("PersonalPostPage");
-    expect(src).toContain("PersonalConnectsPage");
+    expect(src).toContain("PersonalProductsPage");
     expect(src).toContain("FreePostPage");
     expect(src).toContain("OfflinePostPage");
     expect(src).toContain("LearnVerseRoutes");
@@ -28,7 +28,7 @@ describe("personal consumer space wiring", () => {
     expect(src).toContain('label: "Edu"');
     expect(src).toContain("LearnVerseEduPage");
     expect(src).toContain('catalogByKinds(["edu"])');
-    expect(src).toContain('label: "Search"');
+    expect(src).toContain('searchTo={`${base}/search`}');
     expect(src).toContain("LearnVerseSearchPage");
     expect(src).toContain("ElComFloat");
   });

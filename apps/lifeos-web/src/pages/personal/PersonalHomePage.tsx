@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Link, NavLink, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { ImmersiveMediaFeed } from "../../components/ImmersiveMediaFeed";
+import { SegmentGlassBar } from "../../components/SegmentGlassBar";
+import { ElComFloat } from "../../components/ElComFloat";
 import { catalogByKinds, hasPremium, setPremium, type MediaItem } from "../../lib/personalCatalog";
 import type { PersonalKernel } from "../../components/shell/nav";
 import { authClient } from "../../lib/api";
@@ -20,16 +22,57 @@ import {
   topUpLifeOsCredits,
 } from "../../lib/personalMonetization";
 
-export type HomeSection = "post" | "reels" | "connects" | "communities" | "search";
-export type ScrollStage = "top" | "scrolled";
+export type HomeSection = "post" | "reels" | "products" | "communities" | "search";
 
-const SECTIONS: { id: HomeSection; label: string }[] = [
+const SECTIONS: { id: Exclude<HomeSection, "search">; label: string }[] = [
   { id: "post", label: "Post" },
   { id: "reels", label: "Reels" },
-  { id: "connects", label: "Connects" },
+  { id: "products", label: "Products" },
   { id: "communities", label: "Communities" },
-  { id: "search", label: "Search" },
 ];
+
+const SOFTWARE_PRODUCTS = [
+  {
+    id: "sw1",
+    name: "RouteMesh",
+    maker: "Ada Labs",
+    seek: "Investment",
+  },
+  {
+    id: "sw2",
+    name: "ClinicOS Lite",
+    maker: "HealthStack",
+    seek: "Partnership",
+  },
+  {
+    id: "sw3",
+    name: "PayTrail",
+    maker: "NairaForge",
+    seek: "Sponsorship",
+  },
+  {
+    id: "sw4",
+    name: "ShelfSense",
+    maker: "RetailBit",
+    seek: "Sales",
+  },
+  {
+    id: "sw5",
+    name: "LearnKit API",
+    maker: "EduForge",
+    seek: "Partnership",
+  },
+  {
+    id: "sw6",
+    name: "StreamPipe",
+    maker: "MediaBit",
+    seek: "Investment",
+  },
+];
+
+function railThumb(seed: string) {
+  return `https://picsum.photos/seed/${encodeURIComponent(seed)}/640/800`;
+}
 
 function basePath(kernel: PersonalKernel): string {
   if (kernel === "free") return "/app/personal/free";
@@ -87,12 +130,10 @@ function KernelBrandBar({ kernel, hidden }: { kernel: PersonalKernel; hidden?: b
       <span className="kernel-brand-bar__side kernel-brand-bar__side--right">
         {kernel === "main" ? (
           <span className="kernel-brand-bar__main-actions">
-            <Link to="/app/personal/compose" className="kernel-brand-bar__compose">
-              Post
-            </Link>
-            {hasPremium() ? (
-              <span className="kernel-brand-bar__premium-on">{getLifeOsCredits()} cr</span>
-            ) : (
+            <span className="kernel-brand-bar__credits" aria-label="LifeOS credits">
+              {getLifeOsCredits()} cr
+            </span>
+            {hasPremium() ? null : (
               <Link to="/app/personal/premium" className="kernel-brand-bar__premium">
                 Go Premium
               </Link>
@@ -100,9 +141,7 @@ function KernelBrandBar({ kernel, hidden }: { kernel: PersonalKernel; hidden?: b
           </span>
         ) : (
           <span className="kernel-brand-bar__main-actions">
-            <Link to="/app/personal/compose" className="kernel-brand-bar__compose">
-              Post
-            </Link>
+            <span className="kernel-brand-bar__credits">{getLifeOsCredits()} cr</span>
             <button type="button" className="kernel-brand-bar__exit" aria-label="Exit to Main" onClick={exitToMain}>
               ×
             </button>
@@ -113,51 +152,6 @@ function KernelBrandBar({ kernel, hidden }: { kernel: PersonalKernel; hidden?: b
   );
 }
 
-function SectionTabs({
-  kernel,
-  section,
-  scrolled,
-}: {
-  kernel: PersonalKernel;
-  section: HomeSection;
-  scrolled: boolean;
-}) {
-  const navigate = useNavigate();
-  const base = basePath(kernel);
-  return (
-    <nav
-      className={`segment-topbar segment-topbar--glass${scrolled ? " is-pinned" : ""}`}
-      aria-label="Home sections"
-    >
-      {scrolled ? (
-        <button
-          type="button"
-          className="segment-topbar__back"
-          aria-label="Back"
-          onClick={() => navigate(`${base}/post`)}
-        >
-          ←
-        </button>
-      ) : null}
-      {SECTIONS.map((s) => (
-        <NavLink
-          key={s.id}
-          to={`${base}/${s.id}`}
-          end={s.id === "post"}
-          className={({ isActive }) =>
-            `segment-topbar__tab${isActive || section === s.id ? " is-active" : ""}`
-          }
-        >
-          {s.label}
-        </NavLink>
-      ))}
-    </nav>
-  );
-}
-
-/**
- * Brand bar hides on scroll. Section glass bar stays sticky with back when scrolled.
- */
 export function PersonalKernelShell({
   kernel,
   section,
@@ -171,6 +165,7 @@ export function PersonalKernelShell({
 }) {
   const [scrolled, setScrolled] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const base = basePath(kernel);
 
   useEffect(() => {
     applyWatchedOffline();
@@ -189,6 +184,13 @@ export function PersonalKernelShell({
     return () => target.removeEventListener("scroll", onScroll);
   }, [section, kernel, immersive]);
 
+  const tabs = SECTIONS.map((s) => ({
+    id: s.id,
+    label: s.label,
+    to: `${base}/${s.id}`,
+    end: s.id === "post",
+  }));
+
   return (
     <div
       className={`page personal-page personal-page--kernel personal-page--${kernel}${
@@ -196,10 +198,19 @@ export function PersonalKernelShell({
       }${scrolled ? " is-scrolled" : ""}`}
     >
       <KernelBrandBar kernel={kernel} hidden={scrolled} />
-      <SectionTabs kernel={kernel} section={section} scrolled={scrolled} />
+      <SegmentGlassBar
+        tabs={tabs}
+        activeId={section === "search" ? "post" : section}
+        scrolled={scrolled}
+        showBack={false}
+        searchTo={`${base}/search`}
+        backTo={`${base}/post`}
+        ariaLabel="Home sections"
+      />
       <div className="kernel-scroll" ref={scrollRef}>
         {children}
       </div>
+      <ElComFloat />
     </div>
   );
 }
@@ -250,34 +261,28 @@ export function KernelReelsPage({ kernel }: { kernel: PersonalKernel }) {
   );
 }
 
-export function KernelConnectsPage({ kernel }: { kernel: PersonalKernel }) {
-  const people =
-    kernel === "free"
-      ? [
-          { name: "Ada · Creator", detail: "Free drops" },
-          { name: "Kofi Radio", detail: "Community hour" },
-        ]
-      : kernel === "offline"
-        ? [
-            { name: "Maya Films", detail: "Purchased" },
-            { name: "Night Drive", detail: "Watched" },
-          ]
-        : [
-            { name: "Amaka Nwosu", detail: "Following" },
-            { name: "LearnVerse Hub", detail: "Suggested" },
-            { name: "Tunde Beats", detail: "Music" },
-          ];
-
+/** Software products streamed from creator PWAs — seek invest / partner / sell. */
+export function KernelProductsPage({ kernel }: { kernel: PersonalKernel }) {
   return (
-    <PersonalKernelShell kernel={kernel} section="connects">
-      <ul className="media-feed">
-        {people.map((p) => (
-          <li key={p.name} className="media-feed__item">
-            <strong>{p.name}</strong>
-            <span className="muted small">{p.detail}</span>
-          </li>
+    <PersonalKernelShell kernel={kernel} section="products">
+      <div className="near-rail near-rail--hero" role="list">
+        {SOFTWARE_PRODUCTS.map((p) => (
+          <button key={p.id} type="button" className="near-rail__card near-rail__card--media" role="listitem">
+            <img className="near-rail__thumb" src={railThumb(p.id)} alt="" loading="lazy" />
+            <span className="near-rail__boost">{p.seek}</span>
+            <span className="near-rail__caption">
+              <strong>{p.name}</strong>
+              <span className="muted small">{p.maker}</span>
+            </span>
+          </button>
         ))}
-      </ul>
+        <button type="button" className="near-rail__card near-rail__card--media near-rail__card--more" role="listitem">
+          <span className="near-rail__caption">
+            <strong>See more</strong>
+            <span className="muted small">Browse all</span>
+          </span>
+        </button>
+      </div>
     </PersonalKernelShell>
   );
 }
@@ -316,7 +321,10 @@ export function KernelCommunitiesPage({ kernel }: { kernel: PersonalKernel }) {
 
 export function KernelSearchPage({ kernel }: { kernel: PersonalKernel }) {
   const [q, setQ] = useState("");
-  const pool = filterForKernel(kernel, catalogByKinds(["picture", "video", "post", "reel", "music", "podcast", "book", "course"]));
+  const pool = filterForKernel(
+    kernel,
+    catalogByKinds(["picture", "video", "post", "reel", "music", "podcast", "book", "course"]),
+  );
   const hits = q.trim()
     ? pool.filter(
         (i) =>
@@ -331,8 +339,9 @@ export function KernelSearchPage({ kernel }: { kernel: PersonalKernel }) {
         className="surface-search"
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Search posts, creators…"
+        placeholder="Search…"
         aria-label="Search"
+        autoFocus
       />
       <ul className="media-feed">
         {hits.map((i) => (
@@ -376,7 +385,7 @@ export function PersonalPremiumPage() {
         </li>
         <li className="media-feed__item">
           <strong>LifeOS credits</strong>
-          <span className="muted small">VIP watch · balance {credits}. 80% to creator.</span>
+          <span className="muted small">VIP watch · balance {credits}</span>
           <div className="row-actions">
             {[40, 80, 200].map((n) => (
               <button
@@ -414,18 +423,18 @@ export function OfflineKernelHome() {
 
 export const PersonalPostPage = () => <KernelPostPage kernel="main" />;
 export const PersonalReelsPage = () => <KernelReelsPage kernel="main" />;
-export const PersonalConnectsPage = () => <KernelConnectsPage kernel="main" />;
+export const PersonalProductsPage = () => <KernelProductsPage kernel="main" />;
 export const PersonalCommunitiesPage = () => <KernelCommunitiesPage kernel="main" />;
 export const PersonalSearchPage = () => <KernelSearchPage kernel="main" />;
 
 export const FreePostPage = () => <KernelPostPage kernel="free" />;
 export const FreeReelsPage = () => <KernelReelsPage kernel="free" />;
-export const FreeConnectsPage = () => <KernelConnectsPage kernel="free" />;
+export const FreeProductsPage = () => <KernelProductsPage kernel="free" />;
 export const FreeCommunitiesPage = () => <KernelCommunitiesPage kernel="free" />;
 export const FreeSearchPage = () => <KernelSearchPage kernel="free" />;
 
 export const OfflinePostPage = () => <KernelPostPage kernel="offline" />;
 export const OfflineReelsPage = () => <KernelReelsPage kernel="offline" />;
-export const OfflineConnectsPage = () => <KernelConnectsPage kernel="offline" />;
+export const OfflineProductsPage = () => <KernelProductsPage kernel="offline" />;
 export const OfflineCommunitiesPage = () => <KernelCommunitiesPage kernel="offline" />;
 export const OfflineSearchPage = () => <KernelSearchPage kernel="offline" />;

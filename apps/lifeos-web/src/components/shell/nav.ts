@@ -37,7 +37,7 @@ export function personalPrimaryNav(kernel: PersonalKernel): ShellNavItem[] {
       matchPrefixes: [
         `${base}/post`,
         `${base}/reels`,
-        `${base}/connects`,
+        `${base}/products`,
         `${base}/communities`,
         `${base}/search`,
       ],

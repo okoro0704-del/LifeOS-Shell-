@@ -321,7 +321,7 @@ export function CommandOverlay() {
   };
 
   return (
-    <div className={`command-overlay${mobile ? " command-overlay--mobile" : ""}`} role="presentation">
+    <div className={`command-overlay command-overlay--full${mobile ? " command-overlay--mobile" : ""}`} role="presentation">
       <button
         type="button"
         className="command-overlay__backdrop"
@@ -330,7 +330,7 @@ export function CommandOverlay() {
       />
       <div
         ref={panelRef}
-        className={`command-panel${mobile ? " command-panel--sheet" : " command-panel--center"}`}
+        className={`command-panel command-panel--full${mobile ? " command-panel--sheet" : " command-panel--center"}`}
         role="dialog"
         aria-modal="true"
         aria-label={isAsk ? "Ask LifeOS" : "Tell LifeOS"}

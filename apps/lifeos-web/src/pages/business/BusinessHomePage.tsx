@@ -65,50 +65,29 @@ const MOCK_OFFERINGS: DiscoverableOffering[] = Array.from({ length: 16 }, (_, i)
   image: railThumb(`svc-${i + 1}`),
 }));
 
-type SoftwareProduct = {
+type PhysicalProduct = {
   id: string;
   name: string;
-  maker: string;
-  pitch: string;
-  seek: "Investment" | "Partnership" | "Sponsorship" | "Sales";
+  seller: string;
+  kind: string;
 };
 
-const SOFTWARE_PRODUCTS: SoftwareProduct[] = [
-  {
-    id: "sw1",
-    name: "RouteMesh",
-    maker: "Ada Labs",
-    pitch: "Logistics routing API for last-mile fleets across West Africa.",
-    seek: "Investment",
-  },
-  {
-    id: "sw2",
-    name: "ClinicOS Lite",
-    maker: "HealthStack",
-    pitch: "Scheduling + records for small clinics. Looking for clinic partners.",
-    seek: "Partnership",
-  },
-  {
-    id: "sw3",
-    name: "PayTrail",
-    maker: "NairaForge",
-    pitch: "Reconciliation dashboard for multi-wallet merchants.",
-    seek: "Sponsorship",
-  },
-  {
-    id: "sw4",
-    name: "ShelfSense",
-    maker: "RetailBit",
-    pitch: "Inventory vision for kiosks — ready for SMB sales.",
-    seek: "Sales",
-  },
+const PHYSICAL_PRODUCTS: PhysicalProduct[] = [
+  { id: "pp1", name: "Jollof meal box", seller: "Harbour Cafe", kind: "Food" },
+  { id: "pp2", name: "Cold press juice", seller: "Green Grocer", kind: "Drinks" },
+  { id: "pp3", name: "Ceramic floor tiles", seller: "Craft Studio", kind: "Building" },
+  { id: "pp4", name: "Weekly grocery pack", seller: "Daily Bread", kind: "Groceries" },
+  { id: "pp5", name: "Palm oil 5L", seller: "Green Grocer", kind: "Groceries" },
+  { id: "pp6", name: "Suya platter", seller: "Harbour Cafe", kind: "Food" },
+  { id: "pp7", name: "Wall paint set", seller: "City Fix Lab", kind: "Home" },
+  { id: "pp8", name: "Fresh tomatoes crate", seller: "Bloom Florist", kind: "Produce" },
 ];
 
 type BizRow = { b: DiscoverableBusiness; boosted: boolean; distance: number };
 type OffRow = { o: DiscoverableOffering; boosted: boolean; distance: number };
 
 /**
- * Business space home — Ask LifeOS, near-me rails (2-up media), Software Products.
+ * Business space home — Ask LifeOS, near-me rails, physical Products.
  */
 export function BusinessHomePage() {
   const navigate = useNavigate();
@@ -359,19 +338,19 @@ export function BusinessHomePage() {
         </p>
       </section>
 
-      <section className="business-home__section" aria-label="Software Products">
+      <section className="business-home__section" aria-label="Products">
         <div className="business-home__section-head">
-          <h2>Software Products</h2>
-          <span className="muted small">Invest · partner · sell</span>
+          <h2>Products</h2>
+          <span className="muted small">Food · goods · nearby</span>
         </div>
         <div className="near-rail near-rail--hero" role="list">
-          {SOFTWARE_PRODUCTS.map((p) => (
+          {PHYSICAL_PRODUCTS.map((p) => (
             <button key={p.id} type="button" className="near-rail__card near-rail__card--media" role="listitem">
               <img className="near-rail__thumb" src={railThumb(p.id)} alt="" loading="lazy" />
-              <span className="near-rail__boost">{p.seek}</span>
+              <span className="near-rail__boost">{p.kind}</span>
               <span className="near-rail__caption">
                 <strong>{p.name}</strong>
-                <span className="muted small">{p.maker}</span>
+                <span className="muted small">{p.seller}</span>
               </span>
             </button>
           ))}
