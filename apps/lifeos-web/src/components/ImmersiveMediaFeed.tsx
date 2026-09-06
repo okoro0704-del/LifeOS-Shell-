@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { hasPremium, setPremium, type MediaItem } from "../lib/personalCatalog";
+import { openCreatorApp } from "../lib/mybrandOS";
 import {
   getLifeOsCredits,
   isAdSaved,
@@ -36,7 +36,7 @@ function AdSlide({ ad, onSaved }: { ad: AdCreative; onSaved: () => void }) {
   const [saved, setSaved] = useState(() => isAdSaved(ad.id));
 
   return (
-    <li className="immersive-feed__slide immersive-feed__slide--ad">
+    <li className="immersive-feed__slide immersive-feed__slide--ad immersive-feed__slide--split">
       <div className="immersive-feed__media" style={{ background: mediaTone(ad.id) }}>
         {ad.mediaUrl ? (
           <video
@@ -52,9 +52,8 @@ function AdSlide({ ad, onSaved }: { ad: AdCreative; onSaved: () => void }) {
         ) : ad.posterUrl ? (
           <img className="immersive-feed__asset" src={ad.posterUrl} alt="" loading="lazy" />
         ) : null}
-        <div className="immersive-feed__scrim" aria-hidden />
       </div>
-      <div className="immersive-feed__copy">
+      <div className="immersive-feed__meta-block">
         <span className="media-feed__badge media-feed__badge--ad">Ad</span>
         <strong className="immersive-feed__title">{ad.title}</strong>
         <span className="immersive-feed__author">{ad.advertiser}</span>
@@ -88,8 +87,15 @@ function RailIcon({ children }: { children: ReactNode }) {
   );
 }
 
-function SideRail({ item }: { item: MediaItem }) {
-  const navigate = useNavigate();
+function SideRail({
+  item,
+  loved,
+  onLove,
+}: {
+  item: MediaItem;
+  loved: boolean;
+  onLove: () => void;
+}) {
   const slug = creatorSlug(item.author);
   const initial = (item.author || "C").replace(/^@/, "").slice(0, 1).toUpperCase();
 
@@ -99,11 +105,17 @@ function SideRail({ item }: { item: MediaItem }) {
         type="button"
         className="immersive-feed__avatar"
         aria-label={`Open ${slug} creator app`}
-        onClick={() => navigate(`/app/personal/creator/${encodeURIComponent(slug)}`)}
+        onClick={() => openCreatorApp(slug)}
       >
         {initial}
       </button>
-      <button type="button" className="immersive-feed__rail-btn immersive-feed__rail-btn--love" aria-label="Love">
+      <button
+        type="button"
+        className={`immersive-feed__rail-btn immersive-feed__rail-btn--love${loved ? " is-on" : ""}`}
+        aria-label="Love"
+        aria-pressed={loved}
+        onClick={onLove}
+      >
         <RailIcon>
           <path
             d="M12 20.5s-7.2-4.35-9.2-8.2C1.2 9.4 2.4 6.2 5.4 5.4c1.7-.45 3.5.15 4.6 1.5 1.1-1.35 2.9-1.95 4.6-1.5 3 .8 4.2 4 2.6 7-2 3.85-9.2 8.1-9.2 8.1z"
@@ -115,11 +127,12 @@ function SideRail({ item }: { item: MediaItem }) {
       <button type="button" className="immersive-feed__rail-btn" aria-label="Comment">
         <RailIcon>
           <path
-            d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7A2.5 2.5 0 0 1 17.5 16H9l-4 3.5V6.5z"
+            d="M5 5.5h14A1.5 1.5 0 0 1 20.5 7v8a1.5 1.5 0 0 1-1.5 1.5H13l-4 3.5V16.5H5A1.5 1.5 0 0 1 3.5 15V7A1.5 1.5 0 0 1 5 5.5z"
             stroke="currentColor"
             strokeWidth="1.75"
             strokeLinejoin="round"
           />
+          <path d="M8 10h8M8 13h5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
         </RailIcon>
       </button>
       <button type="button" className="immersive-feed__rail-btn" aria-label="Reuse">
@@ -171,6 +184,8 @@ function ContentSlide({
   const lockedVip = tier === "vip" && credits <= 0;
   const locked = lockedPremium || lockedVip;
   const creator = creatorSlug(item.author);
+  const [loved, setLoved] = useState(false);
+  const lastTap = useRef(0);
 
   useEffect(() => {
     if (locked) return;
@@ -191,9 +206,28 @@ function ContentSlide({
     return () => window.clearInterval(id);
   }, [tier, lockedPremium, locked, vipRate, item, creator, onCredits]);
 
+  function onMediaActivate() {
+    const now = Date.now();
+    if (now - lastTap.current < 320) {
+      setLoved(true);
+      lastTap.current = 0;
+      return;
+    }
+    lastTap.current = now;
+  }
+
   return (
-    <li className={`immersive-feed__slide${locked ? " is-locked" : ""}`}>
-      <div className="immersive-feed__media" style={{ background: mediaTone(item.id) }}>
+    <li className={`immersive-feed__slide immersive-feed__slide--split${locked ? " is-locked" : ""}`}>
+      <div
+        className="immersive-feed__media"
+        style={{ background: mediaTone(item.id) }}
+        onClick={onMediaActivate}
+        onDoubleClick={(e) => {
+          e.preventDefault();
+          setLoved(true);
+        }}
+        role="presentation"
+      >
         {item.posterUrl || item.mediaUrl ? (
           isVideo && item.mediaUrl && !locked ? (
             <video
@@ -215,14 +249,17 @@ function ContentSlide({
             />
           )
         ) : null}
-        <div className="immersive-feed__scrim" aria-hidden />
+        <SideRail item={item} loved={loved} onLove={() => setLoved(true)} />
       </div>
 
-      <SideRail item={item} />
-
-      <div className="immersive-feed__copy">
-        {item.author ? <span className="immersive-feed__author">@{creator}</span> : null}
+      <div className="immersive-feed__meta-block">
+        {item.author ? (
+          <button type="button" className="immersive-feed__author-btn" onClick={() => openCreatorApp(creator)}>
+            @{creator}
+          </button>
+        ) : null}
         <strong className="immersive-feed__title">{item.title}</strong>
+        {item.detail ? <p className="immersive-feed__detail">{item.detail}</p> : null}
         {tier === "vip" ? (
           <span className="immersive-feed__credits">
             {vipRate} cr · {credits} left · 80% to creator
@@ -255,7 +292,7 @@ function ContentSlide({
 }
 
 /**
- * Full-viewport snap feed. Free: ads. Main: no ads. VIP: credits (80/20).
+ * Snap feed with media above and creator write-up underneath.
  */
 export function ImmersiveMediaFeed({
   items,

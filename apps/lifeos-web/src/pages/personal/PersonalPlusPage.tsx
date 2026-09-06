@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { EmptyState, SearchBar } from "@lifeos/ui";
+import { useLocation } from "react-router-dom";
+import { EmptyState } from "@lifeos/ui";
 import {
   freeCatalog,
   offlineCatalog,
@@ -8,6 +8,7 @@ import {
   type MediaItem,
 } from "../../lib/personalCatalog";
 import { personalKernelFromPath } from "../../components/shell/nav";
+import { openCreatorApp } from "../../lib/mybrandOS";
 
 function poolForPath(pathname: string): MediaItem[] {
   const kernel = personalKernelFromPath(pathname) ?? "main";
@@ -22,24 +23,22 @@ function thumb(seed: string) {
 
 type PlusRow = { id: string; title: string; items: MediaItem[] };
 
-/**
- * Personal Plus — discovery grid (2 drafts per row), streamed from creator PWAs.
- */
+/** Personal Plus — tight discover grid (2 per row). */
 export function PersonalPlusPage() {
   const location = useLocation();
-  const navigate = useNavigate();
   const [filter, setFilter] = useState<"All" | "Videos" | "Posts" | "Products">("All");
   const [query, setQuery] = useState("");
+  const [submitted, setSubmitted] = useState("");
 
   const pool = useMemo(() => poolForPath(location.pathname), [location.pathname]);
 
   const rows = useMemo((): PlusRow[] => {
-    const q = query.trim().toLowerCase();
+    const needle = submitted.trim().toLowerCase();
     const match = (i: MediaItem) =>
-      !q ||
-      i.title.toLowerCase().includes(q) ||
-      (i.author ?? "").toLowerCase().includes(q) ||
-      (i.detail ?? "").toLowerCase().includes(q);
+      !needle ||
+      i.title.toLowerCase().includes(needle) ||
+      (i.author ?? "").toLowerCase().includes(needle) ||
+      (i.detail ?? "").toLowerCase().includes(needle);
 
     const videos = pool.filter((i) => ["video", "reel"].includes(i.kind) && match(i));
     const posts = pool.filter((i) => ["post", "picture", "music", "podcast"].includes(i.kind) && match(i));
@@ -53,40 +52,66 @@ export function PersonalPlusPage() {
 
     if (filter === "All") return all.filter((r) => r.items.length > 0);
     return all.filter((r) => r.title === filter && r.items.length > 0);
-  }, [pool, query, filter]);
+  }, [pool, submitted, filter]);
 
   const filters = ["All", "Videos", "Posts", "Products"] as const;
+  const searching = Boolean(submitted);
 
   return (
-    <div className="page personal-page plus-discover">
-      <header className="page-header page-header--compact">
-        <h1>Discover</h1>
-        <p className="muted small">Videos, posts, and products from creator apps.</p>
-      </header>
-
-      <SearchBar
-        id="personal-plus-search"
-        placeholder="Search…"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        autoComplete="off"
-        aria-label="Search discover"
-      />
-
-      <div className="services-explore__filters" role="tablist" aria-label="Discover filters">
-        {filters.map((f) => (
+    <div className="page personal-page plus-discover plus-discover--tight">
+      <form
+        className="discover-search"
+        onSubmit={(e) => {
+          e.preventDefault();
+          setSubmitted(query.trim());
+        }}
+      >
+        <span className="discover-search__icon" aria-hidden>
+          ⌕
+        </span>
+        <input
+          id="personal-plus-search"
+          className="discover-search__input"
+          placeholder="Search…"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            if (!e.target.value.trim()) setSubmitted("");
+          }}
+          autoComplete="off"
+          aria-label="Search discover"
+        />
+        {query ? (
           <button
-            key={f}
             type="button"
-            role="tab"
-            aria-selected={filter === f}
-            className={`services-explore__chip${filter === f ? " active" : ""}`}
-            onClick={() => setFilter(f)}
+            className="discover-search__clear"
+            aria-label="Clear search"
+            onClick={() => {
+              setQuery("");
+              setSubmitted("");
+            }}
           >
-            {f}
+            ×
           </button>
-        ))}
-      </div>
+        ) : null}
+      </form>
+
+      {!searching ? (
+        <div className="services-explore__filters" role="tablist" aria-label="Discover filters">
+          {filters.map((f) => (
+            <button
+              key={f}
+              type="button"
+              role="tab"
+              aria-selected={filter === f}
+              className={`services-explore__chip${filter === f ? " active" : ""}`}
+              onClick={() => setFilter(f)}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       {rows.length === 0 ? (
         <EmptyState
@@ -98,6 +123,7 @@ export function PersonalPlusPage() {
               className="text-link"
               onClick={() => {
                 setQuery("");
+                setSubmitted("");
                 setFilter("All");
               }}
             >
@@ -108,16 +134,16 @@ export function PersonalPlusPage() {
       ) : (
         rows.map((row) => (
           <section key={row.id} className="plus-discover__section" aria-label={row.title}>
-            <h2 className="plus-discover__heading">{row.title}</h2>
+            {!searching ? <h2 className="plus-discover__heading">{row.title}</h2> : null}
             <div className="discover-grid discover-grid--two" role="list">
-              {row.items.slice(0, 8).map((item) => (
+              {row.items.slice(0, searching ? 24 : 8).map((item) => (
                 <button
                   key={item.id}
                   type="button"
                   className="discover-tile"
                   role="listitem"
                   aria-label={item.title}
-                  onClick={() => navigate(`/app/personal/creator/${encodeURIComponent(item.author || item.id)}`)}
+                  onClick={() => openCreatorApp(item.author || item.id)}
                 >
                   <img className="discover-tile__media" src={thumb(item.id)} alt="" loading="lazy" />
                   <div className="discover-tile__shade" aria-hidden />

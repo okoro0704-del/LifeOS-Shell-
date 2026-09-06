@@ -98,22 +98,38 @@ export function LearnVerseSchoolsPage() {
 export function LearnVerseSearchPage() {
   const kernel = useKernel();
   const [q, setQ] = useState("");
+  const [submitted, setSubmitted] = useState("");
   const pool = filterKernel(kernel, catalogByKinds(["book", "course", "edu", "school"]));
-  const hits = q.trim()
-    ? pool.filter((i) => i.title.toLowerCase().includes(q.toLowerCase()))
-    : pool.slice(0, 10);
+  const hits = submitted
+    ? pool.filter((i) => i.title.toLowerCase().includes(submitted.toLowerCase()))
+    : [];
 
   return (
     <Shell active="search">
-      <input
-        className="surface-search"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Search…"
-        aria-label="Search LearnVerse"
-        autoFocus
-      />
-      <MediaFeed items={hits} empty="No matches." gatePremium={kernel === "main"} />
+      <form
+        className="surface-search-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          setSubmitted(q.trim());
+        }}
+      >
+        <input
+          className="surface-search"
+          value={q}
+          onChange={(e) => {
+            setQ(e.target.value);
+            if (!e.target.value.trim()) setSubmitted("");
+          }}
+          placeholder="Search…"
+          aria-label="Search LearnVerse"
+          autoFocus
+        />
+      </form>
+      {submitted ? (
+        <MediaFeed items={hits} empty="No matches." gatePremium={kernel === "main"} />
+      ) : (
+        <p className="muted small">Type a query and press Enter.</p>
+      )}
     </Shell>
   );
 }

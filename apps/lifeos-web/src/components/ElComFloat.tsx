@@ -1,12 +1,16 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
+import type { InstalledAppManifest } from "@lifeos/shared";
+import { hasDeployedMyBrandOS } from "../lib/mybrandOS";
 
-/** Fixed chat float — icon only; same place across Personal pages / kernels. */
-export function ElComFloat() {
+/** Chat float — only for owners with a deployed mybrandOS white-label app. */
+export function ElComFloat({ apps = [] }: { apps?: InstalledAppManifest[] }) {
   const navigate = useNavigate();
   const location = useLocation();
   const path = location.pathname.replace(/\/+$/, "") || "/";
+
   if (path === "/app/elcom") return null;
+  if (!hasDeployedMyBrandOS(apps)) return null;
 
   const btn = (
     <button

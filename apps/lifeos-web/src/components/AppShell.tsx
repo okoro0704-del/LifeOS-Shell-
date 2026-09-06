@@ -109,7 +109,8 @@ export function AppShell() {
     (/^\/app\/personal\/(post|reels|products|communities|search)$/.test(pathNorm) ||
       /^\/app\/personal\/(free|offline)\/(post|reels|products|communities|search)$/.test(pathNorm) ||
       /\/personal(\/(free|offline))?\/(learnverse|streamify)/.test(pathNorm) ||
-      pathNorm === "/app/personal");
+      pathNorm === "/app/personal" ||
+      pathNorm.endsWith("/plus"));
   const pageMeta =
     isHome || hideChrome || pathNorm === "/app/elcom" || pathNorm === "/app/services/explore"
       ? null
@@ -385,7 +386,7 @@ export function AppShell() {
 
         <CommandOverlay />
         <LifeOSWakeListener />
-        {mode === "PERSONAL" ? <ElComFloat /> : null}
+        {mode === "PERSONAL" ? <ElComFloat apps={installedApps} /> : null}
 
         {!isImmersive ? (
           <nav

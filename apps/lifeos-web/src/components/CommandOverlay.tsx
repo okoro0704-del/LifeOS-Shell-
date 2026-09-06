@@ -353,6 +353,7 @@ export function CommandOverlay() {
           <span className="command-panel__top-spacer" aria-hidden />
         </header>
 
+        {mode === "idle" && !query.trim() ? (
         <div className="command-mode-tabs" role="tablist" aria-label="LifeOS AI mode">
           <button
             type="button"
@@ -387,6 +388,7 @@ export function CommandOverlay() {
             <span className="command-mode-tab__hint">Tasks</span>
           </button>
         </div>
+        ) : null}
 
         <form
           className="command-panel__form"
@@ -407,10 +409,16 @@ export function CommandOverlay() {
           }}
         >
           <label className="command-panel__label" htmlFor="ask-lifeos-input">
-            {isAsk ? "Ask LifeOS" : "Tell LifeOS"}
-            <span className="command-panel__space-badge">
-              {workspaceMode === "PERSONAL" ? "Personal" : "Business"}
-            </span>
+            {mode === "idle" && !query.trim() ? (
+              <>
+                {isAsk ? "Ask LifeOS" : "Tell LifeOS"}
+                <span className="command-panel__space-badge">
+                  {workspaceMode === "PERSONAL" ? "Personal" : "Business"}
+                </span>
+              </>
+            ) : (
+              <span className="visually-hidden">{isAsk ? "Ask LifeOS" : "Tell LifeOS"}</span>
+            )}
           </label>
           <div className="command-panel__input-row">
             <input

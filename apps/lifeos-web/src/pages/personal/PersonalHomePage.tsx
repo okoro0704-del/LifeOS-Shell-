@@ -286,30 +286,69 @@ export function KernelProductsPage({ kernel }: { kernel: PersonalKernel }) {
 }
 
 export function KernelCommunitiesPage({ kernel }: { kernel: PersonalKernel }) {
-  const groups =
+  const creators =
     kernel === "free"
       ? [
-          { name: "Open Commons", detail: "Free circles" },
-          { name: "Public Watch", detail: "Screenings" },
+          {
+            creator: "Open Commons",
+            hubs: [
+              { name: "Free drops", asset: "Posts" },
+              { name: "Public watch", asset: "Videos" },
+            ],
+          },
         ]
       : kernel === "offline"
         ? [
-            { name: "Purchased clubs", detail: "Memberships" },
-            { name: "Finished courses", detail: "LearnVerse" },
+            {
+              creator: "Your purchases",
+              hubs: [
+                { name: "Owned courses", asset: "LearnVerse" },
+                { name: "Saved reels", asset: "Reels" },
+              ],
+            },
           ]
         : [
-            { name: "Lagos Creators", detail: "12.4k members" },
-            { name: "LearnVerse Readers", detail: "Book clubs" },
-            { name: "Streamify Night Owls", detail: "Watch parties" },
+            {
+              creator: "amaka.lens",
+              hubs: [
+                { name: "Lagoon stills", asset: "Pictures" },
+                { name: "Street walks", asset: "Videos" },
+                { name: "Print drops", asset: "Products" },
+              ],
+            },
+            {
+              creator: "tunde.beats",
+              hubs: [
+                { name: "Afrobeats room", asset: "Music" },
+                { name: "Studio sessions", asset: "Podcasts" },
+                { name: "Sample packs", asset: "Products" },
+              ],
+            },
+            {
+              creator: "learnverse.hub",
+              hubs: [
+                { name: "Course talk", asset: "Courses" },
+                { name: "Book club", asset: "Books" },
+                { name: "Edu shorts", asset: "Edu" },
+              ],
+            },
           ];
 
   return (
     <PersonalKernelShell kernel={kernel} section="communities">
-      <ul className="media-feed">
-        {groups.map((g) => (
-          <li key={g.name} className="media-feed__item">
-            <strong>{g.name}</strong>
-            <span className="muted small">{g.detail}</span>
+      <ul className="community-tree">
+        {creators.map((c) => (
+          <li key={c.creator} className="community-tree__creator">
+            <strong className="community-tree__name">@{c.creator}</strong>
+            <span className="muted small">Creator community</span>
+            <ul className="community-tree__subs">
+              {c.hubs.map((h) => (
+                <li key={h.name} className="community-tree__sub">
+                  <strong>{h.name}</strong>
+                  <span className="muted small">Discusses · {h.asset}</span>
+                </li>
+              ))}
+            </ul>
           </li>
         ))}
       </ul>
@@ -319,37 +358,59 @@ export function KernelCommunitiesPage({ kernel }: { kernel: PersonalKernel }) {
 
 export function KernelSearchPage({ kernel }: { kernel: PersonalKernel }) {
   const [q, setQ] = useState("");
+  const [submitted, setSubmitted] = useState("");
   const pool = filterForKernel(
     kernel,
     catalogByKinds(["picture", "video", "post", "reel", "music", "podcast", "book", "course"]),
   );
-  const hits = q.trim()
+  const hits = submitted
     ? pool.filter(
         (i) =>
-          i.title.toLowerCase().includes(q.toLowerCase()) ||
-          (i.author || "").toLowerCase().includes(q.toLowerCase()),
+          i.title.toLowerCase().includes(submitted.toLowerCase()) ||
+          (i.author || "").toLowerCase().includes(submitted.toLowerCase()),
       )
-    : pool.slice(0, 8);
+    : [];
 
   return (
     <PersonalKernelShell kernel={kernel} section="search">
-      <input
-        className="surface-search"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Search…"
-        aria-label="Search"
-        autoFocus
-      />
-      <ul className="media-feed">
-        {hits.map((i) => (
-          <li key={i.id} className="media-feed__item">
-            <span className="media-feed__kind">{i.kind}</span>
-            <strong>{i.title}</strong>
-            <span className="muted small">{i.author ? `@${i.author}` : i.detail}</span>
-          </li>
-        ))}
-      </ul>
+      <form
+        className="surface-search-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          setSubmitted(q.trim());
+        }}
+      >
+        <input
+          className="surface-search"
+          value={q}
+          onChange={(e) => {
+            setQ(e.target.value);
+            if (!e.target.value.trim()) setSubmitted("");
+          }}
+          placeholder="Search…"
+          aria-label="Search"
+          autoFocus
+        />
+      </form>
+      {submitted ? (
+        <ul className="media-feed">
+          {hits.length === 0 ? (
+            <li className="media-feed__item">
+              <strong>No matches</strong>
+            </li>
+          ) : (
+            hits.map((i) => (
+              <li key={i.id} className="media-feed__item">
+                <span className="media-feed__kind">{i.kind}</span>
+                <strong>{i.title}</strong>
+                <span className="muted small">{i.author ? `@${i.author}` : i.detail}</span>
+              </li>
+            ))
+          )}
+        </ul>
+      ) : (
+        <p className="muted small">Type a query and press Enter to see results.</p>
+      )}
     </PersonalKernelShell>
   );
 }
