@@ -1,24 +1,34 @@
 import type { ReactNode } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { SegmentTopBar } from "../../components/SegmentTopBar";
-import { MediaFeed, PremiumHint } from "../../components/MediaFeed";
-import { catalogByKinds } from "../../lib/personalCatalog";
+import { MediaFeed } from "../../components/MediaFeed";
+import { catalogByKinds, type MediaItem } from "../../lib/personalCatalog";
+import { personalKernelFromPath, personalNavBase, type PersonalKernel } from "../../components/shell/nav";
 
-const TABS = [
-  { to: "/app/personal/streamify", end: true, label: "Content" },
-  { to: "/app/personal/streamify/music", label: "Music" },
-  { to: "/app/personal/streamify/podcast", label: "Podcast" },
-  { to: "/app/personal/streamify/videos", label: "Videos" },
-];
+function filterKernel(kernel: PersonalKernel, items: MediaItem[]) {
+  if (kernel === "free") return items.filter((i) => i.free);
+  if (kernel === "offline") return items.filter((i) => i.ownedOrConsumed);
+  return items;
+}
 
-function Shell({ title, detail, children }: { title: string; detail: string; children: ReactNode }) {
+function useKernel(): PersonalKernel {
+  return personalKernelFromPath(useLocation().pathname) ?? "main";
+}
+
+function Shell({ title, children }: { title: string; children: ReactNode }) {
+  const kernel = useKernel();
+  const base = `${personalNavBase(kernel)}/streamify`;
+  const tabs = [
+    { to: base, end: true, label: "Content" },
+    { to: `${base}/music`, label: "Music" },
+    { to: `${base}/podcast`, label: "Podcast" },
+    { to: `${base}/videos`, label: "Videos" },
+  ];
   return (
     <div className="page personal-page">
-      <SegmentTopBar tabs={TABS} ariaLabel="Streamify" />
-      <PremiumHint />
+      <SegmentTopBar tabs={tabs} ariaLabel="Streamify" />
       <header className="page-header page-header--compact">
         <h1>{title}</h1>
-        <p className="muted">{detail}</p>
       </header>
       {children}
     </div>
@@ -26,34 +36,53 @@ function Shell({ title, detail, children }: { title: string; detail: string; chi
 }
 
 export function StreamifyContentPage() {
-  const items = catalogByKinds(["video", "music", "podcast", "reel", "info"]);
+  const kernel = useKernel();
   return (
-    <Shell title="Content" detail="Mixed Streamify feed — Premium unlocks full play on Main.">
-      <MediaFeed items={items} empty="No content yet." gatePremium />
+    <Shell title="Content">
+      <MediaFeed
+        items={filterKernel(kernel, catalogByKinds(["video", "music", "podcast", "reel", "info"]))}
+        empty="Nothing here yet."
+        gatePremium={kernel === "main"}
+      />
     </Shell>
   );
 }
 
 export function StreamifyMusicPage() {
+  const kernel = useKernel();
   return (
-    <Shell title="Music" detail="Albums and singles. Premium required to listen on Main.">
-      <MediaFeed items={catalogByKinds(["music"])} empty="No music yet." gatePremium />
+    <Shell title="Music">
+      <MediaFeed
+        items={filterKernel(kernel, catalogByKinds(["music"]))}
+        empty="Nothing here yet."
+        gatePremium={kernel === "main"}
+      />
     </Shell>
   );
 }
 
 export function StreamifyPodcastPage() {
+  const kernel = useKernel();
   return (
-    <Shell title="Podcast" detail="Shows and episodes.">
-      <MediaFeed items={catalogByKinds(["podcast"])} empty="No podcasts yet." gatePremium />
+    <Shell title="Podcast">
+      <MediaFeed
+        items={filterKernel(kernel, catalogByKinds(["podcast"]))}
+        empty="Nothing here yet."
+        gatePremium={kernel === "main"}
+      />
     </Shell>
   );
 }
 
 export function StreamifyVideosPage() {
+  const kernel = useKernel();
   return (
-    <Shell title="Videos" detail="Long-form and cinema-style streams.">
-      <MediaFeed items={catalogByKinds(["video"])} empty="No videos yet." gatePremium />
+    <Shell title="Videos">
+      <MediaFeed
+        items={filterKernel(kernel, catalogByKinds(["video"]))}
+        empty="Nothing here yet."
+        gatePremium={kernel === "main"}
+      />
     </Shell>
   );
 }

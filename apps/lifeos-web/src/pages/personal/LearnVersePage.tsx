@@ -1,24 +1,34 @@
 import type { ReactNode } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { SegmentTopBar } from "../../components/SegmentTopBar";
-import { MediaFeed, PremiumHint } from "../../components/MediaFeed";
-import { catalogByKinds } from "../../lib/personalCatalog";
+import { MediaFeed } from "../../components/MediaFeed";
+import { catalogByKinds, type MediaItem } from "../../lib/personalCatalog";
+import { personalKernelFromPath, personalNavBase, type PersonalKernel } from "../../components/shell/nav";
 
-const TABS = [
-  { to: "/app/personal/learnverse", end: true, label: "Books" },
-  { to: "/app/personal/learnverse/courses", label: "Courses" },
-  { to: "/app/personal/learnverse/edu", label: "Edu" },
-  { to: "/app/personal/learnverse/schools", label: "Schools" },
-];
+function filterKernel(kernel: PersonalKernel, items: MediaItem[]) {
+  if (kernel === "free") return items.filter((i) => i.free);
+  if (kernel === "offline") return items.filter((i) => i.ownedOrConsumed);
+  return items;
+}
 
-function Shell({ title, detail, children }: { title: string; detail: string; children: ReactNode }) {
+function useKernel(): PersonalKernel {
+  return personalKernelFromPath(useLocation().pathname) ?? "main";
+}
+
+function Shell({ title, children }: { title: string; children: ReactNode }) {
+  const kernel = useKernel();
+  const base = `${personalNavBase(kernel)}/learnverse`;
+  const tabs = [
+    { to: base, end: true, label: "Books" },
+    { to: `${base}/courses`, label: "Courses" },
+    { to: `${base}/edu`, label: "Edu" },
+    { to: `${base}/schools`, label: "Schools" },
+  ];
   return (
     <div className="page personal-page">
-      <SegmentTopBar tabs={TABS} ariaLabel="LearnVerse" />
-      <PremiumHint />
+      <SegmentTopBar tabs={tabs} ariaLabel="LearnVerse" />
       <header className="page-header page-header--compact">
         <h1>{title}</h1>
-        <p className="muted">{detail}</p>
       </header>
       {children}
     </div>
@@ -26,36 +36,53 @@ function Shell({ title, detail, children }: { title: string; detail: string; chi
 }
 
 export function LearnVerseBooksPage() {
+  const kernel = useKernel();
   return (
-    <Shell title="Books" detail="Handbooks, novels, and creator publications.">
-      <MediaFeed items={catalogByKinds(["book"])} empty="No books yet." gatePremium />
+    <Shell title="Books">
+      <MediaFeed
+        items={filterKernel(kernel, catalogByKinds(["book"]))}
+        empty="Nothing here yet."
+        gatePremium={kernel === "main"}
+      />
     </Shell>
   );
 }
 
 export function LearnVerseCoursesPage() {
+  const kernel = useKernel();
   return (
-    <Shell title="Courses" detail="General learning tracks and creator courses.">
-      <MediaFeed items={catalogByKinds(["course"])} empty="No courses yet." gatePremium />
+    <Shell title="Courses">
+      <MediaFeed
+        items={filterKernel(kernel, catalogByKinds(["course"]))}
+        empty="Nothing here yet."
+        gatePremium={kernel === "main"}
+      />
     </Shell>
   );
 }
 
 export function LearnVerseEduPage() {
+  const kernel = useKernel();
   return (
-    <Shell
-      title="Edu"
-      detail="Specialized higher and secondary school programmes — not general learning courses."
-    >
-      <MediaFeed items={catalogByKinds(["edu"])} empty="No Edu programmes yet." gatePremium />
+    <Shell title="Edu">
+      <MediaFeed
+        items={filterKernel(kernel, catalogByKinds(["edu"]))}
+        empty="Nothing here yet."
+        gatePremium={kernel === "main"}
+      />
     </Shell>
   );
 }
 
 export function LearnVerseSchoolsPage() {
+  const kernel = useKernel();
   return (
-    <Shell title="Schools" detail="Academies and partner institutions.">
-      <MediaFeed items={catalogByKinds(["school"])} empty="No schools yet." gatePremium />
+    <Shell title="Schools">
+      <MediaFeed
+        items={filterKernel(kernel, catalogByKinds(["school"]))}
+        empty="Nothing here yet."
+        gatePremium={kernel === "main"}
+      />
     </Shell>
   );
 }

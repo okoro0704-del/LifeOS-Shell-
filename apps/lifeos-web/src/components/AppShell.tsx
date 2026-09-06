@@ -22,7 +22,7 @@ import { PageTopBar } from "./PageTopBar";
 import { VerificationStars } from "./VerificationStars";
 import { resolvePageMeta } from "../lib/pageMeta";
 import { WorkspaceToggle } from "./shell/WorkspaceToggle";
-import { primaryNavForMode, workspaceHomePath, type ShellNavItem } from "./shell/nav";
+import { primaryNavForMode, personalKernelFromPath, personalNavBase, workspaceHomePath, type ShellNavItem } from "./shell/nav";
 
 type IconComp = ComponentType<SVGProps<SVGSVGElement> & { size?: number }>;
 
@@ -85,24 +85,32 @@ export function AppShell() {
   const avatarSrc = user?.preferences?.avatarUrl ?? null;
   const firstName = user?.firstName || user?.displayName?.split(" ")[0] || "there";
   const pathNorm = location.pathname.replace(/\/+$/, "") || "/";
-  const isPersonalHomeFeed =
-    mode === "PERSONAL" &&
-    (/^\/app\/personal\/(post|reels|connects|communities)$/.test(pathNorm) ||
-      /^\/app\/personal\/(free|offline)\/(post|reels|connects|communities)$/.test(pathNorm) ||
-      pathNorm === "/app/personal");
-  const onExplore = location.pathname.startsWith("/app/personal/plus");
+  const personalKernel = personalKernelFromPath(location.pathname) ?? "main";
+  const personalBase = personalNavBase(personalKernel);
+  const onExplore =
+    location.pathname === `${personalBase}/plus` ||
+    location.pathname.endsWith("/plus");
   const isImmersive =
     isBusinessDetailPath(location.pathname) ||
     Boolean(location.pathname.match(/^\/app\/services\/explore\/[^/]+$/));
+  const isBusinessHome = pathNorm === "/app/business";
   const isHome =
     location.pathname === "/app" ||
     location.pathname === "/app/" ||
-    location.pathname.replace(/\/+$/, "") === "/app" ||
-    location.pathname === "/app/business";
-  /** Personal Home has its own LifeOS brand — hide shell greeting / page top bar. */
-  const hideChrome = isPersonalHomeFeed;
+    pathNorm === "/app" ||
+    isBusinessHome;
+  /** Personal Home has its own brand bar; Business home lands on content. */
+  const hideChrome =
+    isBusinessHome ||
+    (mode === "PERSONAL" &&
+      (/^\/app\/personal\/(post|reels|connects|communities)$/.test(pathNorm) ||
+        /^\/app\/personal\/(free|offline)\/(post|reels|connects|communities)$/.test(pathNorm) ||
+        pathNorm === "/app/personal"));
   const pageMeta = isHome || hideChrome ? null : resolvePageMeta(location.pathname);
-  const tabs = useMemo(() => primaryNavForMode(mode), [mode]);
+  const tabs = useMemo(
+    () => primaryNavForMode(mode, personalKernel),
+    [mode, personalKernel],
+  );
   const launcherApps = useMemo(
     () => filterAppsForMode(installedApps, mode),
     [installedApps, mode],
@@ -309,23 +317,19 @@ export function AppShell() {
         {offline ? (
           <div className="offline-banner" role="status">
             <strong>You&apos;re offline</strong>
-            <span>Personal Offline kernel — vault and cached content.</span>
           </div>
         ) : null}
 
         {backOnlineNotice && !offline ? (
           <div className="online-banner" role="status">
             <strong>You&apos;re back online</strong>
-            <span>
-              Switching kernels will ask TrustID to scan your face.{" "}
-              <button
-                type="button"
-                className="online-banner__dismiss"
-                onClick={() => setBackOnlineNotice(false)}
-              >
-                Dismiss
-              </button>
-            </span>
+            <button
+              type="button"
+              className="online-banner__dismiss"
+              onClick={() => setBackOnlineNotice(false)}
+            >
+              Dismiss
+            </button>
           </div>
         ) : null}
 
@@ -402,8 +406,8 @@ export function AppShell() {
               aria-pressed={onExplore}
               onClick={() => {
                 if (mode === "PERSONAL") {
-                  if (onExplore) navigate("/app/personal/post");
-                  else navigate("/app/personal/plus");
+                  if (onExplore) navigate(`${personalBase}/post`);
+                  else navigate(`${personalBase}/plus`);
                   return;
                 }
                 if (onExplore) navigate(workspaceHomePath(mode));

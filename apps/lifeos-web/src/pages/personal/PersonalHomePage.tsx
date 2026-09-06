@@ -1,11 +1,16 @@
 import type { ReactNode } from "react";
-import { Link, NavLink, Navigate } from "react-router-dom";
-import { MediaFeed, PremiumHint } from "../../components/MediaFeed";
-import {
-  catalogByKinds,
-  type MediaItem,
-} from "../../lib/personalCatalog";
+import { Link, NavLink, Navigate, useNavigate } from "react-router-dom";
+import { MediaFeed } from "../../components/MediaFeed";
+import { catalogByKinds, hasPremium, setPremium, type MediaItem } from "../../lib/personalCatalog";
 import type { PersonalKernel } from "../../components/shell/nav";
+import { authClient } from "../../lib/api";
+import {
+  isAuthBypass,
+  markNeedsFaceOnKernelSwitch,
+  needsFaceOnKernelSwitch,
+  setPendingKernel,
+} from "../../lib/personalConnectivity";
+import { triggerWorkspaceHaptic } from "../../lib/mobileBridge";
 
 export type HomeSection = "post" | "reels" | "connects" | "communities";
 
@@ -28,15 +33,75 @@ function filterForKernel(kernel: PersonalKernel, items: MediaItem[]): MediaItem[
   return items;
 }
 
-function kernelCaption(kernel: PersonalKernel): string {
-  if (kernel === "free") return "Creator-free content only — no Premium required.";
-  if (kernel === "offline") return "Bought or already consumed — yours offline.";
-  return "Main · Premium unlocks full play on paid streams.";
+function kernelLabel(kernel: PersonalKernel): string {
+  if (kernel === "free") return "Free";
+  if (kernel === "offline") return "Offline";
+  return "Main";
 }
 
 /**
- * Shared Personal home chrome: centered LifeOS + Post / Reels / Connects / Communities.
- * Free & Offline kernels mirror this UI with an Exit back to Main.
+ * Brand row only on Home (Post) of each kernel.
+ * Main: Main · LifeOS · Go Premium
+ * Free/Offline: Kernel · LifeOS · × (exit to Main)
+ */
+function KernelBrandBar({ kernel }: { kernel: PersonalKernel }) {
+  const navigate = useNavigate();
+
+  function exitToMain() {
+    const online = typeof navigator === "undefined" ? true : navigator.onLine;
+    const leavingOffline = kernel === "offline";
+    const requireFace =
+      online && !isAuthBypass() && (needsFaceOnKernelSwitch() || leavingOffline);
+
+    if (requireFace) {
+      setPendingKernel("main");
+      markNeedsFaceOnKernelSwitch(false);
+      void triggerWorkspaceHaptic();
+      void authClient.beginLogin({
+        preferPasskey: true,
+        silentUi: true,
+        prompt: "login",
+      });
+      return;
+    }
+
+    void triggerWorkspaceHaptic();
+    navigate("/app/personal/post");
+  }
+
+  return (
+    <header className="kernel-brand-bar" aria-label="Kernel">
+      <span className="kernel-brand-bar__side kernel-brand-bar__side--left">{kernelLabel(kernel)}</span>
+      <span className="kernel-brand-bar__logo">LifeOS</span>
+      <span className="kernel-brand-bar__side kernel-brand-bar__side--right">
+        {kernel === "main" ? (
+          hasPremium() ? (
+            <span className="kernel-brand-bar__premium-on" aria-label="Premium active">
+              Premium
+            </span>
+          ) : (
+            <Link to="/app/personal/premium" className="kernel-brand-bar__premium">
+              Go Premium
+            </Link>
+          )
+        ) : (
+          <button
+            type="button"
+            className="kernel-brand-bar__exit"
+            aria-label="Exit to Main"
+            onClick={exitToMain}
+          >
+            ×
+          </button>
+        )}
+      </span>
+    </header>
+  );
+}
+
+/**
+ * Shared Personal home chrome. Brand bar only on Post (Home).
+ * Section tabs stay inside the active kernel.
  */
 export function PersonalKernelShell({
   kernel,
@@ -48,20 +113,11 @@ export function PersonalKernelShell({
   children: ReactNode;
 }) {
   const base = basePath(kernel);
+  const isHome = section === "post";
+
   return (
     <div className={`page personal-page personal-page--kernel personal-page--${kernel}`}>
-      {kernel !== "main" ? (
-        <div className="personal-kernel-exit-row">
-          <Link to="/app/personal/post" className="personal-kernel-exit" aria-label="Exit to Main">
-            ← Exit
-          </Link>
-        </div>
-      ) : null}
-
-      <header className="personal-brand-hero">
-        <p className="personal-brand-hero__mark">LifeOS</p>
-        <p className="personal-brand-hero__sub muted small">{kernelCaption(kernel)}</p>
-      </header>
+      {isHome ? <KernelBrandBar kernel={kernel} /> : null}
 
       <nav className="segment-topbar segment-topbar--home" aria-label="Home sections">
         {SECTIONS.map((s) => (
@@ -78,7 +134,6 @@ export function PersonalKernelShell({
         ))}
       </nav>
 
-      {kernel === "main" ? <PremiumHint /> : null}
       {children}
     </div>
   );
@@ -96,13 +151,7 @@ export function KernelPostPage({ kernel }: { kernel: PersonalKernel }) {
     <PersonalKernelShell kernel={kernel} section="post">
       <MediaFeed
         items={postItems(kernel)}
-        empty={
-          kernel === "offline"
-            ? "No purchased or consumed posts yet."
-            : kernel === "free"
-              ? "No free posts right now."
-              : "No posts yet."
-        }
+        empty="Nothing here yet."
         gatePremium={kernel === "main"}
       />
     </PersonalKernelShell>
@@ -114,13 +163,7 @@ export function KernelReelsPage({ kernel }: { kernel: PersonalKernel }) {
     <PersonalKernelShell kernel={kernel} section="reels">
       <MediaFeed
         items={filterForKernel(kernel, catalogByKinds(["reel"]))}
-        empty={
-          kernel === "offline"
-            ? "No reels in your Offline library."
-            : kernel === "free"
-              ? "No free reels right now."
-              : "No reels yet."
-        }
+        empty="Nothing here yet."
         gatePremium={kernel === "main"}
       />
     </PersonalKernelShell>
@@ -131,18 +174,18 @@ export function KernelConnectsPage({ kernel }: { kernel: PersonalKernel }) {
   const people =
     kernel === "free"
       ? [
-          { name: "Ada · Creator", detail: "Free drops & open collabs" },
-          { name: "Kofi Radio", detail: "Community free hour" },
+          { name: "Ada · Creator", detail: "Free drops" },
+          { name: "Kofi Radio", detail: "Community hour" },
         ]
       : kernel === "offline"
         ? [
-            { name: "Saved: Maya Films", detail: "Purchased catalog" },
-            { name: "History: Night Drive", detail: "Watched · kept offline" },
+            { name: "Maya Films", detail: "Purchased" },
+            { name: "Night Drive", detail: "Watched" },
           ]
         : [
-            { name: "Amaka Nwosu", detail: "Following · Streamify" },
-            { name: "LearnVerse Hub", detail: "Suggested connect" },
-            { name: "Tunde Beats", detail: "Music · Premium" },
+            { name: "Amaka Nwosu", detail: "Following" },
+            { name: "LearnVerse Hub", detail: "Suggested" },
+            { name: "Tunde Beats", detail: "Music" },
           ];
 
   return (
@@ -163,18 +206,18 @@ export function KernelCommunitiesPage({ kernel }: { kernel: PersonalKernel }) {
   const groups =
     kernel === "free"
       ? [
-          { name: "Open Commons", detail: "Free creator circles" },
-          { name: "Public Watch", detail: "Free screenings" },
+          { name: "Open Commons", detail: "Free circles" },
+          { name: "Public Watch", detail: "Screenings" },
         ]
       : kernel === "offline"
         ? [
-            { name: "My purchased clubs", detail: "Memberships you own" },
-            { name: "Finished courses guild", detail: "Consumed LearnVerse tracks" },
+            { name: "Purchased clubs", detail: "Memberships" },
+            { name: "Finished courses", detail: "LearnVerse" },
           ]
         : [
-            { name: "Lagos Creators", detail: "12.4k members · posts & meetups" },
-            { name: "LearnVerse Readers", detail: "Book clubs and study circles" },
-            { name: "Streamify Night Owls", detail: "Live watch parties" },
+            { name: "Lagos Creators", detail: "12.4k members" },
+            { name: "LearnVerse Readers", detail: "Book clubs" },
+            { name: "Streamify Night Owls", detail: "Watch parties" },
           ];
 
   return (
@@ -191,7 +234,41 @@ export function KernelCommunitiesPage({ kernel }: { kernel: PersonalKernel }) {
   );
 }
 
-/** Index redirects for each kernel. */
+export function PersonalPremiumPage() {
+  return (
+    <div className="page personal-page">
+      <header className="page-header page-header--compact">
+        <h1>Go Premium</h1>
+      </header>
+      <ul className="media-feed">
+        <li className="media-feed__item">
+          <strong>LifeOS Premium</strong>
+          <span className="muted small">Full music, video, and podcast play on Main.</span>
+          {hasPremium() ? (
+            <span className="media-feed__badge">Active</span>
+          ) : (
+            <button
+              type="button"
+              className="los-btn los-btn--primary"
+              onClick={() => {
+                setPremium(true);
+                window.location.assign("/app/personal/post");
+              }}
+            >
+              Subscribe
+            </button>
+          )}
+        </li>
+      </ul>
+      <p>
+        <Link to="/app/personal/post" className="text-link">
+          Back to Home
+        </Link>
+      </p>
+    </div>
+  );
+}
+
 export function PersonalHomePage() {
   return <Navigate to="/app/personal/post" replace />;
 }
@@ -204,7 +281,6 @@ export function OfflineKernelHome() {
   return <Navigate to="/app/personal/offline/post" replace />;
 }
 
-/** Convenience wrappers used by routes. */
 export const PersonalPostPage = () => <KernelPostPage kernel="main" />;
 export const PersonalReelsPage = () => <KernelReelsPage kernel="main" />;
 export const PersonalConnectsPage = () => <KernelConnectsPage kernel="main" />;

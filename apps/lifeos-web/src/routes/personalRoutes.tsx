@@ -14,6 +14,7 @@ import {
   PersonalConnectsPage,
   PersonalHomePage,
   PersonalPostPage,
+  PersonalPremiumPage,
   PersonalReelsPage,
 } from "../pages/personal/PersonalHomePage";
 import { LearnVerseRoutes } from "../pages/personal/LearnVersePage";
@@ -22,8 +23,7 @@ import { PersonalPlusPage } from "../pages/personal/PersonalPlusPage";
 import { PersonalKernelGestures } from "../components/shell/PersonalKernelGestures";
 
 /**
- * Personal space — same Home UI across Main / Free / Offline kernels.
- * Main: Premium · Free: creator-free · Offline: bought/consumed.
+ * Personal space — kernel-scoped bottom tabs; Home brand bar; Free/Offline Exit via ×.
  */
 export function PersonalRoutes() {
   return (
@@ -34,13 +34,20 @@ export function PersonalRoutes() {
         <Route path="reels" element={<PersonalReelsPage />} />
         <Route path="connects" element={<PersonalConnectsPage />} />
         <Route path="communities" element={<PersonalCommunitiesPage />} />
+        <Route path="premium" element={<PersonalPremiumPage />} />
         <Route path="main" element={<Navigate to="/app/personal/post" replace />} />
+        <Route path="learnverse/*" element={<LearnVerseRoutes />} />
+        <Route path="streamify/*" element={<StreamifyRoutes />} />
+        <Route path="plus" element={<PersonalPlusPage />} />
 
         <Route path="free" element={<FreeKernelHome />} />
         <Route path="free/post" element={<FreePostPage />} />
         <Route path="free/reels" element={<FreeReelsPage />} />
         <Route path="free/connects" element={<FreeConnectsPage />} />
         <Route path="free/communities" element={<FreeCommunitiesPage />} />
+        <Route path="free/learnverse/*" element={<LearnVerseRoutes />} />
+        <Route path="free/streamify/*" element={<StreamifyRoutes />} />
+        <Route path="free/plus" element={<PersonalPlusPage />} />
         <Route path="discovery" element={<Navigate to="/app/personal/free/post" replace />} />
 
         <Route path="offline" element={<OfflineKernelHome />} />
@@ -48,11 +55,11 @@ export function PersonalRoutes() {
         <Route path="offline/reels" element={<OfflineReelsPage />} />
         <Route path="offline/connects" element={<OfflineConnectsPage />} />
         <Route path="offline/communities" element={<OfflineCommunitiesPage />} />
+        <Route path="offline/learnverse/*" element={<LearnVerseRoutes />} />
+        <Route path="offline/streamify/*" element={<StreamifyRoutes />} />
+        <Route path="offline/plus" element={<PersonalPlusPage />} />
         <Route path="vault" element={<Navigate to="/app/personal/offline/post" replace />} />
 
-        <Route path="learnverse/*" element={<LearnVerseRoutes />} />
-        <Route path="streamify/*" element={<StreamifyRoutes />} />
-        <Route path="plus" element={<PersonalPlusPage />} />
         <Route path="finance" element={<Navigate to="/app/wallet" replace />} />
         <Route path="*" element={<Navigate to="post" replace />} />
       </Routes>

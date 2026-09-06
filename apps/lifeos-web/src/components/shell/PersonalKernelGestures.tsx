@@ -33,11 +33,11 @@ export function PersonalKernelGestures({ children }: { children: ReactNode }) {
     (kernel: PersonalKernel) => {
       const current = personalKernelFromPath(location.pathname) ?? "main";
       if (current === kernel) return;
+      // Enter Free/Offline only from Main. Leaving a kernel is via the Home × only.
+      if (current !== "main") return;
 
       const online = typeof navigator === "undefined" ? true : navigator.onLine;
-      const leavingOffline = current === "offline" && kernel !== "offline";
-      const requireFace =
-        online && !isAuthBypass() && (needsFaceOnKernelSwitch() || leavingOffline);
+      const requireFace = online && !isAuthBypass() && needsFaceOnKernelSwitch();
 
       if (requireFace) {
         setPendingKernel(kernel);
@@ -62,7 +62,7 @@ export function PersonalKernelGestures({ children }: { children: ReactNode }) {
       const el = target instanceof Element ? target : null;
       if (
         el?.closest(
-          ".bottom-nav, .app-header, .sidebar, .page-topbar, .command-overlay, a, button, input, textarea, select, label",
+          ".bottom-nav, .app-header, .sidebar, .page-topbar, .kernel-brand-bar, .command-overlay, a, button, input, textarea, select, label",
         )
       ) {
         return;

@@ -20,13 +20,14 @@ describe("personal consumer space wiring", () => {
     expect(src).toContain('label: "Home"');
     expect(src).toContain('label: "LearnVerse"');
     expect(src).toContain('label: "Streamify"');
+    expect(src).toContain("personalPrimaryNav");
   });
 
   it("LearnVerse includes Edu between Courses and Schools", () => {
     const src = readFileSync(join(root, "src/pages/personal/LearnVersePage.tsx"), "utf8");
     expect(src).toContain('label: "Edu"');
     expect(src).toContain("LearnVerseEduPage");
-    expect(src).toContain("higher and secondary");
+    expect(src).toContain('catalogByKinds(["edu"])');
   });
 
   it("App mounts personal/* routes", () => {

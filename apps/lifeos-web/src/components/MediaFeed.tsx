@@ -57,9 +57,7 @@ export function PremiumHint() {
   if (hasPremium()) return null;
   return (
     <p className="muted small personal-premium-hint">
-      Main kernel streams (music, video, podcasts) need{" "}
-      <Link to="/app/personal/plus">LifeOS Premium</Link>. Free creator content lives in Free kernel;
-      purchases stay in Offline.
+      <Link to="/app/personal/premium">Go Premium</Link> to unlock full play.
     </p>
   );
 }

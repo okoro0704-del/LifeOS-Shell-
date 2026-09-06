@@ -1,38 +1,48 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { hasPremium, randomCatalogItem, setPremium, type MediaItem } from "../../lib/personalCatalog";
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import {
+  freeCatalog,
+  hasPremium,
+  offlineCatalog,
+  PERSONAL_CATALOG,
+  randomCatalogItem,
+  setPremium,
+  type MediaItem,
+} from "../../lib/personalCatalog";
+import { personalKernelFromPath, personalNavBase } from "../../components/shell/nav";
+
+function poolForPath(pathname: string): MediaItem[] {
+  const kernel = personalKernelFromPath(pathname) ?? "main";
+  if (kernel === "free") return freeCatalog();
+  if (kernel === "offline") return offlineCatalog();
+  return PERSONAL_CATALOG;
+}
 
 /**
- * Plus FAB — launches random content and information.
+ * Plus FAB — random content scoped to the active kernel.
  */
 export function PersonalPlusPage() {
-  const [item, setItem] = useState<MediaItem>(() => randomCatalogItem());
+  const location = useLocation();
+  const kernel = personalKernelFromPath(location.pathname) ?? "main";
+  const home = `${personalNavBase(kernel)}/post`;
+  const pool = poolForPath(location.pathname);
+  const pick = () => pool[Math.floor(Math.random() * Math.max(pool.length, 1))] ?? randomCatalogItem();
+  const [item, setItem] = useState<MediaItem>(() => pick());
   const premium = hasPremium();
 
-  const next = () => setItem(randomCatalogItem());
+  useEffect(() => {
+    setItem(pick());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
-  const locked = item.premiumRequired && !premium && !item.free;
-
-  const hint = useMemo(() => {
-    if (item.free) return "Creator marked this free — also available in Free kernel.";
-    if (item.ownedOrConsumed) return "In your Offline library (bought or already consumed).";
-    if (item.premiumRequired) return "Main kernel Premium stream.";
-    return "Discover something new.";
-  }, [item]);
+  const locked = kernel === "main" && item.premiumRequired && !premium && !item.free;
 
   return (
     <div className="page personal-page">
-      <header className="page-header">
-        <p className="personal-kernel-badge muted small">Discover</p>
-        <h1>Plus</h1>
-        <p className="muted">Random content and information from across LifeOS.</p>
-      </header>
-
       <article className="plus-card">
         <span className="media-feed__kind">{item.kind}</span>
         <h2>{item.title}</h2>
         <p className="muted">{item.detail}</p>
-        <p className="muted small">{hint}</p>
         {locked ? (
           <button
             type="button"
@@ -42,20 +52,21 @@ export function PersonalPlusPage() {
               setItem({ ...item });
             }}
           >
-            Subscribe to Premium
+            Go Premium
           </button>
         ) : (
           <button type="button" className="los-btn los-btn--soft">
             Open
           </button>
         )}
-        <button type="button" className="los-btn los-btn--ghost" onClick={next}>
-          Surprise me again
+        <button type="button" className="los-btn los-btn--ghost" onClick={() => setItem(pick())}>
+          Again
         </button>
       </article>
-
-      <p className="muted small">
-        <Link to="/app/personal/post">Back to Home · Post</Link>
+      <p>
+        <Link to={home} className="text-link">
+          Home
+        </Link>
       </p>
     </div>
   );

@@ -15,42 +15,40 @@ export type ShellNavItem = {
   end?: boolean;
   label: string;
   Icon: IconComp;
-  /** Extra path prefixes that count as active (Personal Home tabs). */
   matchPrefixes?: string[];
 };
 
 export type PersonalKernel = "offline" | "main" | "free";
 
-/**
- * Personal bottom tabs: Home · LearnVerse · (+) · Streamify · Space
- */
-export const PERSONAL_PRIMARY_NAV: ShellNavItem[] = [
-  {
-    to: "/app/personal/post",
-    label: "Home",
-    Icon: IconHome,
-    matchPrefixes: [
-      "/app/personal/post",
-      "/app/personal/reels",
-      "/app/personal/connects",
-      "/app/personal/communities",
-    ],
-  },
-  { to: "/app/personal/learnverse", label: "LearnVerse", Icon: IconBook },
-  { to: "/app/personal/streamify", label: "Streamify", Icon: IconExplore },
-];
+export function personalNavBase(kernel: PersonalKernel): string {
+  if (kernel === "free") return "/app/personal/free";
+  if (kernel === "offline") return "/app/personal/offline";
+  return "/app/personal";
+}
 
-/**
- * Business space — consume & patronize.
- */
+/** Bottom tabs scoped to the active Personal kernel. */
+export function personalPrimaryNav(kernel: PersonalKernel): ShellNavItem[] {
+  const base = personalNavBase(kernel);
+  return [
+    {
+      to: `${base}/post`,
+      label: "Home",
+      Icon: IconHome,
+      matchPrefixes: [`${base}/post`, `${base}/reels`, `${base}/connects`, `${base}/communities`],
+    },
+    { to: `${base}/learnverse`, label: "LearnVerse", Icon: IconBook },
+    { to: `${base}/streamify`, label: "Streamify", Icon: IconExplore },
+  ];
+}
+
 export const BUSINESS_PRIMARY_NAV: ShellNavItem[] = [
   { to: "/app/business", end: true, label: "Home", Icon: IconHome },
   { to: "/app/activity", label: "Activity", Icon: IconActivity },
   { to: "/app/wallet", label: "Finance", Icon: IconWallet },
 ];
 
-export function primaryNavForMode(mode: WorkspaceMode): ShellNavItem[] {
-  return mode === "PERSONAL" ? PERSONAL_PRIMARY_NAV : BUSINESS_PRIMARY_NAV;
+export function primaryNavForMode(mode: WorkspaceMode, kernel: PersonalKernel = "main"): ShellNavItem[] {
+  return mode === "PERSONAL" ? personalPrimaryNav(kernel) : BUSINESS_PRIMARY_NAV;
 }
 
 export function workspaceHomePath(mode: WorkspaceMode): string {
@@ -70,19 +68,6 @@ export function personalKernelFromPath(pathname: string): PersonalKernel | null 
   }
   if (path === "/app/personal/free" || path.startsWith("/app/personal/free/") || path === "/app/personal/discovery") {
     return "free";
-  }
-  if (
-    path === "/app/personal" ||
-    path === "/app/personal/main" ||
-    path.startsWith("/app/personal/post") ||
-    path.startsWith("/app/personal/reels") ||
-    path.startsWith("/app/personal/connects") ||
-    path.startsWith("/app/personal/communities") ||
-    path.startsWith("/app/personal/learnverse") ||
-    path.startsWith("/app/personal/streamify") ||
-    path.startsWith("/app/personal/plus")
-  ) {
-    return "main";
   }
   if (path.startsWith("/app/personal/")) return "main";
   return null;
