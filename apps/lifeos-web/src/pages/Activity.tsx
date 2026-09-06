@@ -17,7 +17,7 @@ function formatStamp(iso: string) {
 
 const MY_PRODUCTS = [
   { id: "mp1", name: "Harbour Cafe menu kit", kind: "Service", status: "Live" },
-  { id: "mp2", name: "City Fix Lab booking", kind: "Service", status: "Boosted" },
+  { id: "mp2", name: "City Fix Lab booking", kind: "Service", status: "Live" },
   { id: "mp3", name: "RouteMesh", kind: "Software", status: "Seeking investment" },
   { id: "mp4", name: "ShelfSense", kind: "Software", status: "For sale" },
   { id: "mp5", name: "Weekend meal plan", kind: "Product", status: "Live" },

@@ -45,7 +45,7 @@ const MOCK_OFFERINGS: DiscoverableOffering[] = Array.from({ length: 16 }, (_, i)
   type: "SERVICE",
   name:
     i < 2
-      ? `Boosted ${["Massage", "Delivery"][i]}`
+      ? ["Deep tissue massage", "Same-day delivery"][i]!
       : ["Haircut", "Laundry", "Meal kit", "Phone repair", "Yoga class", "Car wash", "Tutoring", "Photo shoot", "Catering", "Cleaning", "Pet walk", "Design consult", "Spa hour", "Bike hire"][
           i % 14
         ]!,
