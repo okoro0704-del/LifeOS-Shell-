@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { MediaFeed } from "../../components/MediaFeed";
-import { ElComFloat } from "../../components/ElComFloat";
 import { SegmentGlassBar } from "../../components/SegmentGlassBar";
+import { KernelBrandBar } from "./PersonalHomePage";
 import { catalogByKinds, type MediaItem } from "../../lib/personalCatalog";
 import { personalKernelFromPath, personalNavBase, type PersonalKernel } from "../../components/shell/nav";
 import { applyWatchedOffline } from "../../lib/personalMonetization";
@@ -42,6 +42,7 @@ function Shell({ active, children }: { active: string; children: ReactNode }) {
 
   return (
     <div className={`page personal-page personal-page--surface${scrolled ? " is-scrolled" : ""}`}>
+      <KernelBrandBar kernel={kernel} hidden={scrolled} />
       <SegmentGlassBar
         tabs={tabs}
         activeId={active}
@@ -54,7 +55,6 @@ function Shell({ active, children }: { active: string; children: ReactNode }) {
       <div className="surface-scroll" ref={bodyRef}>
         {children}
       </div>
-      <ElComFloat />
     </div>
   );
 }

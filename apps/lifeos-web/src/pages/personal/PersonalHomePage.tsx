@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { ImmersiveMediaFeed } from "../../components/ImmersiveMediaFeed";
 import { SegmentGlassBar } from "../../components/SegmentGlassBar";
-import { ElComFloat } from "../../components/ElComFloat";
 import { catalogByKinds, hasPremium, setPremium, type MediaItem } from "../../lib/personalCatalog";
 import type { PersonalKernel } from "../../components/shell/nav";
 import { authClient } from "../../lib/api";
@@ -98,7 +97,7 @@ function kernelLabel(kernel: PersonalKernel): string {
   return "Main";
 }
 
-function KernelBrandBar({ kernel, hidden }: { kernel: PersonalKernel; hidden?: boolean }) {
+export function KernelBrandBar({ kernel, hidden }: { kernel: PersonalKernel; hidden?: boolean }) {
   const navigate = useNavigate();
 
   function exitToMain() {
@@ -210,7 +209,6 @@ export function PersonalKernelShell({
       <div className="kernel-scroll" ref={scrollRef}>
         {children}
       </div>
-      <ElComFloat />
     </div>
   );
 }

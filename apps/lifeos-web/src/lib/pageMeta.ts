@@ -52,7 +52,7 @@ export function resolvePageMeta(pathname: string): PageMeta | null {
     return { title: "New post", subtitle: "Free · Premium · VIP" };
   }
   if (path.startsWith("/app/personal/plus") || path.match(/\/personal\/(free|offline)\/plus/)) {
-    return { title: "Trending", subtitle: "Pay to Trend" };
+    return { title: "Discover", subtitle: "Videos · posts · products" };
   }
   if (path.startsWith("/app/personal/offline") || path.startsWith("/app/personal/vault")) {
     return { title: "Offline", subtitle: "Bought & consumed" };
@@ -119,7 +119,7 @@ export function resolvePageMeta(pathname: string): PageMeta | null {
     };
   }
   if (path === "/app/services/explore") {
-    return { title: "Pushed services", subtitle: "Monthly boosts first" };
+    return { title: "Discover", subtitle: "Services near you" };
   }
 
   const feedMatch = path.match(/^\/app\/services\/([^/]+)\/feed$/);

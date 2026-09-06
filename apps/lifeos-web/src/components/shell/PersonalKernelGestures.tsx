@@ -15,11 +15,11 @@ const DOUBLE_TAP_MS = 480;
 
 /**
  * Personal kernel body gestures (not bottom tabs):
- * - Double-tap left half of the app body → Offline
- * - Double-tap right half of the app body → Free
- * - Main is default on login / online
+ * - Double-tap left half → Offline (or Main if already Offline)
+ * - Double-tap right half → Free (or Main if already Free)
+ * Works from every kernel — Main / Free / Offline.
  *
- * After reconnecting to the internet, the next kernel switch launches TrustID face scan.
+ * After reconnecting to the internet, the next kernel switch may launch TrustID face scan.
  */
 export function PersonalKernelGestures({ children }: { children: ReactNode }) {
   const { mode } = useWorkspace();
@@ -33,11 +33,11 @@ export function PersonalKernelGestures({ children }: { children: ReactNode }) {
     (kernel: PersonalKernel) => {
       const current = personalKernelFromPath(location.pathname) ?? "main";
       if (current === kernel) return;
-      // Enter Free/Offline only from Main. Leaving a kernel is via the Home × only.
-      if (current !== "main") return;
 
       const online = typeof navigator === "undefined" ? true : navigator.onLine;
-      const requireFace = online && !isAuthBypass() && needsFaceOnKernelSwitch();
+      const leavingOffline = current === "offline" && kernel !== "offline";
+      const requireFace =
+        online && !isAuthBypass() && (needsFaceOnKernelSwitch() || leavingOffline);
 
       if (requireFace) {
         setPendingKernel(kernel);
@@ -62,7 +62,7 @@ export function PersonalKernelGestures({ children }: { children: ReactNode }) {
       const el = target instanceof Element ? target : null;
       if (
         el?.closest(
-          ".bottom-nav, .app-header, .sidebar, .page-topbar, .kernel-brand-bar, .command-overlay, a, button, input, textarea, select, label",
+          ".bottom-nav, .app-header, .sidebar, .page-topbar, .kernel-brand-bar, .segment-topbar, .command-overlay, .elcom-float, .elcom-full, .immersive-feed__rail, a, button, input, textarea, select, label",
         )
       ) {
         return;
@@ -78,12 +78,17 @@ export function PersonalKernelGestures({ children }: { children: ReactNode }) {
 
       if (now - ref.current < DOUBLE_TAP_MS) {
         ref.current = 0;
-        goKernel(side === "left" ? "offline" : "free");
+        const current = personalKernelFromPath(location.pathname) ?? "main";
+        if (side === "left") {
+          goKernel(current === "offline" ? "main" : "offline");
+        } else {
+          goKernel(current === "free" ? "main" : "free");
+        }
         return;
       }
       ref.current = now;
     },
-    [goKernel],
+    [goKernel, location.pathname],
   );
 
   if (mode !== "PERSONAL") {

@@ -4,7 +4,7 @@ import { EmptyState, SearchBar } from "@lifeos/ui";
 import { ServiceConceptTile } from "../components/ServiceConceptTile";
 import { SERVICE_CONCEPTS, SERVICE_FILTERS } from "../lib/serviceReels";
 
-/** Business Plus — video services pushed with monthly boost first. */
+/** Business Plus — discover services as short video concepts. */
 export function ServicesExplorePage() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<(typeof SERVICE_FILTERS)[number]>("All");
@@ -12,7 +12,7 @@ export function ServicesExplorePage() {
 
   const concepts = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const filtered = SERVICE_CONCEPTS.filter((c) => {
+    return SERVICE_CONCEPTS.filter((c) => {
       if (filter !== "All" && c.category !== filter) return false;
       if (!q) return true;
       return (
@@ -21,14 +21,13 @@ export function ServicesExplorePage() {
         c.keywords.some((k) => k.includes(q))
       );
     });
-    return [...filtered].sort((a, b) => Number(Boolean(b.pushedMonthly)) - Number(Boolean(a.pushedMonthly)));
   }, [filter, query]);
 
   return (
     <div className="page services-explore">
       <header className="page-header page-header--compact">
-        <h1>Pushed services</h1>
-        <p className="muted small">Monthly boosts rise first in discovery video.</p>
+        <h1>Discover</h1>
+        <p className="muted small">Browse services near you.</p>
       </header>
 
       <SearchBar
@@ -76,9 +75,6 @@ export function ServicesExplorePage() {
         <div className="discover-grid" role="list">
           {concepts.map((concept) => (
             <div key={concept.id} role="listitem" className="services-explore__tile-wrap">
-              {concept.pushedMonthly ? (
-                <span className="services-explore__push-badge">Pushed</span>
-              ) : null}
               <ServiceConceptTile
                 concept={concept}
                 onOpen={() =>

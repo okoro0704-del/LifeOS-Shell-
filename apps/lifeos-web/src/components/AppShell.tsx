@@ -18,6 +18,7 @@ import { useWorkspace, type WorkspaceMode } from "../context/WorkspaceContext";
 import { installedAppsService, notificationService } from "../lib/services";
 import { markNeedsFaceOnKernelSwitch } from "../lib/personalConnectivity";
 import { CommandOverlay } from "./CommandOverlay";
+import { ElComFloat } from "./ElComFloat";
 import { PageTopBar } from "./PageTopBar";
 import { VerificationStars } from "./VerificationStars";
 import { resolvePageMeta } from "../lib/pageMeta";
@@ -378,6 +379,7 @@ export function AppShell() {
         </main>
 
         <CommandOverlay />
+        {mode === "PERSONAL" ? <ElComFloat /> : null}
 
         {!isImmersive ? (
           <nav

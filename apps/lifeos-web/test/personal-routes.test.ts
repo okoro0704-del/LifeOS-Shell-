@@ -30,6 +30,11 @@ describe("personal consumer space wiring", () => {
     expect(src).toContain('catalogByKinds(["edu"])');
     expect(src).toContain('searchTo={`${base}/search`}');
     expect(src).toContain("LearnVerseSearchPage");
+    expect(src).toContain("KernelBrandBar");
+  });
+
+  it("AppShell mounts a single personal ElCom float", () => {
+    const src = readFileSync(join(root, "src/components/AppShell.tsx"), "utf8");
     expect(src).toContain("ElComFloat");
   });
 

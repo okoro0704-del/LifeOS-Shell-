@@ -80,6 +80,14 @@ function AdSlide({ ad, onSaved }: { ad: AdCreative; onSaved: () => void }) {
   );
 }
 
+function RailIcon({ children }: { children: ReactNode }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      {children}
+    </svg>
+  );
+}
+
 function SideRail({ item }: { item: MediaItem }) {
   const navigate = useNavigate();
   const slug = creatorSlug(item.author);
@@ -95,17 +103,52 @@ function SideRail({ item }: { item: MediaItem }) {
       >
         {initial}
       </button>
-      <button type="button" className="immersive-feed__rail-btn">
-        Like
+      <button type="button" className="immersive-feed__rail-btn immersive-feed__rail-btn--love" aria-label="Love">
+        <RailIcon>
+          <path
+            d="M12 20.5s-7.2-4.35-9.2-8.2C1.2 9.4 2.4 6.2 5.4 5.4c1.7-.45 3.5.15 4.6 1.5 1.1-1.35 2.9-1.95 4.6-1.5 3 .8 4.2 4 2.6 7-2 3.85-9.2 8.1-9.2 8.1z"
+            fill="currentColor"
+            stroke="none"
+          />
+        </RailIcon>
       </button>
-      <button type="button" className="immersive-feed__rail-btn">
-        Comment
+      <button type="button" className="immersive-feed__rail-btn" aria-label="Comment">
+        <RailIcon>
+          <path
+            d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7A2.5 2.5 0 0 1 17.5 16H9l-4 3.5V6.5z"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinejoin="round"
+          />
+        </RailIcon>
       </button>
-      <button type="button" className="immersive-feed__rail-btn">
-        Reuse
+      <button type="button" className="immersive-feed__rail-btn" aria-label="Reuse">
+        <RailIcon>
+          <path
+            d="M17 1l4 4-4 4"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path d="M3 11V9a4 4 0 0 1 4-4h14" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+          <path
+            d="M7 23l-4-4 4-4"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path d="M21 13v2a4 4 0 0 1-4 4H3" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+        </RailIcon>
       </button>
-      <button type="button" className="immersive-feed__rail-btn">
-        Reshare
+      <button type="button" className="immersive-feed__rail-btn" aria-label="Share">
+        <RailIcon>
+          <circle cx="18" cy="5" r="2.4" stroke="currentColor" strokeWidth="1.75" />
+          <circle cx="6" cy="12" r="2.4" stroke="currentColor" strokeWidth="1.75" />
+          <circle cx="18" cy="19" r="2.4" stroke="currentColor" strokeWidth="1.75" />
+          <path d="M8.2 10.8 15.8 6.2M8.2 13.2l7.6 4.6" stroke="currentColor" strokeWidth="1.75" />
+        </RailIcon>
       </button>
     </aside>
   );

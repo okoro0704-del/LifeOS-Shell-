@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
+import { IconSearch } from "@lifeos/ui";
 
 export type GlassTab = {
   to: string;
@@ -8,8 +9,8 @@ export type GlassTab = {
 };
 
 /**
- * Four clustered tabs with icon search on the right.
- * Optional back icon on the left (not used on Home).
+ * Pill-clustered tabs (bottom-nav shape) with search outside on the right.
+ * Optional back icon on the left when scrolled (not used on Home).
  */
 export function SegmentGlassBar({
   tabs,
@@ -39,7 +40,7 @@ export function SegmentGlassBar({
         {showBack && scrolled ? (
           <button
             type="button"
-            className="segment-topbar__icon-btn"
+            className="segment-topbar__icon-btn segment-topbar__icon-btn--back"
             aria-label="Back"
             onClick={() => navigate(backTo)}
           >
@@ -66,8 +67,12 @@ export function SegmentGlassBar({
       </div>
 
       <span className="segment-topbar__edge segment-topbar__edge--right">
-        <NavLink to={searchTo} className="segment-topbar__icon-btn" aria-label="Search">
-          ⌕
+        <NavLink
+          to={searchTo}
+          className="segment-topbar__icon-btn segment-topbar__icon-btn--search"
+          aria-label="Search"
+        >
+          <IconSearch size={20} />
         </NavLink>
       </span>
     </nav>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { AskLifeOSTrigger } from "../../components/CommandOverlay";
 import { discoverService } from "../../lib/services";
 import type { DiscoverableBusiness, DiscoverableOffering } from "@lifeos/shared";
@@ -183,10 +183,9 @@ export function BusinessHomePage() {
           <p className="muted">No services nearby yet.</p>
         ) : servicesExpanded ? (
           <ul className="business-home__vertical" aria-label="All services near me">
-            {rankedServices.map(({ o, boosted, distance }) => (
+            {rankedServices.map(({ o, distance }) => (
               <li key={o.id} className="business-home__vertical-item">
                 <div className="business-home__card-meta">
-                  {boosted ? <span className="media-feed__badge media-feed__badge--boost">Top</span> : null}
                   <span className="muted small">{o.category || o.type || "Service"}</span>
                 </div>
                 <strong>{o.name}</strong>
@@ -215,7 +214,7 @@ export function BusinessHomePage() {
           </ul>
         ) : (
           <div className="near-rail near-rail--hero" role="list">
-            {servicesRail.map(({ o, boosted, distance }) => (
+            {servicesRail.map(({ o, distance }) => (
               <button
                 key={o.id}
                 type="button"
@@ -229,7 +228,6 @@ export function BusinessHomePage() {
                   alt=""
                   loading="lazy"
                 />
-                {boosted ? <span className="near-rail__boost">Top</span> : null}
                 <span className="near-rail__caption">
                   <strong>{o.name}</strong>
                   <span className="muted small">{distance.toFixed(1)} km</span>
@@ -264,10 +262,9 @@ export function BusinessHomePage() {
           <p className="muted">No businesses nearby yet.</p>
         ) : businessesExpanded ? (
           <ul className="business-home__vertical" aria-label="All businesses near me">
-            {rankedBusinesses.map(({ b, boosted, distance }) => (
+            {rankedBusinesses.map(({ b, distance }) => (
               <li key={b.id} className="business-home__vertical-item">
                 <div className="business-home__card-meta">
-                  {boosted ? <span className="media-feed__badge media-feed__badge--boost">Top</span> : null}
                   <span className="muted small">{b.category || "Business"}</span>
                 </div>
                 <strong>{b.businessName}</strong>
@@ -296,7 +293,7 @@ export function BusinessHomePage() {
           </ul>
         ) : (
           <div className="near-rail near-rail--hero" role="list">
-            {businessesRail.map(({ b, boosted, distance }) => (
+            {businessesRail.map(({ b, distance }) => (
               <button
                 key={b.id}
                 type="button"
@@ -310,7 +307,6 @@ export function BusinessHomePage() {
                   alt=""
                   loading="lazy"
                 />
-                {boosted ? <span className="near-rail__boost">Top</span> : null}
                 <span className="near-rail__caption">
                   <strong>{b.businessName}</strong>
                   <span className="muted small">{distance.toFixed(1)} km</span>
@@ -332,10 +328,6 @@ export function BusinessHomePage() {
             ) : null}
           </div>
         )}
-        <p className="muted small business-home__boost-note">
-          Pay monthly to stay on top near customers.{" "}
-          <Link to="/app/discover">Boost your business</Link>
-        </p>
       </section>
 
       <section className="business-home__section" aria-label="Products">
