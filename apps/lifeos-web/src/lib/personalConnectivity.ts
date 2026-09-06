@@ -64,5 +64,5 @@ export function personalLandingPath(): string {
   }
   const pending = peekPendingKernelPath();
   if (pending) return pending;
-  return "/app/personal";
+  return "/app/personal/post";
 }

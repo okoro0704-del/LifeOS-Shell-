@@ -4946,3 +4946,110 @@ button.los-wallet__action:disabled {
 .personal-kernel-edge {
   display: none !important;
 }
+
+.segment-topbar {
+  display: flex;
+  gap: 0.15rem;
+  margin: 0 0 1rem;
+  padding: 0.2rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 6%, transparent);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.segment-topbar__tab {
+  flex: 1 0 auto;
+  text-align: center;
+  text-decoration: none;
+  color: inherit;
+  opacity: 0.65;
+  font-size: 0.82rem;
+  font-weight: 650;
+  padding: 0.55rem 0.85rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.segment-topbar__tab.is-active {
+  opacity: 1;
+  background: color-mix(in srgb, var(--los-surface) 88%, transparent);
+  box-shadow: 0 1px 4px rgba(26, 35, 50, 0.08);
+}
+
+.page-header--compact {
+  margin-bottom: 0.75rem;
+}
+
+.page-header--compact h1 {
+  font-size: 1.35rem;
+}
+
+.media-feed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.media-feed__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, currentColor 5%, transparent);
+}
+
+.media-feed__item.is-locked {
+  opacity: 0.85;
+}
+
+.media-feed__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.15rem;
+}
+
+.media-feed__kind {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.6;
+}
+
+.media-feed__badge {
+  font-size: 0.65rem;
+  font-weight: 650;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--los-accent) 18%, transparent);
+}
+
+.media-feed__badge--pro {
+  background: color-mix(in srgb, #c0392b 18%, transparent);
+}
+
+.personal-premium-hint {
+  margin: 0 0 0.85rem;
+}
+
+.plus-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 1.25rem;
+  border-radius: 1rem;
+  background: color-mix(in srgb, currentColor 6%, transparent);
+  margin-bottom: 1.25rem;
+}
+
+.plus-card h2 {
+  margin: 0;
+  font-size: 1.35rem;
+}

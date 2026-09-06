@@ -84,7 +84,7 @@ export function AppShell() {
   const [appsLoading, setAppsLoading] = useState(true);
   const avatarSrc = user?.preferences?.avatarUrl ?? null;
   const firstName = user?.firstName || user?.displayName?.split(" ")[0] || "there";
-  const onExplore = location.pathname.startsWith("/app/services/explore");
+  const onExplore = location.pathname.startsWith("/app/personal/plus");
   const isImmersive =
     isBusinessDetailPath(location.pathname) ||
     Boolean(location.pathname.match(/^\/app\/services\/explore\/[^/]+$/));
@@ -93,6 +93,7 @@ export function AppShell() {
     location.pathname === "/app/" ||
     location.pathname.replace(/\/+$/, "") === "/app" ||
     location.pathname === "/app/personal" ||
+    location.pathname === "/app/personal/post" ||
     location.pathname === "/app/personal/main" ||
     location.pathname === "/app/business";
   const pageMeta = isHome ? null : resolvePageMeta(location.pathname);
@@ -375,7 +376,13 @@ export function AppShell() {
                 key={t.to}
                 to={t.to}
                 end={t.end}
-                className={({ isActive }) => `bottom-item${isActive ? " active" : ""}`}
+                className={({ isActive }) => {
+                  const path = location.pathname.replace(/\/+$/, "") || "/";
+                  const prefixHit = t.matchPrefixes?.some(
+                    (p) => path === p || path.startsWith(`${p}/`),
+                  );
+                  return `bottom-item${isActive || prefixHit ? " active" : ""}`;
+                }}
               >
                 <span className="bottom-icon" aria-hidden>
                   <t.Icon size={22} />
@@ -386,9 +393,14 @@ export function AppShell() {
             <button
               type="button"
               className={`bottom-fab${onExplore ? " active" : ""}`}
-              aria-label={onExplore ? "Close services discover" : "Discover services"}
+              aria-label={onExplore ? "Close Plus discover" : "Open Plus — random content"}
               aria-pressed={onExplore}
               onClick={() => {
+                if (mode === "PERSONAL") {
+                  if (onExplore) navigate("/app/personal/post");
+                  else navigate("/app/personal/plus");
+                  return;
+                }
                 if (onExplore) navigate(workspaceHomePath(mode));
                 else navigate("/app/services/explore");
               }}

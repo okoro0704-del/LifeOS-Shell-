@@ -27,14 +27,29 @@ export function resolvePageMeta(pathname: string): PageMeta | null {
     return { title: "Shared settings" };
   }
 
-  if (path === "/app/personal" || path === "/app/personal/main") {
-    return { title: "Main", subtitle: "Personal kernel" };
+  if (path === "/app/personal" || path === "/app/personal/main" || path === "/app/personal/post") {
+    return { title: "Post", subtitle: "Home" };
+  }
+  if (path.startsWith("/app/personal/reels")) {
+    return { title: "Reels", subtitle: "Home" };
+  }
+  if (path.startsWith("/app/personal/communities")) {
+    return { title: "Communities", subtitle: "Home" };
+  }
+  if (path.startsWith("/app/personal/learnverse")) {
+    return { title: "LearnVerse", subtitle: "Books · Courses · Schools" };
+  }
+  if (path.startsWith("/app/personal/streamify")) {
+    return { title: "Streamify", subtitle: "Content · Music · Podcast · Videos" };
+  }
+  if (path.startsWith("/app/personal/plus")) {
+    return { title: "Plus", subtitle: "Random discover" };
   }
   if (path.startsWith("/app/personal/offline") || path.startsWith("/app/personal/vault")) {
-    return { title: "Offline", subtitle: "Vault kernel" };
+    return { title: "Offline", subtitle: "Bought & consumed" };
   }
   if (path.startsWith("/app/personal/free") || path.startsWith("/app/personal/discovery")) {
-    return { title: "Free", subtitle: "Discovery kernel" };
+    return { title: "Free", subtitle: "Creator free content" };
   }
   if (path.startsWith("/app/personal/finance")) {
     return { title: "Finance", subtitle: "Business money view" };
