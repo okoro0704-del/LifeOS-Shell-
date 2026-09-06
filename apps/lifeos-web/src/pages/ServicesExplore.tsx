@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { EmptyState, SearchBar } from "@lifeos/ui";
+import { EmptyState } from "@lifeos/ui";
 import { ServiceConceptTile } from "../components/ServiceConceptTile";
 import { SERVICE_CONCEPTS, SERVICE_FILTERS } from "../lib/serviceReels";
 
@@ -24,20 +24,31 @@ export function ServicesExplorePage() {
   }, [filter, query]);
 
   return (
-    <div className="page services-explore">
-      <header className="page-header page-header--compact">
-        <h1>Discover</h1>
-        <p className="muted small">Browse services near you.</p>
-      </header>
-
-      <SearchBar
-        id="discover-search"
-        placeholder="Search services…"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        autoComplete="off"
-        aria-label="Search services"
-      />
+    <div className="page services-explore services-explore--tight">
+      <label className="discover-search" htmlFor="discover-search">
+        <span className="discover-search__icon" aria-hidden>
+          ⌕
+        </span>
+        <input
+          id="discover-search"
+          className="discover-search__input"
+          placeholder="Search services…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          autoComplete="off"
+          aria-label="Search services"
+        />
+        {query ? (
+          <button
+            type="button"
+            className="discover-search__clear"
+            aria-label="Clear search"
+            onClick={() => setQuery("")}
+          >
+            ×
+          </button>
+        ) : null}
+      </label>
 
       <div className="services-explore__filters" role="tablist" aria-label="Service filters">
         {SERVICE_FILTERS.map((f) => (

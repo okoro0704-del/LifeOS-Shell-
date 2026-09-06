@@ -19,6 +19,7 @@ import { installedAppsService, notificationService } from "../lib/services";
 import { markNeedsFaceOnKernelSwitch } from "../lib/personalConnectivity";
 import { CommandOverlay } from "./CommandOverlay";
 import { ElComFloat } from "./ElComFloat";
+import { LifeOSWakeListener } from "./LifeOSWakeListener";
 import { PageTopBar } from "./PageTopBar";
 import { VerificationStars } from "./VerificationStars";
 import { resolvePageMeta } from "../lib/pageMeta";
@@ -90,7 +91,8 @@ export function AppShell() {
   const personalBase = personalNavBase(personalKernel);
   const onExplore =
     location.pathname === `${personalBase}/plus` ||
-    location.pathname.endsWith("/plus");
+    location.pathname.endsWith("/plus") ||
+    pathNorm === "/app/services/explore";
   const isImmersive =
     isBusinessDetailPath(location.pathname) ||
     pathNorm === "/app/elcom" ||
@@ -108,7 +110,10 @@ export function AppShell() {
       /^\/app\/personal\/(free|offline)\/(post|reels|products|communities|search)$/.test(pathNorm) ||
       /\/personal(\/(free|offline))?\/(learnverse|streamify)/.test(pathNorm) ||
       pathNorm === "/app/personal");
-  const pageMeta = isHome || hideChrome || pathNorm === "/app/elcom" ? null : resolvePageMeta(location.pathname);
+  const pageMeta =
+    isHome || hideChrome || pathNorm === "/app/elcom" || pathNorm === "/app/services/explore"
+      ? null
+      : resolvePageMeta(location.pathname);
   const tabs = useMemo(
     () => primaryNavForMode(mode, personalKernel),
     [mode, personalKernel],
@@ -379,6 +384,7 @@ export function AppShell() {
         </main>
 
         <CommandOverlay />
+        <LifeOSWakeListener />
         {mode === "PERSONAL" ? <ElComFloat /> : null}
 
         {!isImmersive ? (

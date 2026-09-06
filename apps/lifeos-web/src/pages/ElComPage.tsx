@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { StatusBanner } from "../components/StatusBanner";
 import { EmptyState, Skeleton } from "@lifeos/ui";
+import { useWorkspace } from "../context/WorkspaceContext";
+import { workspaceHomePath } from "../components/shell/nav";
 
 type Thread = {
   id: string;
@@ -29,9 +32,11 @@ const DIRECTORY = [
 
 /**
  * Full-page ElCom — Messages first, then Connect (mutuals + people search).
+ * Portaled to body so page-enter transforms cannot blank the fixed overlay.
  */
 export function ElComPage() {
   const navigate = useNavigate();
+  const { mode } = useWorkspace();
   const [tab, setTab] = useState<"messages" | "connect">("messages");
   const [q, setQ] = useState("");
   const [threads, setThreads] = useState<Thread[]>([]);
@@ -92,10 +97,15 @@ export function ElComPage() {
     return DIRECTORY.filter((p) => p.name.toLowerCase().includes(needle));
   }, [q]);
 
-  return (
+  const ui = (
     <div className="elcom-full" role="dialog" aria-modal="true" aria-label="ElCom">
       <header className="elcom-full__head">
-        <button type="button" className="segment-topbar__icon-btn" aria-label="Close" onClick={() => navigate(-1)}>
+        <button
+          type="button"
+          className="segment-topbar__icon-btn"
+          aria-label="Back"
+          onClick={() => navigate(workspaceHomePath(mode))}
+        >
           ←
         </button>
         <strong>ElCom</strong>
@@ -183,4 +193,7 @@ export function ElComPage() {
       )}
     </div>
   );
+
+  if (typeof document === "undefined") return ui;
+  return createPortal(ui, document.body);
 }

@@ -159,7 +159,7 @@ export function CommandOverlay() {
     }
     const rec = new Ctor();
     recognitionRef.current = rec;
-    rec.continuous = false;
+    rec.continuous = true;
     rec.interimResults = true;
     rec.lang = "en-US";
     rec.onresult = (ev) => {
@@ -170,6 +170,8 @@ export function CommandOverlay() {
       setQuery(transcript);
       const last = ev.results[ev.results.length - 1];
       if (last?.isFinal && transcript.trim()) {
+        recognitionRef.current?.stop();
+        setListening(false);
         void runCommand(transcript.trim());
       }
     };
@@ -335,6 +337,22 @@ export function CommandOverlay() {
         aria-modal="true"
         aria-label={isAsk ? "Ask LifeOS" : "Tell LifeOS"}
       >
+        <header className="command-panel__top">
+          <button
+            type="button"
+            className="command-panel__back"
+            aria-label="Back to home"
+            onClick={() => {
+              closeCommand();
+              navigate(workspaceMode === "PERSONAL" ? "/app/personal/post" : "/app/business");
+            }}
+          >
+            ←
+          </button>
+          <strong className="command-panel__top-title">{isAsk ? "Ask LifeOS" : "Tell LifeOS"}</strong>
+          <span className="command-panel__top-spacer" aria-hidden />
+        </header>
+
         <div className="command-mode-tabs" role="tablist" aria-label="LifeOS AI mode">
           <button
             type="button"
@@ -434,23 +452,32 @@ export function CommandOverlay() {
                 type="button"
                 className={`command-panel__mic${listening ? " is-listening" : ""}`}
                 aria-pressed={listening}
-                aria-label={listening ? "Stop listening" : "Talk to LifeOS"}
-                title="Talk to LifeOS"
+                aria-label={listening ? "Stop listening" : "Voice request"}
+                title="Voice request"
                 onClick={() => toggleVoice()}
               >
-                {listening ? "●" : "◉"}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" strokeWidth="1.75" />
+                  <path
+                    d="M5.5 11a6.5 6.5 0 0 0 13 0"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                  />
+                  <path d="M12 17.5V21" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+                </svg>
               </button>
             ) : null}
           </div>
           <span className="command-panel__hint muted small">
             {listening
-              ? "Listening…"
+              ? "Listening… speak your request"
               : busy
                 ? isAsk
                   ? "Searching…"
                   : "Working on it…"
                 : isAsk
-                  ? "Ask or talk · same in Personal & Business"
+                  ? "Type or tap the mic · say “LifeOS” anytime to open"
                   : "Tell or talk · confirm when asked"}
           </span>
         </form>
