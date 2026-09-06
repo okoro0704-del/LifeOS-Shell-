@@ -362,26 +362,26 @@ export function BusinessHomePage() {
       <section className="business-home__section" aria-label="Software Products">
         <div className="business-home__section-head">
           <h2>Software Products</h2>
-          <span className="muted small">Build · seek · sell</span>
+          <span className="muted small">Invest · partner · sell</span>
         </div>
-        <p className="muted small business-home__soft-intro">
-          Developers pitch software for investment, partnership, sponsorship, or sales.
-        </p>
-        <ul className="software-products">
+        <div className="near-rail near-rail--hero" role="list">
           {SOFTWARE_PRODUCTS.map((p) => (
-            <li key={p.id} className="software-products__item">
-              <div className="software-products__meta">
-                <span className="media-feed__badge">{p.seek}</span>
+            <button key={p.id} type="button" className="near-rail__card near-rail__card--media" role="listitem">
+              <img className="near-rail__thumb" src={railThumb(p.id)} alt="" loading="lazy" />
+              <span className="near-rail__boost">{p.seek}</span>
+              <span className="near-rail__caption">
+                <strong>{p.name}</strong>
                 <span className="muted small">{p.maker}</span>
-              </div>
-              <strong>{p.name}</strong>
-              <p className="muted small">{p.pitch}</p>
-              <button type="button" className="los-btn los-btn--ghost los-btn--sm">
-                Connect
-              </button>
-            </li>
+              </span>
+            </button>
           ))}
-        </ul>
+          <button type="button" className="near-rail__card near-rail__card--media near-rail__card--more" role="listitem">
+            <span className="near-rail__caption">
+              <strong>See more</strong>
+              <span className="muted small">Browse all</span>
+            </span>
+          </button>
+        </div>
       </section>
     </div>
   );

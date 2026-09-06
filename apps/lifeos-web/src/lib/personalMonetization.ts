@@ -80,6 +80,75 @@ export function spendLifeOsCredits(amount: number): number {
   return next;
 }
 
+const CREATOR_EARN_KEY = "lifeos.creator.earnings";
+const PLATFORM_EARN_KEY = "lifeos.platform.earnings";
+const WATCHED_KEY = "lifeos.offline.watched_ids";
+
+/** Spend credits while watching — 80% creator / 20% platform. */
+export function spendCreditsWatching(amount: number, creatorId: string): number {
+  const spend = Math.min(Math.max(0, Math.floor(amount)), getLifeOsCredits());
+  if (spend <= 0) return getLifeOsCredits();
+  const next = getLifeOsCredits() - spend;
+  setLifeOsCredits(next);
+  const creatorCut = Math.floor(spend * 0.8);
+  const platformCut = spend - creatorCut;
+  try {
+    const raw = localStorage.getItem(CREATOR_EARN_KEY);
+    const map = raw ? (JSON.parse(raw) as Record<string, number>) : {};
+    const key = creatorId || "unknown";
+    map[key] = (map[key] ?? 0) + creatorCut;
+    localStorage.setItem(CREATOR_EARN_KEY, JSON.stringify(map));
+    const plat = Number(localStorage.getItem(PLATFORM_EARN_KEY) ?? "0");
+    localStorage.setItem(PLATFORM_EARN_KEY, String(plat + platformCut));
+  } catch {
+    /* */
+  }
+  return next;
+}
+
+export function creatorEarnings(creatorId: string): number {
+  try {
+    const raw = localStorage.getItem(CREATOR_EARN_KEY);
+    if (!raw) return 0;
+    const map = JSON.parse(raw) as Record<string, number>;
+    return map[creatorId] ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function markWatchedOffline(item: MediaItem) {
+  try {
+    const raw = localStorage.getItem(WATCHED_KEY);
+    const ids: string[] = raw ? (JSON.parse(raw) as string[]) : [];
+    if (!ids.includes(item.id)) {
+      ids.unshift(item.id);
+      localStorage.setItem(WATCHED_KEY, JSON.stringify(ids.slice(0, 80)));
+    }
+    item.ownedOrConsumed = true;
+    const catalogItem = PERSONAL_CATALOG.find((i) => i.id === item.id);
+    if (catalogItem) catalogItem.ownedOrConsumed = true;
+  } catch {
+    /* */
+  }
+}
+
+export function listWatchedIds(): string[] {
+  try {
+    const raw = localStorage.getItem(WATCHED_KEY);
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function applyWatchedOffline() {
+  for (const id of listWatchedIds()) {
+    const item = PERSONAL_CATALOG.find((i) => i.id === id);
+    if (item) item.ownedOrConsumed = true;
+  }
+}
+
 export function topUpLifeOsCredits(amount: number): number {
   const next = getLifeOsCredits() + Math.max(0, amount);
   setLifeOsCredits(next);

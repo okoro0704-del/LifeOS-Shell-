@@ -99,11 +99,12 @@ export function AppShell() {
     location.pathname === "/app/" ||
     pathNorm === "/app" ||
     isBusinessHome;
-  /** Personal Home sections use kernel brand chrome — hide shell greeting. */
+  /** Personal Home / LearnVerse / Streamify use their own glass chrome. */
   const hideChrome =
     mode === "PERSONAL" &&
-    (/^\/app\/personal\/(post|reels|connects|communities)$/.test(pathNorm) ||
-      /^\/app\/personal\/(free|offline)\/(post|reels|connects|communities)$/.test(pathNorm) ||
+    (/^\/app\/personal\/(post|reels|connects|communities|search)$/.test(pathNorm) ||
+      /^\/app\/personal\/(free|offline)\/(post|reels|connects|communities|search)$/.test(pathNorm) ||
+      /\/personal(\/(free|offline))?\/(learnverse|streamify)/.test(pathNorm) ||
       pathNorm === "/app/personal");
   const pageMeta = isHome || hideChrome ? null : resolvePageMeta(location.pathname);
   const tabs = useMemo(
@@ -427,7 +428,13 @@ export function AppShell() {
                 key={t.to}
                 to={t.to}
                 end={t.end}
-                className={({ isActive }) => `bottom-item${isActive ? " active" : ""}`}
+                className={({ isActive }) => {
+                  const path = location.pathname.replace(/\/+$/, "") || "/";
+                  const prefixHit = t.matchPrefixes?.some(
+                    (p) => path === p || path.startsWith(`${p}/`),
+                  );
+                  return `bottom-item${isActive || prefixHit ? " active" : ""}`;
+                }}
               >
                 <span className="bottom-icon" aria-hidden>
                   <t.Icon size={22} />

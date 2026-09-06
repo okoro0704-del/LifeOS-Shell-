@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { hasPremium, setPremium, type MediaItem } from "../lib/personalCatalog";
 import {
   getLifeOsCredits,
   isAdSaved,
+  markWatchedOffline,
   resolveTier,
   saveAdToOffline,
-  spendLifeOsCredits,
+  spendCreditsWatching,
   topUpLifeOsCredits,
   vipRateFor,
   withFreeKernelAds,
@@ -27,20 +28,11 @@ function mediaTone(id: string): string {
   return tones[h]!;
 }
 
-function TierBadge({ item }: { item: MediaItem }) {
-  const tier = resolveTier(item);
-  if (tier === "vip") return <span className="media-feed__badge media-feed__badge--vip">VIP</span>;
-  if (tier === "premium") return <span className="media-feed__badge media-feed__badge--pro">Premium</span>;
-  return <span className="media-feed__badge">Free</span>;
+function creatorSlug(author?: string) {
+  return (author || "creator").replace(/^@/, "");
 }
 
-function AdSlide({
-  ad,
-  onSaved,
-}: {
-  ad: AdCreative;
-  onSaved: () => void;
-}) {
+function AdSlide({ ad, onSaved }: { ad: AdCreative; onSaved: () => void }) {
   const [saved, setSaved] = useState(() => isAdSaved(ad.id));
 
   return (
@@ -63,14 +55,9 @@ function AdSlide({
         <div className="immersive-feed__scrim" aria-hidden />
       </div>
       <div className="immersive-feed__copy">
-        <div className="immersive-feed__meta">
-          <span className="media-feed__badge media-feed__badge--ad">Ad</span>
-          <span className="immersive-feed__kind">Free kernel</span>
-        </div>
-        <span className="immersive-feed__author">{ad.advertiser}</span>
+        <span className="media-feed__badge media-feed__badge--ad">Ad</span>
         <strong className="immersive-feed__title">{ad.title}</strong>
-        <p className="immersive-feed__detail">{ad.detail}</p>
-        {ad.creatorShare ? <span className="immersive-feed__likes">{ad.creatorShare}</span> : null}
+        <span className="immersive-feed__author">{ad.advertiser}</span>
         <div className="immersive-feed__ad-actions">
           <button type="button" className="los-btn los-btn--soft los-btn--sm">
             {ad.cta}
@@ -80,22 +67,47 @@ function AdSlide({
             className="los-btn los-btn--ghost los-btn--sm"
             disabled={saved}
             onClick={() => {
-              if (saveAdToOffline(ad)) {
-                setSaved(true);
-                onSaved();
-              } else {
-                setSaved(true);
-              }
+              saveAdToOffline(ad);
+              setSaved(true);
+              onSaved();
             }}
           >
-            {saved ? "Saved to Offline" : "Save to Offline"}
+            {saved ? "Saved" : "Save Offline"}
           </button>
         </div>
       </div>
-      <div className="immersive-feed__engage immersive-feed__engage--ad" aria-label="Ad notice">
-        <span className="muted small">Ads only run in Free. Main has no ads.</span>
-      </div>
     </li>
+  );
+}
+
+function SideRail({ item }: { item: MediaItem }) {
+  const navigate = useNavigate();
+  const slug = creatorSlug(item.author);
+  const initial = (item.author || "C").replace(/^@/, "").slice(0, 1).toUpperCase();
+
+  return (
+    <aside className="immersive-feed__rail" aria-label="Actions">
+      <button
+        type="button"
+        className="immersive-feed__avatar"
+        aria-label={`Open ${slug} creator app`}
+        onClick={() => navigate(`/app/personal/creator/${encodeURIComponent(slug)}`)}
+      >
+        {initial}
+      </button>
+      <button type="button" className="immersive-feed__rail-btn">
+        Like
+      </button>
+      <button type="button" className="immersive-feed__rail-btn">
+        Comment
+      </button>
+      <button type="button" className="immersive-feed__rail-btn">
+        Reuse
+      </button>
+      <button type="button" className="immersive-feed__rail-btn">
+        Reshare
+      </button>
+    </aside>
   );
 }
 
@@ -115,19 +127,26 @@ function ContentSlide({
   const isVideo = item.kind === "video" || item.kind === "reel";
   const lockedVip = tier === "vip" && credits <= 0;
   const locked = lockedPremium || lockedVip;
+  const creator = creatorSlug(item.author);
 
   useEffect(() => {
-    if (tier !== "vip" || lockedPremium) return;
+    if (locked) return;
+    if (isVideo) markWatchedOffline(item);
+  }, [item, isVideo, locked]);
+
+  useEffect(() => {
+    if (tier !== "vip" || lockedPremium || locked) return;
     const id = window.setInterval(() => {
       const bal = getLifeOsCredits();
       if (bal <= 0) {
         onCredits(0);
         return;
       }
-      onCredits(spendLifeOsCredits(vipRate));
+      onCredits(spendCreditsWatching(vipRate, creator));
+      markWatchedOffline(item);
     }, 4000);
     return () => window.clearInterval(id);
-  }, [tier, lockedPremium, vipRate, item.id, onCredits]);
+  }, [tier, lockedPremium, locked, vipRate, item, creator, onCredits]);
 
   return (
     <li className={`immersive-feed__slide${locked ? " is-locked" : ""}`}>
@@ -156,22 +175,16 @@ function ContentSlide({
         <div className="immersive-feed__scrim" aria-hidden />
       </div>
 
+      <SideRail item={item} />
+
       <div className="immersive-feed__copy">
-        <div className="immersive-feed__meta">
-          <span className="immersive-feed__kind">{item.kind}</span>
-          <TierBadge item={item} />
-          {item.trending ? <span className="media-feed__badge media-feed__badge--trend">Trending</span> : null}
-        </div>
-        {item.author ? <span className="immersive-feed__author">@{item.author}</span> : null}
+        {item.author ? <span className="immersive-feed__author">@{creator}</span> : null}
         <strong className="immersive-feed__title">{item.title}</strong>
-        <p className="immersive-feed__detail">{item.detail}</p>
-        {item.likes ? <span className="immersive-feed__likes">{item.likes} likes</span> : null}
         {tier === "vip" ? (
           <span className="immersive-feed__credits">
-            VIP · {vipRate} credits / tick · balance {credits}
+            {vipRate} cr · {credits} left · 80% to creator
           </span>
         ) : null}
-
         {lockedPremium ? (
           <button
             type="button"
@@ -181,7 +194,7 @@ function ContentSlide({
               window.location.reload();
             }}
           >
-            Subscribe to Premium to play
+            Go Premium
           </button>
         ) : null}
         {lockedVip ? (
@@ -190,32 +203,16 @@ function ContentSlide({
             className="los-btn los-btn--soft los-btn--sm"
             onClick={() => onCredits(topUpLifeOsCredits(80))}
           >
-            Top up LifeOS credits
+            Buy credits
           </button>
         ) : null}
-      </div>
-
-      <div className="immersive-feed__engage" aria-label="Engagement">
-        <button type="button" className="immersive-feed__engage-btn">
-          Like
-        </button>
-        <button type="button" className="immersive-feed__engage-btn">
-          Comment
-        </button>
-        <button type="button" className="immersive-feed__engage-btn">
-          Reuse
-        </button>
-        <button type="button" className="immersive-feed__engage-btn">
-          Reshare
-        </button>
       </div>
     </li>
   );
 }
 
 /**
- * Full-viewport snap feed for Post and Reels.
- * Free kernel: ads interrupt. Main: never ads. VIP: credits drain.
+ * Full-viewport snap feed. Free: ads. Main: no ads. VIP: credits (80/20).
  */
 export function ImmersiveMediaFeed({
   items,
@@ -230,12 +227,10 @@ export function ImmersiveMediaFeed({
   gatePremium?: boolean;
   mode?: "post" | "reels";
   leading?: ReactNode;
-  /** Only Free kernel — Main must never pass true */
   showAds?: boolean;
 }) {
   const premium = hasPremium();
   const [credits, setCredits] = useState(() => getLifeOsCredits());
-  const [savedNote, setSavedNote] = useState(false);
 
   const rows = useMemo(() => {
     if (showAds) return withFreeKernelAds(items, 2);
@@ -252,44 +247,21 @@ export function ImmersiveMediaFeed({
   }
 
   return (
-    <>
-      {showAds ? (
-        <p className="immersive-feed__ad-banner muted small" role="status">
-          Free kernel runs ads. Creators earn from ads here.{" "}
-          <Link to="/app/personal/premium">Go Premium</Link> for Main with no ads.
-        </p>
-      ) : null}
-      {savedNote ? (
-        <p className="immersive-feed__ad-banner immersive-feed__ad-banner--ok muted small" role="status">
-          Ad saved to Offline.
-        </p>
-      ) : null}
-      <ul className={`immersive-feed immersive-feed--${mode}`} aria-label={mode === "reels" ? "Reels" : "Posts"}>
-        {leading ? (
-          <li className="immersive-feed__leading" aria-hidden={false}>
-            {leading}
-          </li>
-        ) : null}
-        {rows.map((row) =>
-          row.type === "ad" ? (
-            <AdSlide
-              key={`ad-${row.ad.id}-${row.ad.title}`}
-              ad={row.ad}
-              onSaved={() => setSavedNote(true)}
-            />
-          ) : (
-            <ContentSlide
-              key={row.item.id}
-              item={row.item}
-              lockedPremium={Boolean(
-                gatePremium && resolveTier(row.item) === "premium" && !premium,
-              )}
-              credits={credits}
-              onCredits={setCredits}
-            />
-          ),
-        )}
-      </ul>
-    </>
+    <ul className={`immersive-feed immersive-feed--${mode}`} aria-label={mode === "reels" ? "Reels" : "Posts"}>
+      {leading ? <li className="immersive-feed__leading">{leading}</li> : null}
+      {rows.map((row) =>
+        row.type === "ad" ? (
+          <AdSlide key={`ad-${row.ad.id}`} ad={row.ad} onSaved={() => undefined} />
+        ) : (
+          <ContentSlide
+            key={row.item.id}
+            item={row.item}
+            lockedPremium={Boolean(gatePremium && resolveTier(row.item) === "premium" && !premium)}
+            credits={credits}
+            onCredits={setCredits}
+          />
+        ),
+      )}
+    </ul>
   );
 }

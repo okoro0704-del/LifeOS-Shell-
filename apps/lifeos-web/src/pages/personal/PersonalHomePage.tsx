@@ -12,20 +12,23 @@ import {
 } from "../../lib/personalConnectivity";
 import { triggerWorkspaceHaptic } from "../../lib/mobileBridge";
 import {
+  applyWatchedOffline,
   getLifeOsCredits,
   listSavedAds,
   listUserPosts,
   resolveTier,
+  topUpLifeOsCredits,
 } from "../../lib/personalMonetization";
 
-export type HomeSection = "post" | "reels" | "connects" | "communities";
-export type ScrollStage = "top" | "peek" | "immersed";
+export type HomeSection = "post" | "reels" | "connects" | "communities" | "search";
+export type ScrollStage = "top" | "scrolled";
 
 const SECTIONS: { id: HomeSection; label: string }[] = [
   { id: "post", label: "Post" },
   { id: "reels", label: "Reels" },
   { id: "connects", label: "Connects" },
   { id: "communities", label: "Communities" },
+  { id: "search", label: "Search" },
 ];
 
 function basePath(kernel: PersonalKernel): string {
@@ -35,6 +38,7 @@ function basePath(kernel: PersonalKernel): string {
 }
 
 function filterForKernel(kernel: PersonalKernel, items: MediaItem[]): MediaItem[] {
+  applyWatchedOffline();
   const merged = [...listUserPosts(), ...items];
   if (kernel === "free") {
     return merged.filter((i) => resolveTier(i) === "free" || i.free);
@@ -42,7 +46,6 @@ function filterForKernel(kernel: PersonalKernel, items: MediaItem[]): MediaItem[
   if (kernel === "offline") {
     return merged.filter((i) => i.ownedOrConsumed);
   }
-  // Main: Premium + VIP + Free content — never inject ads here
   return merged;
 }
 
@@ -52,12 +55,7 @@ function kernelLabel(kernel: PersonalKernel): string {
   return "Main";
 }
 
-function sectionLabel(section: HomeSection): string {
-  return SECTIONS.find((s) => s.id === section)?.label ?? "Post";
-}
-
-/** Only static chrome: Kernel · LifeOS · Go Premium / × */
-function KernelBrandBar({ kernel }: { kernel: PersonalKernel }) {
+function KernelBrandBar({ kernel, hidden }: { kernel: PersonalKernel; hidden?: boolean }) {
   const navigate = useNavigate();
 
   function exitToMain() {
@@ -83,7 +81,7 @@ function KernelBrandBar({ kernel }: { kernel: PersonalKernel }) {
   }
 
   return (
-    <header className="kernel-brand-bar" aria-label="Kernel">
+    <header className={`kernel-brand-bar${hidden ? " is-hidden" : ""}`} aria-label="Kernel">
       <span className="kernel-brand-bar__side kernel-brand-bar__side--left">{kernelLabel(kernel)}</span>
       <span className="kernel-brand-bar__logo">LifeOS</span>
       <span className="kernel-brand-bar__side kernel-brand-bar__side--right">
@@ -93,9 +91,7 @@ function KernelBrandBar({ kernel }: { kernel: PersonalKernel }) {
               Post
             </Link>
             {hasPremium() ? (
-              <span className="kernel-brand-bar__premium-on" aria-label="Premium active">
-                Premium · {getLifeOsCredits()} cr
-              </span>
+              <span className="kernel-brand-bar__premium-on">{getLifeOsCredits()} cr</span>
             ) : (
               <Link to="/app/personal/premium" className="kernel-brand-bar__premium">
                 Go Premium
@@ -107,12 +103,7 @@ function KernelBrandBar({ kernel }: { kernel: PersonalKernel }) {
             <Link to="/app/personal/compose" className="kernel-brand-bar__compose">
               Post
             </Link>
-            <button
-              type="button"
-              className="kernel-brand-bar__exit"
-              aria-label="Exit to Main"
-              onClick={exitToMain}
-            >
+            <button type="button" className="kernel-brand-bar__exit" aria-label="Exit to Main" onClick={exitToMain}>
               ×
             </button>
           </span>
@@ -122,10 +113,32 @@ function KernelBrandBar({ kernel }: { kernel: PersonalKernel }) {
   );
 }
 
-function SectionTabs({ kernel, section }: { kernel: PersonalKernel; section: HomeSection }) {
+function SectionTabs({
+  kernel,
+  section,
+  scrolled,
+}: {
+  kernel: PersonalKernel;
+  section: HomeSection;
+  scrolled: boolean;
+}) {
+  const navigate = useNavigate();
   const base = basePath(kernel);
   return (
-    <nav className="segment-topbar segment-topbar--home segment-topbar--body" aria-label="Home sections">
+    <nav
+      className={`segment-topbar segment-topbar--glass${scrolled ? " is-pinned" : ""}`}
+      aria-label="Home sections"
+    >
+      {scrolled ? (
+        <button
+          type="button"
+          className="segment-topbar__back"
+          aria-label="Back"
+          onClick={() => navigate(`${base}/post`)}
+        >
+          ←
+        </button>
+      ) : null}
       {SECTIONS.map((s) => (
         <NavLink
           key={s.id}
@@ -143,70 +156,48 @@ function SectionTabs({ kernel, section }: { kernel: PersonalKernel; section: Hom
 }
 
 /**
- * Static brand bar only. Section tabs live in the scroll body.
- * Scroll: tabs leave → tiny section peek → full immersive media.
+ * Brand bar hides on scroll. Section glass bar stays sticky with back when scrolled.
  */
 export function PersonalKernelShell({
   kernel,
   section,
   children,
   immersive = false,
-  onStageChange,
 }: {
   kernel: PersonalKernel;
   section: HomeSection;
   children: ReactNode;
   immersive?: boolean;
-  onStageChange?: (stage: ScrollStage) => void;
 }) {
-  const [stage, setStage] = useState<ScrollStage>("top");
+  const [scrolled, setScrolled] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const stageRef = useRef<ScrollStage>("top");
 
   useEffect(() => {
-    stageRef.current = "top";
-    setStage("top");
-    onStageChange?.("top");
+    applyWatchedOffline();
+    setScrolled(false);
     const root = scrollRef.current;
     if (!root) return;
-
     const onScroll = () => {
       const feed = root.querySelector(".immersive-feed") as HTMLElement | null;
-      const target = feed ?? root;
-      const y = target.scrollTop;
-      let next: ScrollStage = "top";
-      if (y > 140) next = "immersed";
-      else if (y > 28) next = "peek";
-      if (next === stageRef.current) return;
-      stageRef.current = next;
-      setStage(next);
-      onStageChange?.(next);
+      const y = (feed ?? root).scrollTop;
+      setScrolled(y > 36);
     };
-
     const feed = root.querySelector(".immersive-feed");
     const target = (feed as HTMLElement | null) ?? root;
     target.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
     return () => target.removeEventListener("scroll", onScroll);
-  }, [section, kernel, immersive, onStageChange]);
+  }, [section, kernel, immersive]);
 
   return (
     <div
       className={`page personal-page personal-page--kernel personal-page--${kernel}${
         immersive ? " personal-page--immersive" : ""
-      } is-stage-${stage}`}
+      }${scrolled ? " is-scrolled" : ""}`}
     >
-      <KernelBrandBar kernel={kernel} />
-
-      <div
-        className={`kernel-peek-title${stage === "peek" ? " is-visible" : ""}`}
-        aria-live="polite"
-      >
-        {sectionLabel(section)}
-      </div>
-
+      <KernelBrandBar kernel={kernel} hidden={scrolled} />
+      <SectionTabs kernel={kernel} section={section} scrolled={scrolled} />
       <div className="kernel-scroll" ref={scrollRef}>
-        {!immersive ? <SectionTabs kernel={kernel} section={section} /> : null}
         {children}
       </div>
     </div>
@@ -214,8 +205,7 @@ export function PersonalKernelShell({
 }
 
 function postItems(kernel: PersonalKernel) {
-  const raw = catalogByKinds(["picture", "video", "post"]);
-  return filterForKernel(kernel, raw);
+  return filterForKernel(kernel, catalogByKinds(["picture", "video", "post"]));
 }
 
 export function KernelPostPage({ kernel }: { kernel: PersonalKernel }) {
@@ -227,20 +217,16 @@ export function KernelPostPage({ kernel }: { kernel: PersonalKernel }) {
         gatePremium={kernel === "main"}
         mode="post"
         showAds={kernel === "free"}
-        leading={<SectionTabs kernel={kernel} section="post" />}
       />
       {kernel === "offline" && listSavedAds().length > 0 ? (
         <section className="offline-saved-ads" aria-label="Saved ads">
-          <h2>Saved from Free ads</h2>
+          <h2>Saved ads</h2>
           <ul className="media-feed">
             {listSavedAds().map((ad) => (
               <li key={ad.id} className="media-feed__item">
                 <span className="media-feed__badge media-feed__badge--ad">Ad</span>
                 <strong>{ad.title}</strong>
-                <span className="muted small">{ad.advertiser} · {ad.detail}</span>
-                <button type="button" className="los-btn los-btn--ghost los-btn--sm">
-                  {ad.cta}
-                </button>
+                <span className="muted small">{ad.advertiser}</span>
               </li>
             ))}
           </ul>
@@ -259,7 +245,6 @@ export function KernelReelsPage({ kernel }: { kernel: PersonalKernel }) {
         gatePremium={kernel === "main"}
         mode="reels"
         showAds={kernel === "free"}
-        leading={<SectionTabs kernel={kernel} section="reels" />}
       />
     </PersonalKernelShell>
   );
@@ -329,19 +314,51 @@ export function KernelCommunitiesPage({ kernel }: { kernel: PersonalKernel }) {
   );
 }
 
+export function KernelSearchPage({ kernel }: { kernel: PersonalKernel }) {
+  const [q, setQ] = useState("");
+  const pool = filterForKernel(kernel, catalogByKinds(["picture", "video", "post", "reel", "music", "podcast", "book", "course"]));
+  const hits = q.trim()
+    ? pool.filter(
+        (i) =>
+          i.title.toLowerCase().includes(q.toLowerCase()) ||
+          (i.author || "").toLowerCase().includes(q.toLowerCase()),
+      )
+    : pool.slice(0, 8);
+
+  return (
+    <PersonalKernelShell kernel={kernel} section="search">
+      <input
+        className="surface-search"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Search posts, creators…"
+        aria-label="Search"
+      />
+      <ul className="media-feed">
+        {hits.map((i) => (
+          <li key={i.id} className="media-feed__item">
+            <span className="media-feed__kind">{i.kind}</span>
+            <strong>{i.title}</strong>
+            <span className="muted small">{i.author ? `@${i.author}` : i.detail}</span>
+          </li>
+        ))}
+      </ul>
+    </PersonalKernelShell>
+  );
+}
+
 export function PersonalPremiumPage() {
+  const [credits, setCredits] = useState(() => getLifeOsCredits());
+
   return (
     <div className="page personal-page">
       <header className="page-header page-header--compact">
         <h1>Go Premium</h1>
-        <p className="muted small">Main never shows ads. Free kernel is where ads run.</p>
       </header>
       <ul className="media-feed">
         <li className="media-feed__item">
-          <strong>LifeOS Premium</strong>
-          <span className="muted small">
-            Unlock Premium posts on Main with zero ads. Creators earn from subscriptions.
-          </span>
+          <strong>Premium subscription</strong>
+          <span className="muted small">Main with no ads.</span>
           {hasPremium() ? (
             <span className="media-feed__badge">Active</span>
           ) : (
@@ -358,28 +375,25 @@ export function PersonalPremiumPage() {
           )}
         </li>
         <li className="media-feed__item">
-          <strong>VIP credits</strong>
-          <span className="muted small">
-            Books, courses, and movies spend LifeOS credits while you watch. Balance:{" "}
-            {getLifeOsCredits()}.
-          </span>
-          <Link to="/app/wallet" className="los-btn los-btn--ghost los-btn--sm">
-            Wallet
-          </Link>
-        </li>
-        <li className="media-feed__item">
-          <strong>Creator earnings</strong>
-          <span className="muted small">
-            Free → ads · Premium → subscription · VIP → credit spend
-          </span>
-          <Link to="/app/personal/compose" className="los-btn los-btn--soft los-btn--sm">
-            Post content
-          </Link>
+          <strong>LifeOS credits</strong>
+          <span className="muted small">VIP watch · balance {credits}. 80% to creator.</span>
+          <div className="row-actions">
+            {[40, 80, 200].map((n) => (
+              <button
+                key={n}
+                type="button"
+                className="los-btn los-btn--soft los-btn--sm"
+                onClick={() => setCredits(topUpLifeOsCredits(n))}
+              >
+                Buy {n}
+              </button>
+            ))}
+          </div>
         </li>
       </ul>
       <p>
         <Link to="/app/personal/post" className="text-link">
-          Back to Home
+          Back
         </Link>
       </p>
     </div>
@@ -402,13 +416,16 @@ export const PersonalPostPage = () => <KernelPostPage kernel="main" />;
 export const PersonalReelsPage = () => <KernelReelsPage kernel="main" />;
 export const PersonalConnectsPage = () => <KernelConnectsPage kernel="main" />;
 export const PersonalCommunitiesPage = () => <KernelCommunitiesPage kernel="main" />;
+export const PersonalSearchPage = () => <KernelSearchPage kernel="main" />;
 
 export const FreePostPage = () => <KernelPostPage kernel="free" />;
 export const FreeReelsPage = () => <KernelReelsPage kernel="free" />;
 export const FreeConnectsPage = () => <KernelConnectsPage kernel="free" />;
 export const FreeCommunitiesPage = () => <KernelCommunitiesPage kernel="free" />;
+export const FreeSearchPage = () => <KernelSearchPage kernel="free" />;
 
 export const OfflinePostPage = () => <KernelPostPage kernel="offline" />;
 export const OfflineReelsPage = () => <KernelReelsPage kernel="offline" />;
 export const OfflineConnectsPage = () => <KernelConnectsPage kernel="offline" />;
 export const OfflineCommunitiesPage = () => <KernelCommunitiesPage kernel="offline" />;
+export const OfflineSearchPage = () => <KernelSearchPage kernel="offline" />;

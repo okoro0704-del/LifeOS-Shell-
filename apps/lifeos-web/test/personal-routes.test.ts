@@ -28,6 +28,9 @@ describe("personal consumer space wiring", () => {
     expect(src).toContain('label: "Edu"');
     expect(src).toContain("LearnVerseEduPage");
     expect(src).toContain('catalogByKinds(["edu"])');
+    expect(src).toContain('label: "Search"');
+    expect(src).toContain("LearnVerseSearchPage");
+    expect(src).toContain("ElComFloat");
   });
 
   it("App mounts personal/* routes", () => {

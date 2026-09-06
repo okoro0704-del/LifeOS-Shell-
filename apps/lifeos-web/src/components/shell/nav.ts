@@ -34,10 +34,16 @@ export function personalPrimaryNav(kernel: PersonalKernel): ShellNavItem[] {
       to: `${base}/post`,
       label: "Home",
       Icon: IconHome,
-      matchPrefixes: [`${base}/post`, `${base}/reels`, `${base}/connects`, `${base}/communities`],
+      matchPrefixes: [
+        `${base}/post`,
+        `${base}/reels`,
+        `${base}/connects`,
+        `${base}/communities`,
+        `${base}/search`,
+      ],
     },
-    { to: `${base}/learnverse`, label: "LearnVerse", Icon: IconBook },
-    { to: `${base}/streamify`, label: "Streamify", Icon: IconExplore },
+    { to: `${base}/learnverse`, label: "LearnVerse", Icon: IconBook, matchPrefixes: [`${base}/learnverse`] },
+    { to: `${base}/streamify`, label: "Streamify", Icon: IconExplore, matchPrefixes: [`${base}/streamify`] },
   ];
 }
 
