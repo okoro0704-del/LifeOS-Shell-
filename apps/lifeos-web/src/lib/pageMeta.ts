@@ -48,6 +48,9 @@ export function resolvePageMeta(pathname: string): PageMeta | null {
   if (path.startsWith("/app/personal/streamify")) {
     return { title: "Streamify", subtitle: "Content · Music · Podcast · Videos" };
   }
+  if (path.startsWith("/app/personal/compose") || path.match(/\/personal\/(free|offline)\/compose/)) {
+    return { title: "New post", subtitle: "Free · Premium · VIP" };
+  }
   if (path.startsWith("/app/personal/plus") || path.match(/\/personal\/(free|offline)\/plus/)) {
     return { title: "Trending", subtitle: "Pay to Trend" };
   }

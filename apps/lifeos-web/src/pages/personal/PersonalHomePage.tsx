@@ -11,6 +11,12 @@ import {
   setPendingKernel,
 } from "../../lib/personalConnectivity";
 import { triggerWorkspaceHaptic } from "../../lib/mobileBridge";
+import {
+  getLifeOsCredits,
+  listSavedAds,
+  listUserPosts,
+  resolveTier,
+} from "../../lib/personalMonetization";
 
 export type HomeSection = "post" | "reels" | "connects" | "communities";
 export type ScrollStage = "top" | "peek" | "immersed";
@@ -29,9 +35,15 @@ function basePath(kernel: PersonalKernel): string {
 }
 
 function filterForKernel(kernel: PersonalKernel, items: MediaItem[]): MediaItem[] {
-  if (kernel === "free") return items.filter((i) => i.free);
-  if (kernel === "offline") return items.filter((i) => i.ownedOrConsumed);
-  return items;
+  const merged = [...listUserPosts(), ...items];
+  if (kernel === "free") {
+    return merged.filter((i) => resolveTier(i) === "free" || i.free);
+  }
+  if (kernel === "offline") {
+    return merged.filter((i) => i.ownedOrConsumed);
+  }
+  // Main: Premium + VIP + Free content — never inject ads here
+  return merged;
 }
 
 function kernelLabel(kernel: PersonalKernel): string {
@@ -76,24 +88,34 @@ function KernelBrandBar({ kernel }: { kernel: PersonalKernel }) {
       <span className="kernel-brand-bar__logo">LifeOS</span>
       <span className="kernel-brand-bar__side kernel-brand-bar__side--right">
         {kernel === "main" ? (
-          hasPremium() ? (
-            <span className="kernel-brand-bar__premium-on" aria-label="Premium active">
-              Premium
-            </span>
-          ) : (
-            <Link to="/app/personal/premium" className="kernel-brand-bar__premium">
-              Go Premium
+          <span className="kernel-brand-bar__main-actions">
+            <Link to="/app/personal/compose" className="kernel-brand-bar__compose">
+              Post
             </Link>
-          )
+            {hasPremium() ? (
+              <span className="kernel-brand-bar__premium-on" aria-label="Premium active">
+                Premium · {getLifeOsCredits()} cr
+              </span>
+            ) : (
+              <Link to="/app/personal/premium" className="kernel-brand-bar__premium">
+                Go Premium
+              </Link>
+            )}
+          </span>
         ) : (
-          <button
-            type="button"
-            className="kernel-brand-bar__exit"
-            aria-label="Exit to Main"
-            onClick={exitToMain}
-          >
-            ×
-          </button>
+          <span className="kernel-brand-bar__main-actions">
+            <Link to="/app/personal/compose" className="kernel-brand-bar__compose">
+              Post
+            </Link>
+            <button
+              type="button"
+              className="kernel-brand-bar__exit"
+              aria-label="Exit to Main"
+              onClick={exitToMain}
+            >
+              ×
+            </button>
+          </span>
         )}
       </span>
     </header>
@@ -204,8 +226,26 @@ export function KernelPostPage({ kernel }: { kernel: PersonalKernel }) {
         empty="Nothing here yet."
         gatePremium={kernel === "main"}
         mode="post"
+        showAds={kernel === "free"}
         leading={<SectionTabs kernel={kernel} section="post" />}
       />
+      {kernel === "offline" && listSavedAds().length > 0 ? (
+        <section className="offline-saved-ads" aria-label="Saved ads">
+          <h2>Saved from Free ads</h2>
+          <ul className="media-feed">
+            {listSavedAds().map((ad) => (
+              <li key={ad.id} className="media-feed__item">
+                <span className="media-feed__badge media-feed__badge--ad">Ad</span>
+                <strong>{ad.title}</strong>
+                <span className="muted small">{ad.advertiser} · {ad.detail}</span>
+                <button type="button" className="los-btn los-btn--ghost los-btn--sm">
+                  {ad.cta}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </PersonalKernelShell>
   );
 }
@@ -218,6 +258,7 @@ export function KernelReelsPage({ kernel }: { kernel: PersonalKernel }) {
         empty="Nothing here yet."
         gatePremium={kernel === "main"}
         mode="reels"
+        showAds={kernel === "free"}
         leading={<SectionTabs kernel={kernel} section="reels" />}
       />
     </PersonalKernelShell>
@@ -293,11 +334,14 @@ export function PersonalPremiumPage() {
     <div className="page personal-page">
       <header className="page-header page-header--compact">
         <h1>Go Premium</h1>
+        <p className="muted small">Main never shows ads. Free kernel is where ads run.</p>
       </header>
       <ul className="media-feed">
         <li className="media-feed__item">
           <strong>LifeOS Premium</strong>
-          <span className="muted small">Full music, video, and podcast play on Main.</span>
+          <span className="muted small">
+            Unlock Premium posts on Main with zero ads. Creators earn from subscriptions.
+          </span>
           {hasPremium() ? (
             <span className="media-feed__badge">Active</span>
           ) : (
@@ -312,6 +356,25 @@ export function PersonalPremiumPage() {
               Subscribe
             </button>
           )}
+        </li>
+        <li className="media-feed__item">
+          <strong>VIP credits</strong>
+          <span className="muted small">
+            Books, courses, and movies spend LifeOS credits while you watch. Balance:{" "}
+            {getLifeOsCredits()}.
+          </span>
+          <Link to="/app/wallet" className="los-btn los-btn--ghost los-btn--sm">
+            Wallet
+          </Link>
+        </li>
+        <li className="media-feed__item">
+          <strong>Creator earnings</strong>
+          <span className="muted small">
+            Free → ads · Premium → subscription · VIP → credit spend
+          </span>
+          <Link to="/app/personal/compose" className="los-btn los-btn--soft los-btn--sm">
+            Post content
+          </Link>
         </li>
       </ul>
       <p>

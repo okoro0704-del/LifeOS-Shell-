@@ -20,6 +20,7 @@ import {
 import { LearnVerseRoutes } from "../pages/personal/LearnVersePage";
 import { StreamifyRoutes } from "../pages/personal/StreamifyPage";
 import { PersonalPlusPage } from "../pages/personal/PersonalPlusPage";
+import { ComposePostPage } from "../pages/personal/ComposePostPage";
 import { PersonalKernelGestures } from "../components/shell/PersonalKernelGestures";
 
 /**
@@ -35,6 +36,7 @@ export function PersonalRoutes() {
         <Route path="connects" element={<PersonalConnectsPage />} />
         <Route path="communities" element={<PersonalCommunitiesPage />} />
         <Route path="premium" element={<PersonalPremiumPage />} />
+        <Route path="compose" element={<ComposePostPage />} />
         <Route path="main" element={<Navigate to="/app/personal/post" replace />} />
         <Route path="learnverse/*" element={<LearnVerseRoutes />} />
         <Route path="streamify/*" element={<StreamifyRoutes />} />
@@ -48,6 +50,7 @@ export function PersonalRoutes() {
         <Route path="free/learnverse/*" element={<LearnVerseRoutes />} />
         <Route path="free/streamify/*" element={<StreamifyRoutes />} />
         <Route path="free/plus" element={<PersonalPlusPage />} />
+        <Route path="free/compose" element={<ComposePostPage />} />
         <Route path="discovery" element={<Navigate to="/app/personal/free/post" replace />} />
 
         <Route path="offline" element={<OfflineKernelHome />} />
@@ -58,6 +61,7 @@ export function PersonalRoutes() {
         <Route path="offline/learnverse/*" element={<LearnVerseRoutes />} />
         <Route path="offline/streamify/*" element={<StreamifyRoutes />} />
         <Route path="offline/plus" element={<PersonalPlusPage />} />
+        <Route path="offline/compose" element={<ComposePostPage />} />
         <Route path="vault" element={<Navigate to="/app/personal/offline/post" replace />} />
 
         <Route path="finance" element={<Navigate to="/app/wallet" replace />} />

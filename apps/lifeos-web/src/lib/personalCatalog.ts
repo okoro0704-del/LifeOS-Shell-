@@ -28,6 +28,10 @@ export type MediaItem = {
   ownedOrConsumed: boolean;
   /** Requires Main-kernel Premium to play */
   premiumRequired: boolean;
+  /** Posting tier: free (ads in Free), premium (Main, no ads), vip (credits) */
+  tier?: "free" | "premium" | "vip";
+  /** LifeOS credits spent per tick while VIP content plays */
+  vipCreditRate?: number;
   author?: string;
   likes?: string;
   mediaUrl?: string;
@@ -68,6 +72,7 @@ export const PERSONAL_CATALOG: MediaItem[] = [
     posterUrl: poster("lagoon-sunset"),
     trending: true,
     trendScore: 96,
+    tier: "free",
   },
   {
     id: "p2",
@@ -83,6 +88,7 @@ export const PERSONAL_CATALOG: MediaItem[] = [
     posterUrl: poster("street-food"),
     trending: true,
     trendScore: 88,
+    tier: "free",
   },
   {
     id: "p3",
@@ -430,7 +436,7 @@ export function applyStoredTrends() {
 }
 
 export function freeCatalog(): MediaItem[] {
-  return PERSONAL_CATALOG.filter((i) => i.free);
+  return PERSONAL_CATALOG.filter((i) => i.free || i.tier === "free" || (!i.tier && !i.premiumRequired));
 }
 
 export function offlineCatalog(): MediaItem[] {
@@ -441,3 +447,28 @@ export function randomCatalogItem(): MediaItem {
   const pool = PERSONAL_CATALOG;
   return pool[Math.floor(Math.random() * pool.length)]!;
 }
+
+/** Normalize demo tiers once at module load. */
+function seedContentTiers() {
+  for (const item of PERSONAL_CATALOG) {
+    if (item.tier) continue;
+    if (item.kind === "book" || item.kind === "course") {
+      item.tier = "vip";
+      item.vipCreditRate = item.kind === "book" ? 2 : 5;
+      continue;
+    }
+    if (item.id === "v1") {
+      item.tier = "vip";
+      item.vipCreditRate = 6;
+      item.detail = "VIP movie · credits drain while watching";
+      continue;
+    }
+    if (item.premiumRequired) {
+      item.tier = "premium";
+      continue;
+    }
+    item.tier = "free";
+  }
+}
+
+seedContentTiers();

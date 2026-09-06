@@ -1,4 +1,4 @@
-/* LifeOS app chrome ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ tokens from @lifeos/ui */
+/* LifeOS app chrome ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ tokens from @lifeos/ui */
 
 * {
   box-sizing: border-box;
@@ -805,7 +805,7 @@ a {
   padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 1.75rem);
 }
 
-/* Top bar ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ greeting + stars under name + actions */
+/* Top bar ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ greeting + stars under name + actions */
 .app-header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -858,7 +858,7 @@ a {
   flex-shrink: 0;
 }
 
-/* Non-home pages ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ centered title + back */
+/* Non-home pages ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ centered title + back */
 .page-topbar {
   display: grid;
   grid-template-columns: 2.75rem minmax(0, 1fr) 2.75rem;
@@ -1092,7 +1092,7 @@ a {
   }
 }
 
-/* Bottom nav ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Instagram-style floating pill */
+/* Bottom nav ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Instagram-style floating pill */
 .bottom-nav {
   position: fixed;
   left: 0;
@@ -2574,7 +2574,7 @@ button.list-row {
   color: inherit;
 }
 
-/* Sprint 4 ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Command Layer */
+/* Sprint 4 ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Command Layer */
 .home-command {
   display: grid;
   gap: 0.35rem;
@@ -2671,7 +2671,7 @@ button.list-row {
   }
 }
 
-/* Home Services ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ pictorial tiles */
+/* Home Services ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ pictorial tiles */
 .services-pictorial {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3523,7 +3523,7 @@ button.los-wallet__action:disabled {
   border: 0;
 }
 
-/* Services ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ vertical ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂvideo listÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ browse */
+/* Services ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ vertical ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂvideo listÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ browse */
 .services-page {
   gap: var(--los-space-4);
   padding-bottom: 2rem;
@@ -4500,7 +4500,7 @@ button.los-wallet__action:disabled {
   gap: 0.65rem;
 }
 
-/* ÃÂÃÂÃÂÃÂ¯ÃÂÃÂÃÂÃÂ¿ÃÂÃÂÃÂÃÂ½ÃÂÃÂÃÂÃÂ¯ÃÂÃÂÃÂÃÂ¿ÃÂÃÂÃÂÃÂ½ Personal workspace (Digiconomy port) ÃÂÃÂÃÂÃÂ¯ÃÂÃÂÃÂÃÂ¿ÃÂÃÂÃÂÃÂ½ÃÂÃÂÃÂÃÂ¯ÃÂÃÂÃÂÃÂ¿ÃÂÃÂÃÂÃÂ½ */
+/* ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¯ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¿ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ½ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¯ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¿ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ½ Personal workspace (Digiconomy port) ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¯ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¿ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ½ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¯ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¿ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ½ */
 .personal-page .page-header h1 {
   margin-bottom: 0.35rem;
 }
@@ -4724,7 +4724,7 @@ button.los-wallet__action:disabled {
   color: color-mix(in srgb, #a33 80%, currentColor);
 }
 
-/* ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Shared settings ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ */
+/* ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Shared settings ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ */
 .shared-card {
   padding: 1rem 1.1rem;
   margin-bottom: 0.85rem;
@@ -4780,7 +4780,7 @@ button.los-wallet__action:disabled {
   font-size: 0.86rem;
 }
 
-/* ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Space switch (bottom nav) ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ */
+/* ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Space switch (bottom nav) ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ */
 .bottom-item--space {
   position: relative;
   z-index: 2;
@@ -4846,7 +4846,7 @@ button.los-wallet__action:disabled {
   letter-spacing: 0.04em;
 }
 
-/* ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Personal kernels ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ */
+/* ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Personal kernels ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ */
 .personal-kernel-gestures {
   position: relative;
   min-height: 100%;
@@ -4942,7 +4942,7 @@ button.los-wallet__action:disabled {
   font-size: 1.05rem;
 }
 
-/* Kernel edges removed ÃÂÃÂ body double-tap handles Offline / Free */
+/* Kernel edges removed ÃÂÃÂÃÂÃÂ body double-tap handles Offline / Free */
 .personal-kernel-edge {
   display: none !important;
 }
@@ -5101,9 +5101,27 @@ button.los-wallet__action:disabled {
 }
 
 .kernel-brand-bar__premium-on {
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 700;
   opacity: 0.75;
+}
+
+.kernel-brand-bar__main-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.kernel-brand-bar__compose {
+  text-decoration: none;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: inherit;
+  opacity: 0.8;
+}
+
+.kernel-brand-bar__compose:hover {
+  opacity: 1;
 }
 
 .kernel-brand-bar__exit {
@@ -5332,6 +5350,137 @@ button.los-wallet__action:disabled {
   background: color-mix(in srgb, #16a34a 22%, transparent);
   color: #15803d;
 }
+
+.media-feed__badge--vip {
+  background: color-mix(in srgb, #ca8a04 28%, transparent);
+  color: #a16207;
+}
+
+.media-feed__badge--ad {
+  background: color-mix(in srgb, #ea580c 28%, transparent);
+  color: #c2410c;
+}
+
+.immersive-feed__ad-banner {
+  margin: 0 1.15rem 0.45rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, #ea580c 12%, transparent);
+}
+
+.immersive-feed__ad-banner--ok {
+  background: color-mix(in srgb, #16a34a 12%, transparent);
+}
+
+.immersive-feed__slide--ad {
+  outline: 2px solid color-mix(in srgb, #ea580c 55%, transparent);
+  outline-offset: -2px;
+}
+
+.immersive-feed__ad-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+}
+
+.immersive-feed__credits {
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: #fde68a;
+}
+
+.immersive-feed__engage--ad {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.offline-saved-ads {
+  padding: 1rem 1.15rem 5rem;
+}
+
+.offline-saved-ads h2 {
+  margin: 0 0 0.65rem;
+  font-size: 1rem;
+}
+
+.compose-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  max-width: 28rem;
+}
+
+.compose-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+.compose-form__field input,
+.compose-form__field textarea,
+.compose-form__field select {
+  font: inherit;
+  font-weight: 500;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.65rem;
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  background: color-mix(in srgb, currentColor 4%, transparent);
+  color: inherit;
+}
+
+.compose-form__tiers {
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  border-radius: 0.85rem;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0;
+}
+
+.compose-form__tiers legend {
+  padding: 0 0.25rem;
+  font-weight: 700;
+}
+
+.compose-form__tier {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.15rem 0.55rem;
+  padding: 0.65rem 0.7rem;
+  border-radius: 0.7rem;
+  background: color-mix(in srgb, currentColor 4%, transparent);
+  cursor: pointer;
+}
+
+.compose-form__tier.is-active {
+  background: color-mix(in srgb, var(--los-accent) 12%, transparent);
+}
+
+.compose-form__tier input {
+  grid-row: 1 / span 3;
+  margin-top: 0.2rem;
+}
+
+.compose-form__tier strong {
+  grid-column: 2;
+}
+
+.compose-form__tier .muted,
+.compose-form__earn {
+  grid-column: 2;
+}
+
+.compose-form__earn {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #15803d;
+}
+
 
 .near-rail--hero {
   gap: 0.85rem;
