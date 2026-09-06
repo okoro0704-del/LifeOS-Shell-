@@ -5,21 +5,67 @@ import { discoverService } from "../../lib/services";
 import type { DiscoverableBusiness, DiscoverableOffering } from "@lifeos/shared";
 
 const BOOSTED_NAME_HINTS = ["premium", "featured", "sponsor", "boost"];
+const RAIL_VISIBLE = 9;
 
 function isBoostedBusiness(b: DiscoverableBusiness): boolean {
   const hay = `${b.businessName} ${b.category ?? ""}`.toLowerCase();
-  return BOOSTED_NAME_HINTS.some((h) => hay.includes(h));
+  return BOOSTED_NAME_HINTS.some((h) => hay.includes(h)) || Boolean((b as { featured?: boolean }).featured);
 }
 
 function isBoostedOffering(o: DiscoverableOffering, boostedBizIds: Set<string>): boolean {
+  if (o.featured) return true;
   if (o.businessId && boostedBizIds.has(o.businessId)) return true;
   const hay = `${o.name} ${o.businessName ?? ""}`.toLowerCase();
   return BOOSTED_NAME_HINTS.some((h) => hay.includes(h));
 }
 
+const MOCK_BUSINESSES: DiscoverableBusiness[] = Array.from({ length: 14 }, (_, i) => ({
+  id: `mock-biz-${i + 1}`,
+  businessId: `mock-biz-${i + 1}`,
+  businessName:
+    i < 2
+      ? `Featured Kitchen ${i + 1}`
+      : ["Harbour Cafe", "City Fix Lab", "Green Grocer", "Nova Salon", "Pulse Gym", "Book Nook", "Auto Care", "Pet Place", "Tech Desk", "Bloom Florist", "Daily Bread", "Craft Studio"][
+          i % 12
+        ]!,
+  experienceId: "mock",
+  description: "Nearby on LifeOS",
+  location: ["Ikeja", "Lekki", "Yaba", "Surulere", "VI"][i % 5]!,
+  category: ["Food", "Services", "Retail", "Health", "Beauty"][i % 5]!,
+  offeringCount: 3 + (i % 5),
+  source: "mock",
+}));
+
+const MOCK_OFFERINGS: DiscoverableOffering[] = Array.from({ length: 16 }, (_, i) => ({
+  id: `mock-off-${i + 1}`,
+  type: "SERVICE",
+  name:
+    i < 2
+      ? `Boosted ${["Massage", "Delivery"][i]}`
+      : ["Haircut", "Laundry", "Meal kit", "Phone repair", "Yoga class", "Car wash", "Tutoring", "Photo shoot", "Catering", "Cleaning", "Pet walk", "Design consult", "Spa hour", "Bike hire"][
+          i % 14
+        ]!,
+  description: "Available near you",
+  businessId: `mock-biz-${(i % 12) + 1}`,
+  businessName: MOCK_BUSINESSES[i % MOCK_BUSINESSES.length]!.businessName,
+  category: (["Wellness", "More", "Eat", "Fitness", "Activities"] as const)[i % 5]!,
+  experienceId: "mock",
+  price: 1500 + i * 250,
+  currency: "NGN",
+  priceFormatted: `₦${(1500 + i * 250).toLocaleString()}`,
+  bookingCapability: true,
+  commerceCapability: true,
+  capabilities: [],
+  source: "mock",
+  featured: i < 2,
+}));
+
+type BizRow = { b: DiscoverableBusiness; boosted: boolean; distance: number };
+type OffRow = { o: DiscoverableOffering; boosted: boolean; distance: number };
+
 /**
- * Business space home — Ask LifeOS first, then near-me businesses & services.
- * Monthly boost sponsors rise to the top of discovery.
+ * Business space home — Ask LifeOS, then Services / Businesses near-me rails.
+ * 10th rail slot is See more → vertical list.
  */
 export function BusinessHomePage() {
   const navigate = useNavigate();
@@ -27,6 +73,8 @@ export function BusinessHomePage() {
   const [businesses, setBusinesses] = useState<DiscoverableBusiness[]>([]);
   const [offerings, setOfferings] = useState<DiscoverableOffering[]>([]);
   const [loading, setLoading] = useState(true);
+  const [servicesExpanded, setServicesExpanded] = useState(false);
+  const [businessesExpanded, setBusinessesExpanded] = useState(false);
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -48,8 +96,10 @@ export function BusinessHomePage() {
       discoverService.offerings({}).catch(() => ({ offerings: [] as DiscoverableOffering[] })),
     ]).then(([biz, offs]) => {
       if (cancelled) return;
-      setBusinesses(biz.businesses ?? []);
-      setOfferings(offs.offerings ?? []);
+      const liveBiz = biz.businesses ?? [];
+      const liveOff = offs.offerings ?? [];
+      setBusinesses(liveBiz.length >= 10 ? liveBiz : [...liveBiz, ...MOCK_BUSINESSES]);
+      setOfferings(liveOff.length >= 10 ? liveOff : [...liveOff, ...MOCK_OFFERINGS]);
       setLoading(false);
     });
     return () => {
@@ -58,7 +108,7 @@ export function BusinessHomePage() {
   }, []);
 
   const rankedBusinesses = useMemo(() => {
-    const withMeta = businesses.map((b, i) => ({
+    const withMeta: BizRow[] = businesses.map((b, i) => ({
       b,
       boosted: isBoostedBusiness(b),
       distance: 1.2 + (i % 8) * 0.7,
@@ -67,7 +117,7 @@ export function BusinessHomePage() {
       if (a.boosted !== c.boosted) return a.boosted ? -1 : 1;
       return a.distance - c.distance;
     });
-    return withMeta.slice(0, 12);
+    return withMeta;
   }, [businesses]);
 
   const boostedBizIds = useMemo(() => {
@@ -79,7 +129,7 @@ export function BusinessHomePage() {
   }, [rankedBusinesses]);
 
   const rankedServices = useMemo(() => {
-    const withMeta = offerings.map((o, i) => ({
+    const withMeta: OffRow[] = offerings.map((o, i) => ({
       o,
       boosted: isBoostedOffering(o, boostedBizIds),
       distance: 0.8 + (i % 9) * 0.55,
@@ -88,8 +138,11 @@ export function BusinessHomePage() {
       if (a.boosted !== c.boosted) return a.boosted ? -1 : 1;
       return a.distance - c.distance;
     });
-    return withMeta.slice(0, 12);
+    return withMeta;
   }, [offerings, boostedBizIds]);
+
+  const servicesRail = rankedServices.slice(0, RAIL_VISIBLE);
+  const businessesRail = rankedBusinesses.slice(0, RAIL_VISIBLE);
 
   return (
     <div className="page business-home">
@@ -97,65 +150,22 @@ export function BusinessHomePage() {
         <AskLifeOSTrigger />
       </div>
 
-      <section className="business-home__section" aria-label="Businesses near me">
-        <div className="business-home__section-head">
-          <h2>Businesses near me</h2>
-          <span className="muted small">{locLabel}</span>
-        </div>
-        {loading ? (
-          <p className="muted">Loading…</p>
-        ) : rankedBusinesses.length === 0 ? (
-          <p className="muted">No businesses nearby yet.</p>
-        ) : (
-          <ul className="media-feed">
-            {rankedBusinesses.map(({ b, boosted, distance }) => (
-              <li key={b.id} className="media-feed__item">
-                <div className="media-feed__meta">
-                  {boosted ? (
-                    <span className="media-feed__badge media-feed__badge--boost">Top</span>
-                  ) : null}
-                  <span className="media-feed__kind">{b.category || "Business"}</span>
-                </div>
-                <strong>{b.businessName}</strong>
-                <span className="muted small">
-                  {distance.toFixed(1)} km
-                  {b.location ? ` · ${b.location}` : ""}
-                </span>
-                <button
-                  type="button"
-                  className="los-btn los-btn--ghost los-btn--sm"
-                  onClick={() => navigate(`/app/business/${b.businessId || b.id}`)}
-                >
-                  Open
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        <p className="muted small business-home__boost-note">
-          Pay monthly to stay on top near customers.{" "}
-          <Link to="/app/discover">Boost your business</Link>
-        </p>
-      </section>
-
       <section className="business-home__section" aria-label="Services near me">
         <div className="business-home__section-head">
           <h2>Services near me</h2>
-          <span className="muted small">For sale nearby</span>
+          <span className="muted small">{locLabel}</span>
         </div>
         {loading ? (
           <p className="muted">Loading…</p>
         ) : rankedServices.length === 0 ? (
           <p className="muted">No services nearby yet.</p>
-        ) : (
-          <ul className="media-feed">
+        ) : servicesExpanded ? (
+          <ul className="business-home__vertical" aria-label="All services near me">
             {rankedServices.map(({ o, boosted, distance }) => (
-              <li key={o.id} className="media-feed__item">
-                <div className="media-feed__meta">
-                  {boosted ? (
-                    <span className="media-feed__badge media-feed__badge--boost">Top</span>
-                  ) : null}
-                  <span className="media-feed__kind">{o.category || o.type || "Service"}</span>
+              <li key={o.id} className="business-home__vertical-item">
+                <div className="business-home__card-meta">
+                  {boosted ? <span className="media-feed__badge media-feed__badge--boost">Top</span> : null}
+                  <span className="muted small">{o.category || o.type || "Service"}</span>
                 </div>
                 <strong>{o.name}</strong>
                 <span className="muted small">
@@ -171,8 +181,119 @@ export function BusinessHomePage() {
                 </button>
               </li>
             ))}
+            <li>
+              <button
+                type="button"
+                className="los-btn los-btn--soft los-btn--sm"
+                onClick={() => setServicesExpanded(false)}
+              >
+                Back to rail
+              </button>
+            </li>
           </ul>
+        ) : (
+          <div className="near-rail" role="list">
+            {servicesRail.map(({ o, boosted, distance }) => (
+              <button
+                key={o.id}
+                type="button"
+                className="near-rail__card"
+                role="listitem"
+                onClick={() => navigate(`/app/discover?offering=${o.id}`)}
+              >
+                {boosted ? <span className="near-rail__boost">Top</span> : null}
+                <strong>{o.name}</strong>
+                <span className="muted small">{distance.toFixed(1)} km</span>
+              </button>
+            ))}
+            {rankedServices.length > RAIL_VISIBLE ? (
+              <button
+                type="button"
+                className="near-rail__card near-rail__card--more"
+                role="listitem"
+                onClick={() => setServicesExpanded(true)}
+              >
+                <strong>See more</strong>
+                <span className="muted small">Browse all</span>
+              </button>
+            ) : null}
+          </div>
         )}
+      </section>
+
+      <section className="business-home__section" aria-label="Businesses near me">
+        <div className="business-home__section-head">
+          <h2>Businesses near me</h2>
+          <span className="muted small">Nearby</span>
+        </div>
+        {loading ? (
+          <p className="muted">Loading…</p>
+        ) : rankedBusinesses.length === 0 ? (
+          <p className="muted">No businesses nearby yet.</p>
+        ) : businessesExpanded ? (
+          <ul className="business-home__vertical" aria-label="All businesses near me">
+            {rankedBusinesses.map(({ b, boosted, distance }) => (
+              <li key={b.id} className="business-home__vertical-item">
+                <div className="business-home__card-meta">
+                  {boosted ? <span className="media-feed__badge media-feed__badge--boost">Top</span> : null}
+                  <span className="muted small">{b.category || "Business"}</span>
+                </div>
+                <strong>{b.businessName}</strong>
+                <span className="muted small">
+                  {distance.toFixed(1)} km
+                  {b.location ? ` · ${b.location}` : ""}
+                </span>
+                <button
+                  type="button"
+                  className="los-btn los-btn--ghost los-btn--sm"
+                  onClick={() => navigate(`/app/business/${b.businessId || b.id}`)}
+                >
+                  Open
+                </button>
+              </li>
+            ))}
+            <li>
+              <button
+                type="button"
+                className="los-btn los-btn--soft los-btn--sm"
+                onClick={() => setBusinessesExpanded(false)}
+              >
+                Back to rail
+              </button>
+            </li>
+          </ul>
+        ) : (
+          <div className="near-rail" role="list">
+            {businessesRail.map(({ b, boosted, distance }) => (
+              <button
+                key={b.id}
+                type="button"
+                className="near-rail__card"
+                role="listitem"
+                onClick={() => navigate(`/app/business/${b.businessId || b.id}`)}
+              >
+                {boosted ? <span className="near-rail__boost">Top</span> : null}
+                <strong>{b.businessName}</strong>
+                <span className="muted small">{distance.toFixed(1)} km</span>
+              </button>
+            ))}
+            {rankedBusinesses.length > RAIL_VISIBLE ? (
+              <button
+                type="button"
+                className="near-rail__card near-rail__card--more"
+                role="listitem"
+                onClick={() => setBusinessesExpanded(true)}
+              >
+                <strong>See more</strong>
+                <span className="muted small">Browse all</span>
+              </button>
+            ) : null}
+          </div>
+        )}
+        <p className="muted small business-home__boost-note">
+          Pay monthly to stay on top near customers.{" "}
+          <Link to="/app/discover">Boost your business</Link>
+        </p>
       </section>
     </div>
   );

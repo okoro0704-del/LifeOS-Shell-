@@ -99,13 +99,12 @@ export function AppShell() {
     location.pathname === "/app/" ||
     pathNorm === "/app" ||
     isBusinessHome;
-  /** Personal Home has its own brand bar; Business home lands on content. */
+  /** Personal Home sections use kernel brand chrome — hide shell greeting. */
   const hideChrome =
-    isBusinessHome ||
-    (mode === "PERSONAL" &&
-      (/^\/app\/personal\/(post|reels|connects|communities)$/.test(pathNorm) ||
-        /^\/app\/personal\/(free|offline)\/(post|reels|connects|communities)$/.test(pathNorm) ||
-        pathNorm === "/app/personal"));
+    mode === "PERSONAL" &&
+    (/^\/app\/personal\/(post|reels|connects|communities)$/.test(pathNorm) ||
+      /^\/app\/personal\/(free|offline)\/(post|reels|connects|communities)$/.test(pathNorm) ||
+      pathNorm === "/app/personal");
   const pageMeta = isHome || hideChrome ? null : resolvePageMeta(location.pathname);
   const tabs = useMemo(
     () => primaryNavForMode(mode, personalKernel),
@@ -379,7 +378,14 @@ export function AppShell() {
         <CommandOverlay />
 
         {!isImmersive ? (
-          <nav className="bottom-nav bottom-nav--fab bottom-nav--float" aria-label="Primary">
+          <nav
+            className={`bottom-nav bottom-nav--fab bottom-nav--float${
+              mode === "PERSONAL" && personalKernel !== "main"
+                ? ` bottom-nav--kernel-${personalKernel}`
+                : ""
+            }`}
+            aria-label="Primary"
+          >
             {tabs.slice(0, 2).map((t) => (
               <NavLink
                 key={t.to}

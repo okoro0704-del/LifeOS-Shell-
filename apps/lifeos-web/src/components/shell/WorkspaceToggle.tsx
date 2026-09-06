@@ -11,17 +11,18 @@ const OPTIONS: { mode: WorkspaceMode; label: string }[] = [
 ];
 
 const COOLDOWN_MS = 350;
+const DOUBLE_TAP_MS = 420;
 
 export type WorkspaceToggleProps = {
   onModeChange?: (mode: WorkspaceMode) => void;
-  /** Compact control for bottom nav — tap (or double-tap) flips space. */
+  /** Compact control for bottom nav — double-tap flips space. */
   variant?: "segmented" | "space";
 };
 
 /**
  * Personal ↔ Business space switch.
- * Mobile: one tap flips. Desktop Space: one tap or double-click flips.
- * Lands on Personal Main or Business Home.
+ * Bottom Space control: double-tap only (avoids accidental flips).
+ * Segmented control: explicit Personal / Business buttons.
  */
 export function WorkspaceToggle({
   onModeChange,
@@ -30,6 +31,7 @@ export function WorkspaceToggle({
   const { mode, setMode } = useWorkspace();
   const navigate = useNavigate();
   const lastFlipAt = useRef(0);
+  const lastTapAt = useRef(0);
   /** Ignore the synthetic click that follows touchend on mobile. */
   const touchHandled = useRef(false);
 
@@ -44,6 +46,16 @@ export function WorkspaceToggle({
     onModeChange?.(next);
     navigate(next === "PERSONAL" ? personalLandingPath() : workspaceHomePath(next));
   }, [mode, setMode, onModeChange, navigate]);
+
+  const onDoubleActivate = useCallback(() => {
+    const now = Date.now();
+    if (now - lastTapAt.current < DOUBLE_TAP_MS) {
+      lastTapAt.current = 0;
+      flipSpace();
+      return;
+    }
+    lastTapAt.current = now;
+  }, [flipSpace]);
 
   const goToMode = useCallback(
     (next: WorkspaceMode) => {
@@ -64,20 +76,19 @@ export function WorkspaceToggle({
       <button
         type="button"
         className="bottom-item bottom-item--space"
-        aria-label={`Switch space. Now ${mode === "PERSONAL" ? "Personal" : "Business"}.`}
-        title="Tap to switch space"
+        aria-label={`Double-tap to switch space. Now ${mode === "PERSONAL" ? "Personal" : "Business"}.`}
+        title="Double-tap to switch space"
         onTouchEnd={(e) => {
-          // Prefer touchend on mobile — more reliable than click/dblclick.
           e.preventDefault();
           touchHandled.current = true;
-          flipSpace();
+          onDoubleActivate();
           window.setTimeout(() => {
             touchHandled.current = false;
-          }, 400);
+          }, 450);
         }}
         onClick={() => {
           if (touchHandled.current) return;
-          flipSpace();
+          onDoubleActivate();
         }}
         onDoubleClick={(e) => {
           e.preventDefault();
@@ -106,24 +117,8 @@ export function WorkspaceToggle({
             type="button"
             className={`workspace-toggle__btn${active ? " is-active" : ""}`}
             aria-pressed={active}
-            onTouchEnd={(e) => {
-              e.preventDefault();
-              touchHandled.current = true;
-              if (opt.mode === mode) {
-                flipSpace();
-              } else {
-                goToMode(opt.mode);
-              }
-              window.setTimeout(() => {
-                touchHandled.current = false;
-              }, 400);
-            }}
             onClick={() => {
-              if (touchHandled.current) return;
-              if (opt.mode === mode) {
-                flipSpace();
-                return;
-              }
+              if (opt.mode === mode) return;
               goToMode(opt.mode);
             }}
           >

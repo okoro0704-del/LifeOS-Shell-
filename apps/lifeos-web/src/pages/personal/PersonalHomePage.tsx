@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Navigate, useNavigate } from "react-router-dom";
-import { MediaFeed } from "../../components/MediaFeed";
+import { ImmersiveMediaFeed } from "../../components/ImmersiveMediaFeed";
 import { catalogByKinds, hasPremium, setPremium, type MediaItem } from "../../lib/personalCatalog";
 import type { PersonalKernel } from "../../components/shell/nav";
 import { authClient } from "../../lib/api";
@@ -39,8 +39,12 @@ function kernelLabel(kernel: PersonalKernel): string {
   return "Main";
 }
 
+function sectionLabel(section: HomeSection): string {
+  return SECTIONS.find((s) => s.id === section)?.label ?? "Post";
+}
+
 /**
- * Brand row only on Home (Post) of each kernel.
+ * Persistent kernel top bar on every Home section.
  * Main: Main · LifeOS · Go Premium
  * Free/Offline: Kernel · LifeOS · × (exit to Main)
  */
@@ -100,59 +104,89 @@ function KernelBrandBar({ kernel }: { kernel: PersonalKernel }) {
 }
 
 /**
- * Shared Personal home chrome. Brand bar only on Post (Home).
- * Section tabs stay inside the active kernel.
+ * Brand bar + section tabs. On scroll, chrome hides and a compact section title stays.
  */
 export function PersonalKernelShell({
   kernel,
   section,
   children,
+  immersive = false,
 }: {
   kernel: PersonalKernel;
   section: HomeSection;
   children: ReactNode;
+  immersive?: boolean;
 }) {
   const base = basePath(kernel);
-  const isHome = section === "post";
+  const [scrolled, setScrolled] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setScrolled(false);
+    const root = scrollRef.current;
+    if (!root) return;
+
+    const onScroll = () => {
+      const feed = root.querySelector(".immersive-feed") as HTMLElement | null;
+      const top = feed ? feed.scrollTop : root.scrollTop;
+      setScrolled(top > 28);
+    };
+
+    const feed = root.querySelector(".immersive-feed");
+    const target = (feed as HTMLElement | null) ?? root;
+    target.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => target.removeEventListener("scroll", onScroll);
+  }, [section, kernel]);
 
   return (
-    <div className={`page personal-page personal-page--kernel personal-page--${kernel}`}>
-      {isHome ? <KernelBrandBar kernel={kernel} /> : null}
+    <div
+      className={`page personal-page personal-page--kernel personal-page--${kernel}${
+        immersive ? " personal-page--immersive" : ""
+      }${scrolled ? " is-scrolled" : ""}`}
+    >
+      <div className={`kernel-chrome${scrolled ? " is-hidden" : ""}`}>
+        <KernelBrandBar kernel={kernel} />
+        <nav className="segment-topbar segment-topbar--home" aria-label="Home sections">
+          {SECTIONS.map((s) => (
+            <NavLink
+              key={s.id}
+              to={`${base}/${s.id}`}
+              end={s.id === "post"}
+              className={({ isActive }) =>
+                `segment-topbar__tab${isActive || section === s.id ? " is-active" : ""}`
+              }
+            >
+              {s.label}
+            </NavLink>
+          ))}
+        </nav>
+      </div>
 
-      <nav className="segment-topbar segment-topbar--home" aria-label="Home sections">
-        {SECTIONS.map((s) => (
-          <NavLink
-            key={s.id}
-            to={`${base}/${s.id}`}
-            end={s.id === "post"}
-            className={({ isActive }) =>
-              `segment-topbar__tab${isActive || section === s.id ? " is-active" : ""}`
-            }
-          >
-            {s.label}
-          </NavLink>
-        ))}
-      </nav>
+      <div className={`kernel-sticky-title${scrolled ? " is-visible" : ""}`} aria-live="polite">
+        {sectionLabel(section)}
+      </div>
 
-      {children}
+      <div className="kernel-scroll" ref={scrollRef}>
+        {children}
+      </div>
     </div>
   );
 }
 
 function postItems(kernel: PersonalKernel) {
-  const raw = catalogByKinds(["picture", "video", "post"]).filter(
-    (i) => i.kind === "picture" || i.free || i.kind === "post",
-  );
+  const raw = catalogByKinds(["picture", "video", "post"]);
   return filterForKernel(kernel, raw);
 }
 
 export function KernelPostPage({ kernel }: { kernel: PersonalKernel }) {
   return (
-    <PersonalKernelShell kernel={kernel} section="post">
-      <MediaFeed
+    <PersonalKernelShell kernel={kernel} section="post" immersive>
+      <ImmersiveMediaFeed
         items={postItems(kernel)}
         empty="Nothing here yet."
         gatePremium={kernel === "main"}
+        mode="post"
       />
     </PersonalKernelShell>
   );
@@ -160,11 +194,12 @@ export function KernelPostPage({ kernel }: { kernel: PersonalKernel }) {
 
 export function KernelReelsPage({ kernel }: { kernel: PersonalKernel }) {
   return (
-    <PersonalKernelShell kernel={kernel} section="reels">
-      <MediaFeed
+    <PersonalKernelShell kernel={kernel} section="reels" immersive>
+      <ImmersiveMediaFeed
         items={filterForKernel(kernel, catalogByKinds(["reel"]))}
         empty="Nothing here yet."
         gatePremium={kernel === "main"}
+        mode="reels"
       />
     </PersonalKernelShell>
   );
