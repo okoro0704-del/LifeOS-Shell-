@@ -33,11 +33,17 @@ export function resolvePageMeta(pathname: string): PageMeta | null {
   if (path.startsWith("/app/personal/reels")) {
     return { title: "Reels", subtitle: "Home" };
   }
+  if (path.startsWith("/app/personal/connects")) {
+    return { title: "Connects", subtitle: "Home" };
+  }
   if (path.startsWith("/app/personal/communities")) {
     return { title: "Communities", subtitle: "Home" };
   }
+  if (path.startsWith("/app/personal/learnverse/edu")) {
+    return { title: "Edu", subtitle: "Higher & secondary" };
+  }
   if (path.startsWith("/app/personal/learnverse")) {
-    return { title: "LearnVerse", subtitle: "Books · Courses · Schools" };
+    return { title: "LearnVerse", subtitle: "Books · Courses · Edu · Schools" };
   }
   if (path.startsWith("/app/personal/streamify")) {
     return { title: "Streamify", subtitle: "Content · Music · Podcast · Videos" };

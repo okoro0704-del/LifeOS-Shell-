@@ -20,7 +20,7 @@ export function setPremium(active: boolean) {
 export type MediaItem = {
   id: string;
   title: string;
-  kind: "video" | "picture" | "reel" | "music" | "podcast" | "book" | "course" | "school" | "post" | "info";
+  kind: "video" | "picture" | "reel" | "music" | "podcast" | "book" | "course" | "edu" | "school" | "post" | "info";
   detail: string;
   /** Creator marked free for Free kernel / free tier */
   free: boolean;
@@ -135,10 +135,37 @@ export const PERSONAL_CATALOG: MediaItem[] = [
     id: "c1",
     title: "Product craft 101",
     kind: "course",
-    detail: "12 lessons",
+    detail: "12 lessons · general learning",
     free: true,
     ownedOrConsumed: false,
     premiumRequired: false,
+  },
+  {
+    id: "e1",
+    title: "WAEC Sciences Prep",
+    kind: "edu",
+    detail: "Secondary · exam track",
+    free: false,
+    ownedOrConsumed: true,
+    premiumRequired: true,
+  },
+  {
+    id: "e2",
+    title: "First-year Engineering Maths",
+    kind: "edu",
+    detail: "Higher education · semester 1",
+    free: true,
+    ownedOrConsumed: false,
+    premiumRequired: false,
+  },
+  {
+    id: "e3",
+    title: "A-Level Literature seminar",
+    kind: "edu",
+    detail: "Secondary · specialized",
+    free: false,
+    ownedOrConsumed: false,
+    premiumRequired: true,
   },
   {
     id: "s1",

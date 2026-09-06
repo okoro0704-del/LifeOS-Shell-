@@ -7,6 +7,7 @@ import { catalogByKinds } from "../../lib/personalCatalog";
 const TABS = [
   { to: "/app/personal/learnverse", end: true, label: "Books" },
   { to: "/app/personal/learnverse/courses", label: "Courses" },
+  { to: "/app/personal/learnverse/edu", label: "Edu" },
   { to: "/app/personal/learnverse/schools", label: "Schools" },
 ];
 
@@ -34,8 +35,19 @@ export function LearnVerseBooksPage() {
 
 export function LearnVerseCoursesPage() {
   return (
-    <Shell title="Courses" detail="Structured lessons and tracks.">
+    <Shell title="Courses" detail="General learning tracks and creator courses.">
       <MediaFeed items={catalogByKinds(["course"])} empty="No courses yet." gatePremium />
+    </Shell>
+  );
+}
+
+export function LearnVerseEduPage() {
+  return (
+    <Shell
+      title="Edu"
+      detail="Specialized higher and secondary school programmes — not general learning courses."
+    >
+      <MediaFeed items={catalogByKinds(["edu"])} empty="No Edu programmes yet." gatePremium />
     </Shell>
   );
 }
@@ -53,6 +65,7 @@ export function LearnVerseRoutes() {
     <Routes>
       <Route index element={<LearnVerseBooksPage />} />
       <Route path="courses" element={<LearnVerseCoursesPage />} />
+      <Route path="edu" element={<LearnVerseEduPage />} />
       <Route path="schools" element={<LearnVerseSchoolsPage />} />
       <Route path="*" element={<Navigate to="." replace />} />
     </Routes>

@@ -29,7 +29,12 @@ export const PERSONAL_PRIMARY_NAV: ShellNavItem[] = [
     to: "/app/personal/post",
     label: "Home",
     Icon: IconHome,
-    matchPrefixes: ["/app/personal/post", "/app/personal/reels", "/app/personal/communities"],
+    matchPrefixes: [
+      "/app/personal/post",
+      "/app/personal/reels",
+      "/app/personal/connects",
+      "/app/personal/communities",
+    ],
   },
   { to: "/app/personal/learnverse", label: "LearnVerse", Icon: IconBook },
   { to: "/app/personal/streamify", label: "Streamify", Icon: IconExplore },
@@ -53,18 +58,26 @@ export function workspaceHomePath(mode: WorkspaceMode): string {
 }
 
 export function personalKernelPath(kernel: PersonalKernel): string {
-  if (kernel === "offline") return "/app/personal/offline";
-  if (kernel === "free") return "/app/personal/free";
+  if (kernel === "offline") return "/app/personal/offline/post";
+  if (kernel === "free") return "/app/personal/free/post";
   return "/app/personal/post";
 }
 
 export function personalKernelFromPath(pathname: string): PersonalKernel | null {
   const path = pathname.replace(/\/+$/, "") || "/";
-  if (path === "/app/personal/offline" || path === "/app/personal/vault") return "offline";
-  if (path === "/app/personal/free" || path === "/app/personal/discovery") return "free";
+  if (path === "/app/personal/offline" || path.startsWith("/app/personal/offline/") || path === "/app/personal/vault") {
+    return "offline";
+  }
+  if (path === "/app/personal/free" || path.startsWith("/app/personal/free/") || path === "/app/personal/discovery") {
+    return "free";
+  }
   if (
     path === "/app/personal" ||
     path === "/app/personal/main" ||
+    path.startsWith("/app/personal/post") ||
+    path.startsWith("/app/personal/reels") ||
+    path.startsWith("/app/personal/connects") ||
+    path.startsWith("/app/personal/communities") ||
     path.startsWith("/app/personal/learnverse") ||
     path.startsWith("/app/personal/streamify") ||
     path.startsWith("/app/personal/plus")

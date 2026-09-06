@@ -6,14 +6,13 @@ import { dirname, join } from "node:path";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 describe("personal consumer space wiring", () => {
-  it("PersonalRoutes mounts Home Post/Reels, LearnVerse, Streamify, Plus", () => {
+  it("PersonalRoutes mounts kernel Home tabs and LearnVerse Edu", () => {
     const src = readFileSync(join(root, "src/routes/personalRoutes.tsx"), "utf8");
     expect(src).toContain("PersonalPostPage");
+    expect(src).toContain("PersonalConnectsPage");
+    expect(src).toContain("FreePostPage");
+    expect(src).toContain("OfflinePostPage");
     expect(src).toContain("LearnVerseRoutes");
-    expect(src).toContain("StreamifyRoutes");
-    expect(src).toContain("PersonalPlusPage");
-    expect(src).toContain('path="offline"');
-    expect(src).toContain('path="free"');
   });
 
   it("primary nav is Home · LearnVerse · Streamify", () => {
@@ -21,8 +20,13 @@ describe("personal consumer space wiring", () => {
     expect(src).toContain('label: "Home"');
     expect(src).toContain('label: "LearnVerse"');
     expect(src).toContain('label: "Streamify"');
-    expect(src).toContain("/app/personal/learnverse");
-    expect(src).toContain("/app/personal/streamify");
+  });
+
+  it("LearnVerse includes Edu between Courses and Schools", () => {
+    const src = readFileSync(join(root, "src/pages/personal/LearnVersePage.tsx"), "utf8");
+    expect(src).toContain('label: "Edu"');
+    expect(src).toContain("LearnVerseEduPage");
+    expect(src).toContain("higher and secondary");
   });
 
   it("App mounts personal/* routes", () => {

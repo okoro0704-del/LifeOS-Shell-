@@ -84,6 +84,12 @@ export function AppShell() {
   const [appsLoading, setAppsLoading] = useState(true);
   const avatarSrc = user?.preferences?.avatarUrl ?? null;
   const firstName = user?.firstName || user?.displayName?.split(" ")[0] || "there";
+  const pathNorm = location.pathname.replace(/\/+$/, "") || "/";
+  const isPersonalHomeFeed =
+    mode === "PERSONAL" &&
+    (/^\/app\/personal\/(post|reels|connects|communities)$/.test(pathNorm) ||
+      /^\/app\/personal\/(free|offline)\/(post|reels|connects|communities)$/.test(pathNorm) ||
+      pathNorm === "/app/personal");
   const onExplore = location.pathname.startsWith("/app/personal/plus");
   const isImmersive =
     isBusinessDetailPath(location.pathname) ||
@@ -92,11 +98,10 @@ export function AppShell() {
     location.pathname === "/app" ||
     location.pathname === "/app/" ||
     location.pathname.replace(/\/+$/, "") === "/app" ||
-    location.pathname === "/app/personal" ||
-    location.pathname === "/app/personal/post" ||
-    location.pathname === "/app/personal/main" ||
     location.pathname === "/app/business";
-  const pageMeta = isHome ? null : resolvePageMeta(location.pathname);
+  /** Personal Home has its own LifeOS brand — hide shell greeting / page top bar. */
+  const hideChrome = isPersonalHomeFeed;
+  const pageMeta = isHome || hideChrome ? null : resolvePageMeta(location.pathname);
   const tabs = useMemo(() => primaryNavForMode(mode), [mode]);
   const launcherApps = useMemo(
     () => filterAppsForMode(installedApps, mode),
@@ -135,7 +140,7 @@ export function AppShell() {
       setOffline(true);
       setBackOnlineNotice(false);
       if (mode === "PERSONAL") {
-        navigate("/app/personal/offline");
+        navigate("/app/personal/offline/post");
       }
     };
     window.addEventListener("online", on);
@@ -251,7 +256,7 @@ export function AppShell() {
       </aside>
 
       <div className="shell-main">
-        {isHome ? (
+        {isHome && !hideChrome ? (
           <header className="app-header">
             <div className="app-header__greeting">
               <p className="app-header__hello">{timeGreeting()},</p>

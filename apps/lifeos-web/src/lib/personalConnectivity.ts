@@ -60,7 +60,7 @@ export function needsFaceOnKernelSwitch(): boolean {
 /** Default personal landing path after login /app redirect. */
 export function personalLandingPath(): string {
   if (typeof navigator !== "undefined" && !navigator.onLine) {
-    return "/app/personal/offline";
+    return "/app/personal/offline/post";
   }
   const pending = peekPendingKernelPath();
   if (pending) return pending;
