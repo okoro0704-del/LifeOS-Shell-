@@ -1,12 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
+  applyStoredTrends,
   freeCatalog,
-  hasPremium,
+  markTrending,
   offlineCatalog,
   PERSONAL_CATALOG,
-  randomCatalogItem,
-  setPremium,
+  trendingCatalog,
   type MediaItem,
 } from "../../lib/personalCatalog";
 import { personalKernelFromPath, personalNavBase } from "../../components/shell/nav";
@@ -19,50 +19,67 @@ function poolForPath(pathname: string): MediaItem[] {
 }
 
 /**
- * Plus FAB — random content scoped to the active kernel.
+ * Personal Plus — trending content. Creators can pay to Trend.
  */
 export function PersonalPlusPage() {
   const location = useLocation();
   const kernel = personalKernelFromPath(location.pathname) ?? "main";
   const home = `${personalNavBase(kernel)}/post`;
-  const pool = poolForPath(location.pathname);
-  const pick = () => pool[Math.floor(Math.random() * Math.max(pool.length, 1))] ?? randomCatalogItem();
-  const [item, setItem] = useState<MediaItem>(() => pick());
-  const premium = hasPremium();
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    setItem(pick());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    applyStoredTrends();
+    setTick((n) => n + 1);
   }, [location.pathname]);
 
-  const locked = kernel === "main" && item.premiumRequired && !premium && !item.free;
+  const items = useMemo(() => {
+    applyStoredTrends();
+    return trendingCatalog(poolForPath(location.pathname)).slice(0, 16);
+  }, [location.pathname, tick]);
 
   return (
-    <div className="page personal-page">
-      <article className="plus-card">
-        <span className="media-feed__kind">{item.kind}</span>
-        <h2>{item.title}</h2>
-        <p className="muted">{item.detail}</p>
-        {locked ? (
-          <button
-            type="button"
-            className="los-btn los-btn--primary"
-            onClick={() => {
-              setPremium(true);
-              setItem({ ...item });
-            }}
-          >
-            Go Premium
-          </button>
-        ) : (
-          <button type="button" className="los-btn los-btn--soft">
-            Open
-          </button>
-        )}
-        <button type="button" className="los-btn los-btn--ghost" onClick={() => setItem(pick())}>
-          Again
-        </button>
-      </article>
+    <div className="page personal-page plus-trending">
+      <header className="page-header page-header--compact">
+        <h1>Trending</h1>
+        <p className="muted small">Hot music, videos, posts, and products. Pay to Trend yours.</p>
+      </header>
+
+      <ul className="media-feed">
+        {items.map((item) => (
+          <li key={item.id} className="media-feed__item">
+            <div className="media-feed__meta">
+              <span className="media-feed__kind">{item.kind}</span>
+              {item.trending ? (
+                <span className="media-feed__badge media-feed__badge--trend">Trending</span>
+              ) : null}
+            </div>
+            <strong>{item.title}</strong>
+            <span className="muted small">
+              {item.author ? `@${item.author} · ` : ""}
+              {item.detail}
+              {item.trendScore ? ` · score ${item.trendScore}` : ""}
+            </span>
+            <div className="row-actions">
+              <button type="button" className="los-btn los-btn--ghost los-btn--sm">
+                Open
+              </button>
+              {!item.trending ? (
+                <button
+                  type="button"
+                  className="los-btn los-btn--soft los-btn--sm"
+                  onClick={() => {
+                    markTrending(item.id);
+                    setTick((n) => n + 1);
+                  }}
+                >
+                  Pay to Trend
+                </button>
+              ) : null}
+            </div>
+          </li>
+        ))}
+      </ul>
+
       <p>
         <Link to={home} className="text-link">
           Home

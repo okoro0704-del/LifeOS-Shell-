@@ -13,6 +13,7 @@ import {
 import { triggerWorkspaceHaptic } from "../../lib/mobileBridge";
 
 export type HomeSection = "post" | "reels" | "connects" | "communities";
+export type ScrollStage = "top" | "peek" | "immersed";
 
 const SECTIONS: { id: HomeSection; label: string }[] = [
   { id: "post", label: "Post" },
@@ -43,11 +44,7 @@ function sectionLabel(section: HomeSection): string {
   return SECTIONS.find((s) => s.id === section)?.label ?? "Post";
 }
 
-/**
- * Persistent kernel top bar on every Home section.
- * Main: Main · LifeOS · Go Premium
- * Free/Offline: Kernel · LifeOS · × (exit to Main)
- */
+/** Only static chrome: Kernel · LifeOS · Go Premium / × */
 function KernelBrandBar({ kernel }: { kernel: PersonalKernel }) {
   const navigate = useNavigate();
 
@@ -103,33 +100,65 @@ function KernelBrandBar({ kernel }: { kernel: PersonalKernel }) {
   );
 }
 
+function SectionTabs({ kernel, section }: { kernel: PersonalKernel; section: HomeSection }) {
+  const base = basePath(kernel);
+  return (
+    <nav className="segment-topbar segment-topbar--home segment-topbar--body" aria-label="Home sections">
+      {SECTIONS.map((s) => (
+        <NavLink
+          key={s.id}
+          to={`${base}/${s.id}`}
+          end={s.id === "post"}
+          className={({ isActive }) =>
+            `segment-topbar__tab${isActive || section === s.id ? " is-active" : ""}`
+          }
+        >
+          {s.label}
+        </NavLink>
+      ))}
+    </nav>
+  );
+}
+
 /**
- * Brand bar + section tabs. On scroll, chrome hides and a compact section title stays.
+ * Static brand bar only. Section tabs live in the scroll body.
+ * Scroll: tabs leave → tiny section peek → full immersive media.
  */
 export function PersonalKernelShell({
   kernel,
   section,
   children,
   immersive = false,
+  onStageChange,
 }: {
   kernel: PersonalKernel;
   section: HomeSection;
   children: ReactNode;
   immersive?: boolean;
+  onStageChange?: (stage: ScrollStage) => void;
 }) {
-  const base = basePath(kernel);
-  const [scrolled, setScrolled] = useState(false);
+  const [stage, setStage] = useState<ScrollStage>("top");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<ScrollStage>("top");
 
   useEffect(() => {
-    setScrolled(false);
+    stageRef.current = "top";
+    setStage("top");
+    onStageChange?.("top");
     const root = scrollRef.current;
     if (!root) return;
 
     const onScroll = () => {
       const feed = root.querySelector(".immersive-feed") as HTMLElement | null;
-      const top = feed ? feed.scrollTop : root.scrollTop;
-      setScrolled(top > 28);
+      const target = feed ?? root;
+      const y = target.scrollTop;
+      let next: ScrollStage = "top";
+      if (y > 140) next = "immersed";
+      else if (y > 28) next = "peek";
+      if (next === stageRef.current) return;
+      stageRef.current = next;
+      setStage(next);
+      onStageChange?.(next);
     };
 
     const feed = root.querySelector(".immersive-feed");
@@ -137,37 +166,25 @@ export function PersonalKernelShell({
     target.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
     return () => target.removeEventListener("scroll", onScroll);
-  }, [section, kernel]);
+  }, [section, kernel, immersive, onStageChange]);
 
   return (
     <div
       className={`page personal-page personal-page--kernel personal-page--${kernel}${
         immersive ? " personal-page--immersive" : ""
-      }${scrolled ? " is-scrolled" : ""}`}
+      } is-stage-${stage}`}
     >
-      <div className={`kernel-chrome${scrolled ? " is-hidden" : ""}`}>
-        <KernelBrandBar kernel={kernel} />
-        <nav className="segment-topbar segment-topbar--home" aria-label="Home sections">
-          {SECTIONS.map((s) => (
-            <NavLink
-              key={s.id}
-              to={`${base}/${s.id}`}
-              end={s.id === "post"}
-              className={({ isActive }) =>
-                `segment-topbar__tab${isActive || section === s.id ? " is-active" : ""}`
-              }
-            >
-              {s.label}
-            </NavLink>
-          ))}
-        </nav>
-      </div>
+      <KernelBrandBar kernel={kernel} />
 
-      <div className={`kernel-sticky-title${scrolled ? " is-visible" : ""}`} aria-live="polite">
+      <div
+        className={`kernel-peek-title${stage === "peek" ? " is-visible" : ""}`}
+        aria-live="polite"
+      >
         {sectionLabel(section)}
       </div>
 
       <div className="kernel-scroll" ref={scrollRef}>
+        {!immersive ? <SectionTabs kernel={kernel} section={section} /> : null}
         {children}
       </div>
     </div>
@@ -187,6 +204,7 @@ export function KernelPostPage({ kernel }: { kernel: PersonalKernel }) {
         empty="Nothing here yet."
         gatePremium={kernel === "main"}
         mode="post"
+        leading={<SectionTabs kernel={kernel} section="post" />}
       />
     </PersonalKernelShell>
   );
@@ -200,6 +218,7 @@ export function KernelReelsPage({ kernel }: { kernel: PersonalKernel }) {
         empty="Nothing here yet."
         gatePremium={kernel === "main"}
         mode="reels"
+        leading={<SectionTabs kernel={kernel} section="reels" />}
       />
     </PersonalKernelShell>
   );

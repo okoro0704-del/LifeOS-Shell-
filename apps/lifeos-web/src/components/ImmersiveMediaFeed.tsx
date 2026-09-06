@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { hasPremium, setPremium, type MediaItem } from "../lib/personalCatalog";
 
 function mediaTone(id: string): string {
@@ -16,26 +17,39 @@ function mediaTone(id: string): string {
 
 /**
  * Full-viewport snap feed for Post and Reels.
+ * Optional leading chrome (section tabs) scrolls away with the body.
  */
 export function ImmersiveMediaFeed({
   items,
   empty,
   gatePremium,
   mode = "post",
+  leading,
 }: {
   items: MediaItem[];
   empty: string;
   gatePremium?: boolean;
   mode?: "post" | "reels";
+  leading?: ReactNode;
 }) {
   const premium = hasPremium();
 
   if (!items.length) {
-    return <p className="muted immersive-feed__empty">{empty}</p>;
+    return (
+      <div className="immersive-feed immersive-feed--empty">
+        {leading}
+        <p className="muted immersive-feed__empty">{empty}</p>
+      </div>
+    );
   }
 
   return (
     <ul className={`immersive-feed immersive-feed--${mode}`} aria-label={mode === "reels" ? "Reels" : "Posts"}>
+      {leading ? (
+        <li className="immersive-feed__leading" aria-hidden={false}>
+          {leading}
+        </li>
+      ) : null}
       {items.map((item) => {
         const locked = Boolean(gatePremium && item.premiumRequired && !premium);
         const isVideo = item.kind === "video" || item.kind === "reel";
@@ -69,6 +83,7 @@ export function ImmersiveMediaFeed({
             <div className="immersive-feed__copy">
               <div className="immersive-feed__meta">
                 <span className="immersive-feed__kind">{item.kind}</span>
+                {item.trending ? <span className="media-feed__badge media-feed__badge--trend">Trending</span> : null}
                 {item.free ? <span className="media-feed__badge">Free</span> : null}
                 {item.premiumRequired ? (
                   <span className="media-feed__badge media-feed__badge--pro">Premium</span>
@@ -91,6 +106,21 @@ export function ImmersiveMediaFeed({
                   Subscribe to Premium to play
                 </button>
               ) : null}
+            </div>
+
+            <div className="immersive-feed__engage" aria-label="Engagement">
+              <button type="button" className="immersive-feed__engage-btn">
+                Like
+              </button>
+              <button type="button" className="immersive-feed__engage-btn">
+                Comment
+              </button>
+              <button type="button" className="immersive-feed__engage-btn">
+                Reuse
+              </button>
+              <button type="button" className="immersive-feed__engage-btn">
+                Reshare
+              </button>
             </div>
           </li>
         );

@@ -12,6 +12,8 @@ export type ServiceConcept = {
   span: "tall" | "wide" | "square";
   /** Soft cap for preview loop length (seconds) */
   clipSeconds: number;
+  /** Paid monthly push — surfaces first in Business Plus */
+  pushedMonthly?: boolean;
 };
 
 /**
@@ -30,6 +32,7 @@ export const SERVICE_CONCEPTS: ServiceConcept[] = [
       "https://images.unsplash.com/photo-1604329760661-e7b527d8c293?auto=format&fit=crop&w=720&q=80",
     span: "tall",
     clipSeconds: 10,
+    pushedMonthly: true,
   },
   {
     id: "svc_room",
@@ -54,6 +57,7 @@ export const SERVICE_CONCEPTS: ServiceConcept[] = [
       "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=720&q=80",
     span: "tall",
     clipSeconds: 10,
+    pushedMonthly: true,
   },
   {
     id: "svc_massage",
@@ -66,6 +70,7 @@ export const SERVICE_CONCEPTS: ServiceConcept[] = [
       "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=720&q=80",
     span: "wide",
     clipSeconds: 10,
+    pushedMonthly: true,
   },
   {
     id: "svc_apartment",

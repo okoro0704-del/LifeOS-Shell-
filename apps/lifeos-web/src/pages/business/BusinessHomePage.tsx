@@ -19,6 +19,10 @@ function isBoostedOffering(o: DiscoverableOffering, boostedBizIds: Set<string>):
   return BOOSTED_NAME_HINTS.some((h) => hay.includes(h));
 }
 
+function railThumb(seed: string) {
+  return `https://picsum.photos/seed/${encodeURIComponent(seed)}/640/800`;
+}
+
 const MOCK_BUSINESSES: DiscoverableBusiness[] = Array.from({ length: 14 }, (_, i) => ({
   id: `mock-biz-${i + 1}`,
   businessId: `mock-biz-${i + 1}`,
@@ -58,14 +62,53 @@ const MOCK_OFFERINGS: DiscoverableOffering[] = Array.from({ length: 16 }, (_, i)
   capabilities: [],
   source: "mock",
   featured: i < 2,
+  image: railThumb(`svc-${i + 1}`),
 }));
+
+type SoftwareProduct = {
+  id: string;
+  name: string;
+  maker: string;
+  pitch: string;
+  seek: "Investment" | "Partnership" | "Sponsorship" | "Sales";
+};
+
+const SOFTWARE_PRODUCTS: SoftwareProduct[] = [
+  {
+    id: "sw1",
+    name: "RouteMesh",
+    maker: "Ada Labs",
+    pitch: "Logistics routing API for last-mile fleets across West Africa.",
+    seek: "Investment",
+  },
+  {
+    id: "sw2",
+    name: "ClinicOS Lite",
+    maker: "HealthStack",
+    pitch: "Scheduling + records for small clinics. Looking for clinic partners.",
+    seek: "Partnership",
+  },
+  {
+    id: "sw3",
+    name: "PayTrail",
+    maker: "NairaForge",
+    pitch: "Reconciliation dashboard for multi-wallet merchants.",
+    seek: "Sponsorship",
+  },
+  {
+    id: "sw4",
+    name: "ShelfSense",
+    maker: "RetailBit",
+    pitch: "Inventory vision for kiosks — ready for SMB sales.",
+    seek: "Sales",
+  },
+];
 
 type BizRow = { b: DiscoverableBusiness; boosted: boolean; distance: number };
 type OffRow = { o: DiscoverableOffering; boosted: boolean; distance: number };
 
 /**
- * Business space home — Ask LifeOS, then Services / Businesses near-me rails.
- * 10th rail slot is See more → vertical list.
+ * Business space home — Ask LifeOS, near-me rails (2-up media), Software Products.
  */
 export function BusinessHomePage() {
   const navigate = useNavigate();
@@ -192,29 +235,39 @@ export function BusinessHomePage() {
             </li>
           </ul>
         ) : (
-          <div className="near-rail" role="list">
+          <div className="near-rail near-rail--hero" role="list">
             {servicesRail.map(({ o, boosted, distance }) => (
               <button
                 key={o.id}
                 type="button"
-                className="near-rail__card"
+                className="near-rail__card near-rail__card--media"
                 role="listitem"
                 onClick={() => navigate(`/app/discover?offering=${o.id}`)}
               >
+                <img
+                  className="near-rail__thumb"
+                  src={o.image || railThumb(o.id)}
+                  alt=""
+                  loading="lazy"
+                />
                 {boosted ? <span className="near-rail__boost">Top</span> : null}
-                <strong>{o.name}</strong>
-                <span className="muted small">{distance.toFixed(1)} km</span>
+                <span className="near-rail__caption">
+                  <strong>{o.name}</strong>
+                  <span className="muted small">{distance.toFixed(1)} km</span>
+                </span>
               </button>
             ))}
             {rankedServices.length > RAIL_VISIBLE ? (
               <button
                 type="button"
-                className="near-rail__card near-rail__card--more"
+                className="near-rail__card near-rail__card--media near-rail__card--more"
                 role="listitem"
                 onClick={() => setServicesExpanded(true)}
               >
-                <strong>See more</strong>
-                <span className="muted small">Browse all</span>
+                <span className="near-rail__caption">
+                  <strong>See more</strong>
+                  <span className="muted small">Browse all</span>
+                </span>
               </button>
             ) : null}
           </div>
@@ -263,29 +316,39 @@ export function BusinessHomePage() {
             </li>
           </ul>
         ) : (
-          <div className="near-rail" role="list">
+          <div className="near-rail near-rail--hero" role="list">
             {businessesRail.map(({ b, boosted, distance }) => (
               <button
                 key={b.id}
                 type="button"
-                className="near-rail__card"
+                className="near-rail__card near-rail__card--media"
                 role="listitem"
                 onClick={() => navigate(`/app/business/${b.businessId || b.id}`)}
               >
+                <img
+                  className="near-rail__thumb"
+                  src={b.logo || railThumb(b.id)}
+                  alt=""
+                  loading="lazy"
+                />
                 {boosted ? <span className="near-rail__boost">Top</span> : null}
-                <strong>{b.businessName}</strong>
-                <span className="muted small">{distance.toFixed(1)} km</span>
+                <span className="near-rail__caption">
+                  <strong>{b.businessName}</strong>
+                  <span className="muted small">{distance.toFixed(1)} km</span>
+                </span>
               </button>
             ))}
             {rankedBusinesses.length > RAIL_VISIBLE ? (
               <button
                 type="button"
-                className="near-rail__card near-rail__card--more"
+                className="near-rail__card near-rail__card--media near-rail__card--more"
                 role="listitem"
                 onClick={() => setBusinessesExpanded(true)}
               >
-                <strong>See more</strong>
-                <span className="muted small">Browse all</span>
+                <span className="near-rail__caption">
+                  <strong>See more</strong>
+                  <span className="muted small">Browse all</span>
+                </span>
               </button>
             ) : null}
           </div>
@@ -294,6 +357,31 @@ export function BusinessHomePage() {
           Pay monthly to stay on top near customers.{" "}
           <Link to="/app/discover">Boost your business</Link>
         </p>
+      </section>
+
+      <section className="business-home__section" aria-label="Software Products">
+        <div className="business-home__section-head">
+          <h2>Software Products</h2>
+          <span className="muted small">Build · seek · sell</span>
+        </div>
+        <p className="muted small business-home__soft-intro">
+          Developers pitch software for investment, partnership, sponsorship, or sales.
+        </p>
+        <ul className="software-products">
+          {SOFTWARE_PRODUCTS.map((p) => (
+            <li key={p.id} className="software-products__item">
+              <div className="software-products__meta">
+                <span className="media-feed__badge">{p.seek}</span>
+                <span className="muted small">{p.maker}</span>
+              </div>
+              <strong>{p.name}</strong>
+              <p className="muted small">{p.pitch}</p>
+              <button type="button" className="los-btn los-btn--ghost los-btn--sm">
+                Connect
+              </button>
+            </li>
+          ))}
+        </ul>
       </section>
     </div>
   );

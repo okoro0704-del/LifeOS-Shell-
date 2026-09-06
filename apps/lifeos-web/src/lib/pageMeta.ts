@@ -48,8 +48,8 @@ export function resolvePageMeta(pathname: string): PageMeta | null {
   if (path.startsWith("/app/personal/streamify")) {
     return { title: "Streamify", subtitle: "Content · Music · Podcast · Videos" };
   }
-  if (path.startsWith("/app/personal/plus")) {
-    return { title: "Plus", subtitle: "Random discover" };
+  if (path.startsWith("/app/personal/plus") || path.match(/\/personal\/(free|offline)\/plus/)) {
+    return { title: "Trending", subtitle: "Pay to Trend" };
   }
   if (path.startsWith("/app/personal/offline") || path.startsWith("/app/personal/vault")) {
     return { title: "Offline", subtitle: "Bought & consumed" };
@@ -116,7 +116,7 @@ export function resolvePageMeta(pathname: string): PageMeta | null {
     };
   }
   if (path === "/app/services/explore") {
-    return { title: "Discover", subtitle: "Services in video — tap to find sellers" };
+    return { title: "Pushed services", subtitle: "Monthly boosts first" };
   }
 
   const feedMatch = path.match(/^\/app\/services\/([^/]+)\/feed$/);

@@ -32,6 +32,9 @@ export type MediaItem = {
   likes?: string;
   mediaUrl?: string;
   posterUrl?: string;
+  /** Paid to appear in Plus trending */
+  trending?: boolean;
+  trendScore?: number;
 };
 
 const SAMPLE_VIDEOS = [
@@ -63,6 +66,8 @@ export const PERSONAL_CATALOG: MediaItem[] = [
     author: "amaka.lens",
     likes: "12.4k",
     posterUrl: poster("lagoon-sunset"),
+    trending: true,
+    trendScore: 96,
   },
   {
     id: "p2",
@@ -76,6 +81,8 @@ export const PERSONAL_CATALOG: MediaItem[] = [
     likes: "8.1k",
     mediaUrl: videoAt(0),
     posterUrl: poster("street-food"),
+    trending: true,
+    trendScore: 88,
   },
   {
     id: "p3",
@@ -163,6 +170,8 @@ export const PERSONAL_CATALOG: MediaItem[] = [
     likes: "44k",
     mediaUrl: videoAt(3),
     posterUrl: poster("stretch-reel"),
+    trending: true,
+    trendScore: 99,
   },
   {
     id: "r2",
@@ -202,6 +211,8 @@ export const PERSONAL_CATALOG: MediaItem[] = [
     likes: "62k",
     mediaUrl: videoAt(1),
     posterUrl: poster("dance-break"),
+    trending: true,
+    trendScore: 94,
   },
   {
     id: "r5",
@@ -277,6 +288,8 @@ export const PERSONAL_CATALOG: MediaItem[] = [
     likes: "33k",
     mediaUrl: videoAt(4),
     posterUrl: poster("night-drive"),
+    trending: true,
+    trendScore: 91,
   },
   {
     id: "v2",
@@ -367,6 +380,53 @@ export const PERSONAL_CATALOG: MediaItem[] = [
 
 export function catalogByKinds(kinds: MediaItem["kind"][]): MediaItem[] {
   return PERSONAL_CATALOG.filter((i) => kinds.includes(i.kind));
+}
+
+/** Plus — paid trending first, then by score. */
+export function trendingCatalog(pool: MediaItem[] = PERSONAL_CATALOG): MediaItem[] {
+  return [...pool].sort((a, b) => {
+    const at = a.trending ? 1 : 0;
+    const bt = b.trending ? 1 : 0;
+    if (at !== bt) return bt - at;
+    return (b.trendScore ?? 0) - (a.trendScore ?? 0);
+  });
+}
+
+const TREND_KEY = "lifeos.trend.ids";
+
+export function markTrending(id: string) {
+  try {
+    const raw = localStorage.getItem(TREND_KEY);
+    const ids: string[] = raw ? (JSON.parse(raw) as string[]) : [];
+    if (!ids.includes(id)) {
+      ids.push(id);
+      localStorage.setItem(TREND_KEY, JSON.stringify(ids));
+    }
+    const item = PERSONAL_CATALOG.find((i) => i.id === id);
+    if (item) {
+      item.trending = true;
+      item.trendScore = Math.max(item.trendScore ?? 0, 85);
+    }
+  } catch {
+    /* */
+  }
+}
+
+export function applyStoredTrends() {
+  try {
+    const raw = localStorage.getItem(TREND_KEY);
+    if (!raw) return;
+    const ids = JSON.parse(raw) as string[];
+    for (const id of ids) {
+      const item = PERSONAL_CATALOG.find((i) => i.id === id);
+      if (item) {
+        item.trending = true;
+        item.trendScore = Math.max(item.trendScore ?? 0, 80);
+      }
+    }
+  } catch {
+    /* */
+  }
 }
 
 export function freeCatalog(): MediaItem[] {
