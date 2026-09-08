@@ -1,12 +1,19 @@
 import type { PersonalKernel } from "../components/shell/nav";
 import { personalKernelPath } from "../components/shell/nav";
+import { isMobileApp } from "./mobileBridge";
 
 const PENDING_KERNEL_KEY = "lifeos.pending_kernel";
 const NEEDS_FACE_KEY = "lifeos.needs_face_on_kernel";
-const AUTH_BYPASS = (import.meta.env.VITE_AUTH_BYPASS ?? "").toLowerCase() === "true";
+const ENV_AUTH_BYPASS = (import.meta.env.VITE_AUTH_BYPASS ?? "").toLowerCase() === "true";
 
+/** TrustID OAuth skipped when env flag is on, or on native Capacitor APK/IPA builds. */
 export function isAuthBypass(): boolean {
-  return AUTH_BYPASS;
+  if (ENV_AUTH_BYPASS) return true;
+  try {
+    return isMobileApp();
+  } catch {
+    return false;
+  }
 }
 
 export function setPendingKernel(kernel: PersonalKernel) {

@@ -172,96 +172,17 @@ export function BusinessHomePage() {
         <AskLifeOSTrigger />
       </div>
 
-      <section className="business-home__section" aria-label="Services near me">
+      <section className="business-home__section business-home__section--tight" aria-label="Businesses">
         <div className="business-home__section-head">
-          <h2>Services near me</h2>
+          <h2>Businesses</h2>
           <span className="muted small">{locLabel}</span>
-        </div>
-        {loading ? (
-          <p className="muted">Loading…</p>
-        ) : rankedServices.length === 0 ? (
-          <p className="muted">No services nearby yet.</p>
-        ) : servicesExpanded ? (
-          <ul className="business-home__vertical" aria-label="All services near me">
-            {rankedServices.map(({ o, distance }) => (
-              <li key={o.id} className="business-home__vertical-item">
-                <div className="business-home__card-meta">
-                  <span className="muted small">{o.category || o.type || "Service"}</span>
-                </div>
-                <strong>{o.name}</strong>
-                <span className="muted small">
-                  {o.businessName ? `${o.businessName} · ` : ""}
-                  {distance.toFixed(1)} km
-                </span>
-                <button
-                  type="button"
-                  className="los-btn los-btn--ghost los-btn--sm"
-                  onClick={() => navigate(`/app/discover?offering=${o.id}`)}
-                >
-                  View
-                </button>
-              </li>
-            ))}
-            <li>
-              <button
-                type="button"
-                className="los-btn los-btn--soft los-btn--sm"
-                onClick={() => setServicesExpanded(false)}
-              >
-                Back to rail
-              </button>
-            </li>
-          </ul>
-        ) : (
-          <div className="near-rail near-rail--hero" role="list">
-            {servicesRail.map(({ o, distance }) => (
-              <button
-                key={o.id}
-                type="button"
-                className="near-rail__card near-rail__card--media"
-                role="listitem"
-                onClick={() => navigate(`/app/discover?offering=${o.id}`)}
-              >
-                <img
-                  className="near-rail__thumb"
-                  src={o.image || railThumb(o.id)}
-                  alt=""
-                  loading="lazy"
-                />
-                <span className="near-rail__caption">
-                  <strong>{o.name}</strong>
-                  <span className="muted small">{distance.toFixed(1)} km</span>
-                </span>
-              </button>
-            ))}
-            {rankedServices.length > RAIL_VISIBLE ? (
-              <button
-                type="button"
-                className="near-rail__card near-rail__card--media near-rail__card--more"
-                role="listitem"
-                onClick={() => setServicesExpanded(true)}
-              >
-                <span className="near-rail__caption">
-                  <strong>See more</strong>
-                  <span className="muted small">Browse all</span>
-                </span>
-              </button>
-            ) : null}
-          </div>
-        )}
-      </section>
-
-      <section className="business-home__section" aria-label="Businesses near me">
-        <div className="business-home__section-head">
-          <h2>Businesses near me</h2>
-          <span className="muted small">Nearby</span>
         </div>
         {loading ? (
           <p className="muted">Loading…</p>
         ) : rankedBusinesses.length === 0 ? (
           <p className="muted">No businesses nearby yet.</p>
         ) : businessesExpanded ? (
-          <ul className="business-home__vertical" aria-label="All businesses near me">
+          <ul className="business-home__vertical" aria-label="All businesses">
             {rankedBusinesses.map(({ b, distance }) => (
               <li key={b.id} className="business-home__vertical-item">
                 <div className="business-home__card-meta">
@@ -319,6 +240,85 @@ export function BusinessHomePage() {
                 className="near-rail__card near-rail__card--media near-rail__card--more"
                 role="listitem"
                 onClick={() => setBusinessesExpanded(true)}
+              >
+                <span className="near-rail__caption">
+                  <strong>See more</strong>
+                  <span className="muted small">Browse all</span>
+                </span>
+              </button>
+            ) : null}
+          </div>
+        )}
+      </section>
+
+      <section className="business-home__section business-home__section--tight" aria-label="Services">
+        <div className="business-home__section-head">
+          <h2>Services</h2>
+          <span className="muted small">Nearby</span>
+        </div>
+        {loading ? (
+          <p className="muted">Loading…</p>
+        ) : rankedServices.length === 0 ? (
+          <p className="muted">No services nearby yet.</p>
+        ) : servicesExpanded ? (
+          <ul className="business-home__vertical" aria-label="All services">
+            {rankedServices.map(({ o, distance }) => (
+              <li key={o.id} className="business-home__vertical-item">
+                <div className="business-home__card-meta">
+                  <span className="muted small">{o.category || o.type || "Service"}</span>
+                </div>
+                <strong>{o.name}</strong>
+                <span className="muted small">
+                  {o.businessName ? `${o.businessName} · ` : ""}
+                  {distance.toFixed(1)} km
+                </span>
+                <button
+                  type="button"
+                  className="los-btn los-btn--ghost los-btn--sm"
+                  onClick={() => navigate(`/app/discover?offering=${o.id}`)}
+                >
+                  View
+                </button>
+              </li>
+            ))}
+            <li>
+              <button
+                type="button"
+                className="los-btn los-btn--soft los-btn--sm"
+                onClick={() => setServicesExpanded(false)}
+              >
+                Back to rail
+              </button>
+            </li>
+          </ul>
+        ) : (
+          <div className="near-rail near-rail--hero" role="list">
+            {servicesRail.map(({ o, distance }) => (
+              <button
+                key={o.id}
+                type="button"
+                className="near-rail__card near-rail__card--media"
+                role="listitem"
+                onClick={() => navigate(`/app/discover?offering=${o.id}`)}
+              >
+                <img
+                  className="near-rail__thumb"
+                  src={o.image || railThumb(o.id)}
+                  alt=""
+                  loading="lazy"
+                />
+                <span className="near-rail__caption">
+                  <strong>{o.name}</strong>
+                  <span className="muted small">{distance.toFixed(1)} km</span>
+                </span>
+              </button>
+            ))}
+            {rankedServices.length > RAIL_VISIBLE ? (
+              <button
+                type="button"
+                className="near-rail__card near-rail__card--media near-rail__card--more"
+                role="listitem"
+                onClick={() => setServicesExpanded(true)}
               >
                 <span className="near-rail__caption">
                   <strong>See more</strong>

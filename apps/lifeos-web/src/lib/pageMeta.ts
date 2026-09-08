@@ -87,7 +87,7 @@ export function resolvePageMeta(pathname: string): PageMeta | null {
     return { title: "Finance", subtitle: "Wallet · P2P · FinanceOS" };
   }
   if (path.startsWith("/app/live")) {
-    return { title: "Live", subtitle: "Creators streaming now" };
+    return { title: "Live", subtitle: "Now streaming" };
   }
   if (path.startsWith("/app/activity")) {
     return { title: "Activity", subtitle: "Your recent LifeOS events" };

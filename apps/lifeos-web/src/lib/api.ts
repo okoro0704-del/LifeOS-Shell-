@@ -1,5 +1,6 @@
 import { LIFEOS_AUTH_SCOPES } from "@lifeos/shared";
 import { createAuthClient } from "@lifeos/auth-client";
+import { Capacitor } from "@capacitor/core";
 
 /**
  * Identity backend endpoints (env still uses TRUSTID_* for deploy compatibility).
@@ -11,7 +12,21 @@ export const trustIdApi = import.meta.env.VITE_TRUSTID_API ?? "http://localhost:
 export const authGatewayWeb = trustIdWeb;
 /** Public alias — OAuth/passkey API base used by the auth client. */
 export const authGatewayApi = trustIdApi;
-export const lifeosApiBase = import.meta.env.VITE_LIFEOS_API ?? "/api";
+
+const DEFAULT_PROD_API = "https://lifeos-shell-production.up.railway.app";
+
+function resolveLifeOsApiBase(): string {
+  const fromEnv = import.meta.env.VITE_LIFEOS_API;
+  if (fromEnv) return fromEnv;
+  try {
+    if (Capacitor.isNativePlatform()) return DEFAULT_PROD_API;
+  } catch {
+    /* */
+  }
+  return "/api";
+}
+
+export const lifeosApiBase = resolveLifeOsApiBase();
 
 const SESSION_STORAGE_KEY = "lifeos.session.token";
 /** Explicit sign-in / sign-out intent — survives refresh so cookies alone cannot re-login. */

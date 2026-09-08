@@ -18,13 +18,11 @@ import {
 } from "../lib/returningIdentity";
 import { hasSeenIntro, markIntroSeen } from "../lib/introSeen";
 import { meService } from "../lib/services";
-import { personalLandingPath } from "../lib/personalConnectivity";
-
-const AUTH_BYPASS = (import.meta.env.VITE_AUTH_BYPASS ?? "").toLowerCase() === "true";
+import { personalLandingPath, isAuthBypass } from "../lib/personalConnectivity";
 
 /**
  * Login surface. Returning users land here directly (intro is skipped).
- * When VITE_AUTH_BYPASS=true, TrustID OAuth is skipped (temporary testing).
+ * When VITE_AUTH_BYPASS=true (or native APK), TrustID OAuth is skipped.
  * Successful login always enters Personal space (Offline if no network).
  */
 export function LoginPage() {
@@ -36,6 +34,7 @@ export function LoginPage() {
   const [bypassError, setBypassError] = useState<string | null>(null);
   const [bypassBusy, setBypassBusy] = useState(false);
   const entering = useRef(false);
+  const AUTH_BYPASS = isAuthBypass();
 
   useEffect(() => {
     if (!loading && user) {
