@@ -41,30 +41,16 @@ export function ElComPage() {
     if (allowed !== true) return;
     void (async () => {
       try {
-        const st = await api<{ bound: boolean }>("/messaging/status");
+        const st = await api<{ bound: boolean; message?: string }>("/messaging/status");
         if (!st.bound) {
-          setThreads([
-            {
-              id: "demo-1",
-              title: "Fan · Ada",
-              preview: "Loved your last drop",
-              updatedAt: new Date().toISOString(),
-              unreadCount: 1,
-            },
-            {
-              id: "demo-2",
-              title: "Collab inquiry",
-              preview: "Partnership?",
-              updatedAt: new Date().toISOString(),
-              unreadCount: 0,
-            },
-          ]);
+          setError(st.message || "ElfCom unbound — messaging is provided by ElfCom.");
+          setThreads([]);
           return;
         }
         const data = await api<{ threads: Thread[] }>("/messaging/threads");
         setThreads(data.threads ?? []);
       } catch {
-        setError("Couldn't load messages.");
+        setError("Couldn't reach ElfCom messaging.");
         setThreads([]);
       } finally {
         setLoading(false);
@@ -120,7 +106,14 @@ export function ElComPage() {
             <Skeleton height={56} />
           </>
         ) : filteredThreads.length === 0 ? (
-          <EmptyState title="No messages" detail="Replies from your mybrandOS audience appear here." />
+          <EmptyState
+            title={error ? "ElfCom messaging" : "No messages"}
+            detail={
+              error
+                ? "LifeOS consumes ElfCom for creator messaging — connect the ElfCom node to see threads."
+                : "Threads from ElfCom appear here when fans message your mybrandOS."
+            }
+          />
         ) : (
           <ul className="media-feed">
             {filteredThreads.map((t) => (

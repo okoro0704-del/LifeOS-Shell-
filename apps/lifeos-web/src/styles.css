@@ -5187,16 +5187,17 @@ button.los-wallet__action:disabled {
   top: 0;
   z-index: 40;
   margin: 0;
-  padding: 0.05rem 0 0.2rem;
-  min-height: 2rem;
+  padding: calc(0.35rem + env(safe-area-inset-top, 0px)) 0.35rem 0.35rem;
+  min-height: calc(2.35rem + env(safe-area-inset-top, 0px));
   background: transparent;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   transition:
     opacity 0.2s ease,
     transform 0.2s ease,
-    max-height 0.2s ease;
-  max-height: 3rem;
+    max-height 0.2s ease,
+    padding 0.2s ease;
+  max-height: calc(3.75rem + env(safe-area-inset-top, 0px));
   overflow: hidden;
 }
 
@@ -5469,13 +5470,19 @@ button.los-wallet__action:disabled {
 .immersive-feed__rail {
   position: absolute;
   right: 0.45rem;
-  bottom: 1rem;
+  bottom: calc(5.85rem + env(safe-area-inset-bottom, 0px));
   z-index: 4;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
   pointer-events: none;
+}
+
+/* First landing slide keeps engage rail a bit lower until you start scrolling */
+.personal-page:not(.is-scrolled) .immersive-feed > .immersive-feed__slide:first-of-type .immersive-feed__rail,
+.personal-page:not(.is-scrolled) .immersive-feed > .immersive-feed__leading + .immersive-feed__slide .immersive-feed__rail {
+  bottom: calc(2.35rem + env(safe-area-inset-bottom, 0px));
 }
 
 .immersive-feed__avatar {
@@ -5523,27 +5530,7 @@ button.los-wallet__action:disabled {
 }
 
 .elcom-float {
-  position: fixed;
-  right: max(1.05rem, env(safe-area-inset-right));
-  bottom: calc(5.35rem + env(safe-area-inset-bottom, 0px));
-  z-index: 95;
-  display: inline-grid;
-  place-items: center;
-  width: 3.05rem;
-  height: 3.05rem;
-  padding: 0;
-  border: 0;
-  border-radius: 999px;
-  text-decoration: none;
-  color: #ecfdf5;
-  background: #0f766e;
-  box-shadow: 0 8px 22px rgba(15, 118, 110, 0.38);
-  cursor: pointer;
-  pointer-events: auto;
-}
-
-.elcom-float svg {
-  display: block;
+  display: none;
 }
 
 .plus-discover--tight {
@@ -6423,11 +6410,17 @@ html.lifeos-chrome-hidden .immersive-feed {
   position: absolute;
   left: 0.85rem;
   right: 3.6rem;
-  bottom: calc(5.4rem + env(safe-area-inset-bottom, 0px));
+  bottom: calc(4.05rem + env(safe-area-inset-bottom, 0px));
   z-index: 3;
   color: #f8fafc;
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
   pointer-events: none;
+}
+
+/* First video before scroll keeps caption higher in the frame */
+.personal-page:not(.is-scrolled) .immersive-feed > .immersive-feed__slide:first-of-type .immersive-feed__copy--on,
+.personal-page:not(.is-scrolled) .immersive-feed > .immersive-feed__leading + .immersive-feed__slide .immersive-feed__copy--on {
+  bottom: calc(5.55rem + env(safe-area-inset-bottom, 0px));
 }
 
 .immersive-feed__copy--on .immersive-feed__author-btn,
@@ -6536,12 +6529,61 @@ html.lifeos-chrome-hidden .immersive-feed {
 }
 
 /* Live float — blinking above bottom nav */
-.live-float {
+.live-dock {
   position: fixed;
   left: 50%;
   bottom: calc(5.15rem + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
   z-index: 96;
+  display: grid;
+  grid-template-columns: 2.6rem auto 2.6rem;
+  align-items: center;
+  gap: 0.55rem;
+  transition: bottom 0.22s ease;
+  pointer-events: none;
+}
+
+.live-dock > * {
+  pointer-events: auto;
+}
+
+html.lifeos-chrome-hidden .live-dock,
+.live-dock.is-chrome-hidden {
+  bottom: calc(1.15rem + env(safe-area-inset-bottom, 0px));
+}
+
+.live-dock__btn {
+  width: 2.55rem;
+  height: 2.55rem;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  text-decoration: none;
+  color: #f8fafc;
+  background: color-mix(in srgb, #0f172a 72%, transparent);
+  border: 1px solid color-mix(in srgb, #fff 16%, transparent);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
+}
+
+.live-dock__btn--msg {
+  background: #0f766e;
+  border-color: transparent;
+  color: #ecfdf5;
+}
+
+.live-dock__btn--spacer {
+  visibility: hidden;
+  pointer-events: none;
+  box-shadow: none;
+  border: 0;
+  background: transparent;
+}
+
+.live-float {
+  position: relative;
+  left: auto;
+  bottom: auto;
+  transform: none;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -6554,11 +6596,10 @@ html.lifeos-chrome-hidden .immersive-feed {
   letter-spacing: 0.08em;
   background: #dc2626;
   box-shadow: 0 8px 20px rgba(220, 38, 38, 0.35);
-  transition: bottom 0.22s ease;
 }
 
 html.lifeos-chrome-hidden .live-float {
-  bottom: calc(1.15rem + env(safe-area-inset-bottom, 0px));
+  bottom: auto;
 }
 
 .live-float__dot {

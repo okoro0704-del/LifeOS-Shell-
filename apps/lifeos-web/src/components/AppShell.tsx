@@ -18,7 +18,6 @@ import { useWorkspace, type WorkspaceMode } from "../context/WorkspaceContext";
 import { installedAppsService, notificationService } from "../lib/services";
 import { markNeedsFaceOnKernelSwitch } from "../lib/personalConnectivity";
 import { CommandOverlay } from "./CommandOverlay";
-import { ElComFloat } from "./ElComFloat";
 import { LiveFloat } from "./LiveFloat";
 import { LifeOSWakeListener } from "./LifeOSWakeListener";
 import { PageTopBar } from "./PageTopBar";
@@ -389,8 +388,7 @@ export function AppShell() {
 
         <CommandOverlay />
         <LifeOSWakeListener />
-        {mode === "PERSONAL" ? <ElComFloat apps={installedApps} /> : null}
-        {mode === "PERSONAL" ? <LiveFloat /> : null}
+        {mode === "PERSONAL" ? <LiveFloat apps={installedApps} /> : null}
 
         {!isImmersive ? (
           <nav

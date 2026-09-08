@@ -399,7 +399,7 @@ export function ImmersiveMediaFeed({
   const premium = hasPremium();
   const [credits, setCredits] = useState(() => getLifeOsCredits());
   const listRef = useRef<HTMLUListElement>(null);
-  const overlayCaption = mode === "reels";
+  const overlayCaption = true;
 
   const rows = useMemo(() => {
     if (showAds) return withFreeKernelAds(items, 2);
