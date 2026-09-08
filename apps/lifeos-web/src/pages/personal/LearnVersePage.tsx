@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { MediaFeed } from "../../components/MediaFeed";
 import { SegmentGlassBar } from "../../components/SegmentGlassBar";
+import { useChromeVisibility } from "../../context/ChromeVisibilityContext";
 import { KernelBrandBar } from "./PersonalHomePage";
 import { catalogByKinds, type MediaItem } from "../../lib/personalCatalog";
 import { personalKernelFromPath, personalNavBase, type PersonalKernel } from "../../components/shell/nav";
@@ -22,8 +23,9 @@ function Shell({ active, children }: { active: string; children: ReactNode }) {
   const kernel = useKernel();
   const base = `${personalNavBase(kernel)}/learnverse`;
   const home = `${personalNavBase(kernel)}/post`;
-  const [scrolled, setScrolled] = useState(false);
+  const { chromeHidden, reportScroll } = useChromeVisibility();
   const bodyRef = useRef<HTMLDivElement>(null);
+  const prevY = useRef(0);
 
   const tabs = [
     { to: base, end: true, label: "Books", id: "books" },
@@ -35,18 +37,22 @@ function Shell({ active, children }: { active: string; children: ReactNode }) {
   useEffect(() => {
     const el = bodyRef.current;
     if (!el) return;
-    const onScroll = () => setScrolled(el.scrollTop > 36);
+    prevY.current = 0;
+    const onScroll = () => {
+      reportScroll(el.scrollTop, prevY.current);
+      prevY.current = el.scrollTop;
+    };
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
-  }, [active]);
+  }, [active, reportScroll]);
 
   return (
-    <div className={`page personal-page personal-page--surface${scrolled ? " is-scrolled" : ""}`}>
-      <KernelBrandBar kernel={kernel} hidden={scrolled} />
+    <div className={`page personal-page personal-page--surface${chromeHidden ? " is-scrolled is-chrome-hidden" : ""}`}>
+      <KernelBrandBar kernel={kernel} hidden={chromeHidden} />
       <SegmentGlassBar
         tabs={tabs}
         activeId={active}
-        scrolled={scrolled}
+        scrolled={chromeHidden}
         showBack
         searchTo={`${base}/search`}
         backTo={home}

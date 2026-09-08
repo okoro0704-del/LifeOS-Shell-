@@ -19,10 +19,12 @@ import { installedAppsService, notificationService } from "../lib/services";
 import { markNeedsFaceOnKernelSwitch } from "../lib/personalConnectivity";
 import { CommandOverlay } from "./CommandOverlay";
 import { ElComFloat } from "./ElComFloat";
+import { LiveFloat } from "./LiveFloat";
 import { LifeOSWakeListener } from "./LifeOSWakeListener";
 import { PageTopBar } from "./PageTopBar";
 import { VerificationStars } from "./VerificationStars";
 import { resolvePageMeta } from "../lib/pageMeta";
+import { useChromeVisibility } from "../context/ChromeVisibilityContext";
 import { WorkspaceToggle } from "./shell/WorkspaceToggle";
 import { primaryNavForMode, personalKernelFromPath, personalNavBase, workspaceHomePath, type ShellNavItem } from "./shell/nav";
 
@@ -72,6 +74,7 @@ function isBusinessDetailPath(pathname: string): boolean {
 export function AppShell() {
   const { user } = useAuth();
   const { mode, setMode } = useWorkspace();
+  const { chromeHidden } = useChromeVisibility();
   const location = useLocation();
   const navigate = useNavigate();
   const { openCommand } = useCommandLayer();
@@ -387,6 +390,7 @@ export function AppShell() {
         <CommandOverlay />
         <LifeOSWakeListener />
         {mode === "PERSONAL" ? <ElComFloat apps={installedApps} /> : null}
+        {mode === "PERSONAL" ? <LiveFloat /> : null}
 
         {!isImmersive ? (
           <nav
@@ -394,8 +398,9 @@ export function AppShell() {
               mode === "PERSONAL" && personalKernel !== "main"
                 ? ` bottom-nav--kernel-${personalKernel}`
                 : ""
-            }`}
+            }${chromeHidden ? " is-chrome-hidden" : ""}`}
             aria-label="Primary"
+            aria-hidden={chromeHidden}
           >
             {tabs.slice(0, 2).map((t) => (
               <NavLink

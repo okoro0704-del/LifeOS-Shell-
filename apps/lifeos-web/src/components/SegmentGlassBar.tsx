@@ -33,8 +33,9 @@ export function SegmentGlassBar({
 
   return (
     <nav
-      className={`segment-topbar segment-topbar--glass${scrolled ? " is-pinned" : ""}`}
+      className={`segment-topbar segment-topbar--glass${scrolled ? " is-pinned is-chrome-hidden" : ""}`}
       aria-label={ariaLabel}
+      aria-hidden={scrolled}
     >
       <span className="segment-topbar__edge segment-topbar__edge--left">
         {showBack && scrolled ? (

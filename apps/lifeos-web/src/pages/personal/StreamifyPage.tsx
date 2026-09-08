@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { MediaFeed } from "../../components/MediaFeed";
 import { ImmersiveMediaFeed } from "../../components/ImmersiveMediaFeed";
 import { SegmentGlassBar } from "../../components/SegmentGlassBar";
+import { useChromeVisibility } from "../../context/ChromeVisibilityContext";
 import { KernelBrandBar } from "./PersonalHomePage";
 import { catalogByKinds, type MediaItem } from "../../lib/personalCatalog";
 import { personalKernelFromPath, personalNavBase, type PersonalKernel } from "../../components/shell/nav";
@@ -33,35 +34,44 @@ function Shell({
   const kernel = useKernel();
   const base = `${personalNavBase(kernel)}/streamify`;
   const home = `${personalNavBase(kernel)}/post`;
-  const [scrolled, setScrolled] = useState(false);
+  const { chromeHidden, reportScroll } = useChromeVisibility();
   const bodyRef = useRef<HTMLDivElement>(null);
+  const prevY = useRef(0);
 
   const tabs = [
-    { to: base, end: true, label: "Content", id: "content" },
+    { to: base, end: true, label: "Watch", id: "content" },
     { to: `${base}/music`, label: "Music", id: "music" },
     { to: `${base}/podcast`, label: "Podcast", id: "podcast" },
-    { to: `${base}/videos`, label: "Videos", id: "videos" },
+    { to: `${base}/videos`, label: "Cinema", id: "videos" },
   ];
 
   useEffect(() => {
     const el = bodyRef.current;
     if (!el) return;
-    const onScroll = () => setScrolled(el.scrollTop > 36);
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
-  }, [active]);
+    prevY.current = 0;
+    const onScroll = () => {
+      const feed = el.querySelector(".immersive-feed") as HTMLElement | null;
+      const y = (feed ?? el).scrollTop;
+      reportScroll(y, prevY.current);
+      prevY.current = y;
+    };
+    const feed = el.querySelector(".immersive-feed");
+    const target = (feed as HTMLElement | null) ?? el;
+    target.addEventListener("scroll", onScroll, { passive: true });
+    return () => target.removeEventListener("scroll", onScroll);
+  }, [active, reportScroll]);
 
   return (
     <div
       className={`page personal-page personal-page--surface${immersive ? " personal-page--immersive" : ""}${
-        scrolled ? " is-scrolled" : ""
+        chromeHidden ? " is-scrolled is-chrome-hidden" : ""
       }`}
     >
-      <KernelBrandBar kernel={kernel} hidden={scrolled} />
+      <KernelBrandBar kernel={kernel} hidden={chromeHidden} />
       <SegmentGlassBar
         tabs={tabs}
         activeId={active}
-        scrolled={scrolled}
+        scrolled={chromeHidden}
         showBack
         searchTo={`${base}/search`}
         backTo={home}

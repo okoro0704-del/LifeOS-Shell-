@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { ImmersiveMediaFeed } from "../../components/ImmersiveMediaFeed";
 import { SegmentGlassBar } from "../../components/SegmentGlassBar";
+import { useChromeVisibility } from "../../context/ChromeVisibilityContext";
 import { catalogByKinds, hasPremium, setPremium, type MediaItem } from "../../lib/personalCatalog";
 import type { PersonalKernel } from "../../components/shell/nav";
 import { authClient } from "../../lib/api";
@@ -162,26 +163,28 @@ export function PersonalKernelShell({
   children: ReactNode;
   immersive?: boolean;
 }) {
-  const [scrolled, setScrolled] = useState(false);
+  const { chromeHidden, reportScroll } = useChromeVisibility();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const prevY = useRef(0);
   const base = basePath(kernel);
 
   useEffect(() => {
     applyWatchedOffline();
-    setScrolled(false);
+    prevY.current = 0;
     const root = scrollRef.current;
     if (!root) return;
     const onScroll = () => {
       const feed = root.querySelector(".immersive-feed") as HTMLElement | null;
       const y = (feed ?? root).scrollTop;
-      setScrolled(y > 36);
+      reportScroll(y, prevY.current);
+      prevY.current = y;
     };
     const feed = root.querySelector(".immersive-feed");
     const target = (feed as HTMLElement | null) ?? root;
     target.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
     return () => target.removeEventListener("scroll", onScroll);
-  }, [section, kernel, immersive]);
+  }, [section, kernel, immersive, reportScroll]);
 
   const tabs = SECTIONS.map((s) => ({
     id: s.id,
@@ -194,13 +197,13 @@ export function PersonalKernelShell({
     <div
       className={`page personal-page personal-page--kernel personal-page--${kernel}${
         immersive ? " personal-page--immersive" : ""
-      }${scrolled ? " is-scrolled" : ""}`}
+      }${chromeHidden ? " is-scrolled is-chrome-hidden" : ""}`}
     >
-      <KernelBrandBar kernel={kernel} hidden={scrolled} />
+      <KernelBrandBar kernel={kernel} hidden={chromeHidden} />
       <SegmentGlassBar
         tabs={tabs}
         activeId={section === "search" ? "post" : section}
-        scrolled={scrolled}
+        scrolled={chromeHidden}
         showBack={false}
         searchTo={`${base}/search`}
         backTo={`${base}/post`}

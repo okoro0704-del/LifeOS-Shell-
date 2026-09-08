@@ -46,7 +46,7 @@ export function resolvePageMeta(pathname: string): PageMeta | null {
     return { title: "LearnVerse", subtitle: "Books · Courses · Edu · Schools" };
   }
   if (path.startsWith("/app/personal/streamify")) {
-    return { title: "Streamify", subtitle: "Content · Music · Podcast · Videos" };
+    return { title: "Streamify", subtitle: "Watch · Music · Podcast · Cinema" };
   }
   if (path.startsWith("/app/personal/compose") || path.match(/\/personal\/(free|offline)\/compose/)) {
     return { title: "New post", subtitle: "Free · Premium · VIP" };
@@ -84,7 +84,10 @@ export function resolvePageMeta(pathname: string): PageMeta | null {
     return { title: "Business", subtitle: "Services & experience" };
   }
   if (path.startsWith("/app/wallet")) {
-    return { title: "Finance", subtitle: "Cash, tokens & more" };
+    return { title: "Finance", subtitle: "Wallet · P2P · FinanceOS" };
+  }
+  if (path.startsWith("/app/live")) {
+    return { title: "Live", subtitle: "Creators streaming now" };
   }
   if (path.startsWith("/app/activity")) {
     return { title: "Activity", subtitle: "Your recent LifeOS events" };

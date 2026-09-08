@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { ThemeProvider } from "./hooks/useTheme";
 import { CommandLayerProvider } from "./hooks/useCommandLayer";
 import { WorkspaceProvider, useWorkspace } from "./context/WorkspaceContext";
+import { ChromeVisibilityProvider } from "./context/ChromeVisibilityContext";
 import { personalLandingPath } from "./lib/personalConnectivity";
 import { AppShell } from "./components/AppShell";
 import { RequireAuth } from "./components/RequireAuth";
@@ -12,6 +13,7 @@ import { LoginPage } from "./pages/Login";
 import { CallbackPage } from "./pages/Callback";
 import { Skeleton } from "@lifeos/ui";
 
+const LivePage = lazy(() => import("./pages/LivePage").then((m) => ({ default: m.LivePage })));
 const HomePage = lazy(() => import("./pages/Home").then((m) => ({ default: m.HomePage })));
 const WalletPage = lazy(() => import("./pages/Wallet").then((m) => ({ default: m.WalletPage })));
 const DiscoverPage = lazy(() =>
@@ -102,6 +104,7 @@ function ThemedApp() {
     <ThemeProvider initial={user?.preferences.theme}>
       <WorkspaceProvider>
         <BrowserRouter>
+          <ChromeVisibilityProvider>
           <Routes>
             <Route path="/" element={<WelcomePage />} />
             <Route path="/login" element={<LoginPage />} />
@@ -161,6 +164,14 @@ function ThemedApp() {
                   element={
                     <Suspense fallback={<PageFallback />}>
                       <WalletPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="live"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <LivePage />
                     </Suspense>
                   }
                 />
@@ -321,6 +332,7 @@ function ThemedApp() {
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </ChromeVisibilityProvider>
         </BrowserRouter>
       </WorkspaceProvider>
     </ThemeProvider>

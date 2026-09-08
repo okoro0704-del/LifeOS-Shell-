@@ -7,6 +7,7 @@ import { userFacingMessage } from "../lib/api";
 import { StatusBanner } from "../components/StatusBanner";
 import { useCommandLayer } from "../hooks/useCommandLayer";
 import { ActionPreview } from "../components/ActionPreview";
+import { listLocalNotifications } from "../lib/liveStreams";
 
 export function NotificationsPage() {
   const navigate = useNavigate();
@@ -20,8 +21,21 @@ export function NotificationsPage() {
 
   async function load() {
     const data = await notificationService.list();
-    setItems(data.notifications);
-    setUnread(data.unreadCount);
+    const local = listLocalNotifications().map(
+      (n): NotificationItem => ({
+        id: n.id,
+        title: n.title,
+        body: n.body,
+        category: "System",
+        source: "Live",
+        createdAt: n.at,
+        read: !n.unread,
+        actionId: undefined,
+      }),
+    );
+    const merged = [...local, ...(data.notifications ?? [])];
+    setItems(merged);
+    setUnread((data.unreadCount ?? 0) + local.filter((n) => !n.read).length);
   }
 
   useEffect(() => {
@@ -123,6 +137,10 @@ export function NotificationsPage() {
                 {n.actionId ? (
                   <Button size="sm" onClick={() => void launchAction(n)}>
                     Open
+                  </Button>
+                ) : n.source === "Live" ? (
+                  <Button size="sm" onClick={() => navigate("/app/live")}>
+                    Open Live
                   </Button>
                 ) : null}
                 {!n.read ? (

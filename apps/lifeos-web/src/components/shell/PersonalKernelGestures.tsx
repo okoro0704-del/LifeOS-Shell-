@@ -62,7 +62,7 @@ export function PersonalKernelGestures({ children }: { children: ReactNode }) {
       const el = target instanceof Element ? target : null;
       if (
         el?.closest(
-          ".bottom-nav, .app-header, .sidebar, .page-topbar, .kernel-brand-bar, .segment-topbar, .command-overlay, .elcom-float, .elcom-full, .immersive-feed__rail, a, button, input, textarea, select, label",
+          ".bottom-nav, .app-header, .sidebar, .page-topbar, .kernel-brand-bar, .segment-topbar, .command-overlay, .elcom-float, .live-float, .elcom-full, .immersive-feed__rail, .engage-sheet, a, button, input, textarea, select, label",
         )
       ) {
         return;

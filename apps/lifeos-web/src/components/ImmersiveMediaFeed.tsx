@@ -2,6 +2,15 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { hasPremium, setPremium, type MediaItem } from "../lib/personalCatalog";
 import { openCreatorApp } from "../lib/mybrandOS";
 import {
+  addComment,
+  getReuseCount,
+  isLoved,
+  listComments,
+  markReused,
+  shareItem,
+  toggleLove,
+} from "../lib/engage";
+import {
   getLifeOsCredits,
   isAdSaved,
   markWatchedOffline,
@@ -36,7 +45,7 @@ function AdSlide({ ad, onSaved }: { ad: AdCreative; onSaved: () => void }) {
   const [saved, setSaved] = useState(() => isAdSaved(ad.id));
 
   return (
-    <li className="immersive-feed__slide immersive-feed__slide--ad immersive-feed__slide--split">
+    <li className="immersive-feed__slide immersive-feed__slide--overlay immersive-feed__slide--ad">
       <div className="immersive-feed__media" style={{ background: mediaTone(ad.id) }}>
         {ad.mediaUrl ? (
           <video
@@ -52,27 +61,28 @@ function AdSlide({ ad, onSaved }: { ad: AdCreative; onSaved: () => void }) {
         ) : ad.posterUrl ? (
           <img className="immersive-feed__asset" src={ad.posterUrl} alt="" loading="lazy" />
         ) : null}
-      </div>
-      <div className="immersive-feed__meta-block">
-        <span className="media-feed__badge media-feed__badge--ad">Ad</span>
-        <strong className="immersive-feed__title">{ad.title}</strong>
-        <span className="immersive-feed__author">{ad.advertiser}</span>
-        <div className="immersive-feed__ad-actions">
-          <button type="button" className="los-btn los-btn--soft los-btn--sm">
-            {ad.cta}
-          </button>
-          <button
-            type="button"
-            className="los-btn los-btn--ghost los-btn--sm"
-            disabled={saved}
-            onClick={() => {
-              saveAdToOffline(ad);
-              setSaved(true);
-              onSaved();
-            }}
-          >
-            {saved ? "Saved" : "Save Offline"}
-          </button>
+        <div className="immersive-feed__scrim" aria-hidden />
+        <div className="immersive-feed__copy immersive-feed__copy--on">
+          <span className="media-feed__badge media-feed__badge--ad">Ad</span>
+          <strong className="immersive-feed__title">{ad.title}</strong>
+          <span className="immersive-feed__author">{ad.advertiser}</span>
+          <div className="immersive-feed__ad-actions">
+            <button type="button" className="los-btn los-btn--soft los-btn--sm">
+              {ad.cta}
+            </button>
+            <button
+              type="button"
+              className="los-btn los-btn--ghost los-btn--sm"
+              disabled={saved}
+              onClick={() => {
+                saveAdToOffline(ad);
+                setSaved(true);
+                onSaved();
+              }}
+            >
+              {saved ? "Saved" : "Save Offline"}
+            </button>
+          </div>
         </div>
       </div>
     </li>
@@ -88,25 +98,31 @@ function RailIcon({ children }: { children: ReactNode }) {
 }
 
 function SideRail({
-  item,
   loved,
+  commentCount,
+  reuseCount,
   onLove,
+  onComment,
+  onReuse,
+  onShare,
+  onOpenCreator,
+  initial,
+  slug,
 }: {
-  item: MediaItem;
   loved: boolean;
+  commentCount: number;
+  reuseCount: number;
   onLove: () => void;
+  onComment: () => void;
+  onReuse: () => void;
+  onShare: () => void;
+  onOpenCreator: () => void;
+  initial: string;
+  slug: string;
 }) {
-  const slug = creatorSlug(item.author);
-  const initial = (item.author || "C").replace(/^@/, "").slice(0, 1).toUpperCase();
-
   return (
     <aside className="immersive-feed__rail" aria-label="Actions">
-      <button
-        type="button"
-        className="immersive-feed__avatar"
-        aria-label={`Open ${slug} creator app`}
-        onClick={() => openCreatorApp(slug)}
-      >
+      <button type="button" className="immersive-feed__avatar" aria-label={`Open ${slug}`} onClick={onOpenCreator}>
         {initial}
       </button>
       <button
@@ -124,7 +140,7 @@ function SideRail({
           />
         </RailIcon>
       </button>
-      <button type="button" className="immersive-feed__rail-btn" aria-label="Comment">
+      <button type="button" className="immersive-feed__rail-btn" aria-label="Comment" onClick={onComment}>
         <RailIcon>
           <path
             d="M5 5.5h14A1.5 1.5 0 0 1 20.5 7v8a1.5 1.5 0 0 1-1.5 1.5H13l-4 3.5V16.5H5A1.5 1.5 0 0 1 3.5 15V7A1.5 1.5 0 0 1 5 5.5z"
@@ -134,28 +150,18 @@ function SideRail({
           />
           <path d="M8 10h8M8 13h5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
         </RailIcon>
+        {commentCount > 0 ? <span className="immersive-feed__rail-count">{commentCount}</span> : null}
       </button>
-      <button type="button" className="immersive-feed__rail-btn" aria-label="Reuse">
+      <button type="button" className="immersive-feed__rail-btn" aria-label="Reuse" onClick={onReuse}>
         <RailIcon>
-          <path
-            d="M17 1l4 4-4 4"
-            stroke="currentColor"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          <path d="M17 1l4 4-4 4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
           <path d="M3 11V9a4 4 0 0 1 4-4h14" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-          <path
-            d="M7 23l-4-4 4-4"
-            stroke="currentColor"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          <path d="M7 23l-4-4 4-4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
           <path d="M21 13v2a4 4 0 0 1-4 4H3" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
         </RailIcon>
+        {reuseCount > 0 ? <span className="immersive-feed__rail-count">{reuseCount}</span> : null}
       </button>
-      <button type="button" className="immersive-feed__rail-btn" aria-label="Share">
+      <button type="button" className="immersive-feed__rail-btn" aria-label="Share" onClick={onShare}>
         <RailIcon>
           <circle cx="18" cy="5" r="2.4" stroke="currentColor" strokeWidth="1.75" />
           <circle cx="6" cy="12" r="2.4" stroke="currentColor" strokeWidth="1.75" />
@@ -172,11 +178,13 @@ function ContentSlide({
   lockedPremium,
   credits,
   onCredits,
+  overlayCaption,
 }: {
   item: MediaItem;
   lockedPremium: boolean;
   credits: number;
   onCredits: (n: number) => void;
+  overlayCaption: boolean;
 }) {
   const tier = resolveTier(item);
   const vipRate = vipRateFor(item);
@@ -184,7 +192,12 @@ function ContentSlide({
   const lockedVip = tier === "vip" && credits <= 0;
   const locked = lockedPremium || lockedVip;
   const creator = creatorSlug(item.author);
-  const [loved, setLoved] = useState(false);
+  const [loved, setLoved] = useState(() => isLoved(item.id));
+  const [comments, setComments] = useState(() => listComments(item.id));
+  const [reuses, setReuses] = useState(() => getReuseCount(item.id));
+  const [commentOpen, setCommentOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [toast, setToast] = useState<string | null>(null);
   const lastTap = useRef(0);
 
   useEffect(() => {
@@ -206,25 +219,72 @@ function ContentSlide({
     return () => window.clearInterval(id);
   }, [tier, lockedPremium, locked, vipRate, item, creator, onCredits]);
 
+  function flash(msg: string) {
+    setToast(msg);
+    window.setTimeout(() => setToast(null), 1600);
+  }
+
+  function love() {
+    setLoved(toggleLove(item.id));
+  }
+
   function onMediaActivate() {
     const now = Date.now();
     if (now - lastTap.current < 320) {
-      setLoved(true);
+      love();
       lastTap.current = 0;
       return;
     }
     lastTap.current = now;
   }
 
+  const caption = (
+    <>
+      {item.author ? (
+        <button type="button" className="immersive-feed__author-btn" onClick={() => openCreatorApp(creator)}>
+          @{creator}
+        </button>
+      ) : null}
+      <strong className="immersive-feed__title">{item.title}</strong>
+      {item.detail ? <p className="immersive-feed__detail">{item.detail}</p> : null}
+      {tier === "vip" ? (
+        <span className="immersive-feed__credits">
+          {vipRate} cr · {credits} left · 80% to creator
+        </span>
+      ) : null}
+      {lockedPremium ? (
+        <button
+          type="button"
+          className="los-btn los-btn--soft los-btn--sm"
+          onClick={() => {
+            setPremium(true);
+            window.location.reload();
+          }}
+        >
+          Go Premium
+        </button>
+      ) : null}
+      {lockedVip ? (
+        <button type="button" className="los-btn los-btn--soft los-btn--sm" onClick={() => onCredits(topUpLifeOsCredits(80))}>
+          Buy credits
+        </button>
+      ) : null}
+    </>
+  );
+
   return (
-    <li className={`immersive-feed__slide immersive-feed__slide--split${locked ? " is-locked" : ""}`}>
+    <li
+      className={`immersive-feed__slide${overlayCaption ? " immersive-feed__slide--overlay" : " immersive-feed__slide--split"}${
+        locked ? " is-locked" : ""
+      }`}
+    >
       <div
         className="immersive-feed__media"
         style={{ background: mediaTone(item.id) }}
         onClick={onMediaActivate}
         onDoubleClick={(e) => {
           e.preventDefault();
-          setLoved(true);
+          love();
         }}
         role="presentation"
       >
@@ -241,59 +301,86 @@ function ContentSlide({
               preload="metadata"
             />
           ) : (
-            <img
-              className="immersive-feed__asset"
-              src={item.posterUrl || item.mediaUrl}
-              alt=""
-              loading="lazy"
-            />
+            <img className="immersive-feed__asset" src={item.posterUrl || item.mediaUrl} alt="" loading="lazy" />
           )
         ) : null}
-        <SideRail item={item} loved={loved} onLove={() => setLoved(true)} />
+        {overlayCaption ? <div className="immersive-feed__scrim" aria-hidden /> : null}
+        <SideRail
+          loved={loved}
+          commentCount={comments.length}
+          reuseCount={reuses}
+          initial={(item.author || "C").replace(/^@/, "").slice(0, 1).toUpperCase()}
+          slug={creator}
+          onOpenCreator={() => openCreatorApp(creator)}
+          onLove={love}
+          onComment={() => setCommentOpen(true)}
+          onReuse={() => {
+            setReuses(markReused(item.id));
+            flash("Reused to your drafts");
+          }}
+          onShare={() => {
+            void shareItem({ title: item.title, text: item.detail || item.title }).then((r) => {
+              flash(r === "shared" ? "Shared" : r === "copied" ? "Link copied" : "Couldn't share");
+            });
+          }}
+        />
+        {overlayCaption ? <div className="immersive-feed__copy immersive-feed__copy--on">{caption}</div> : null}
+        {toast ? (
+          <div className="immersive-feed__toast" role="status">
+            {toast}
+          </div>
+        ) : null}
       </div>
 
-      <div className="immersive-feed__meta-block">
-        {item.author ? (
-          <button type="button" className="immersive-feed__author-btn" onClick={() => openCreatorApp(creator)}>
-            @{creator}
-          </button>
-        ) : null}
-        <strong className="immersive-feed__title">{item.title}</strong>
-        {item.detail ? <p className="immersive-feed__detail">{item.detail}</p> : null}
-        {tier === "vip" ? (
-          <span className="immersive-feed__credits">
-            {vipRate} cr · {credits} left · 80% to creator
-          </span>
-        ) : null}
-        {lockedPremium ? (
-          <button
-            type="button"
-            className="los-btn los-btn--soft los-btn--sm"
-            onClick={() => {
-              setPremium(true);
-              window.location.reload();
-            }}
-          >
-            Go Premium
-          </button>
-        ) : null}
-        {lockedVip ? (
-          <button
-            type="button"
-            className="los-btn los-btn--soft los-btn--sm"
-            onClick={() => onCredits(topUpLifeOsCredits(80))}
-          >
-            Buy credits
-          </button>
-        ) : null}
-      </div>
+      {!overlayCaption ? <div className="immersive-feed__meta-block">{caption}</div> : null}
+
+      {commentOpen ? (
+        <div className="engage-sheet" role="dialog" aria-label="Comments">
+          <div className="engage-sheet__panel">
+            <header className="engage-sheet__head">
+              <strong>Comments</strong>
+              <button type="button" className="text-link" onClick={() => setCommentOpen(false)}>
+                Close
+              </button>
+            </header>
+            <ul className="engage-sheet__list">
+              {comments.length === 0 ? (
+                <li className="muted small">Be the first to comment.</li>
+              ) : (
+                comments.map((c) => (
+                  <li key={c.id}>
+                    <strong>You</strong>
+                    <span>{c.text}</span>
+                  </li>
+                ))
+              )}
+            </ul>
+            <form
+              className="engage-sheet__form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!draft.trim()) return;
+                setComments(addComment(item.id, draft));
+                setDraft("");
+              }}
+            >
+              <input
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder="Add a comment…"
+                aria-label="Add a comment"
+              />
+              <button type="submit" className="los-btn los-btn--soft los-btn--sm">
+                Post
+              </button>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </li>
   );
 }
 
-/**
- * Snap feed with media above and creator write-up underneath.
- */
 export function ImmersiveMediaFeed({
   items,
   empty,
@@ -311,6 +398,8 @@ export function ImmersiveMediaFeed({
 }) {
   const premium = hasPremium();
   const [credits, setCredits] = useState(() => getLifeOsCredits());
+  const listRef = useRef<HTMLUListElement>(null);
+  const overlayCaption = mode === "reels";
 
   const rows = useMemo(() => {
     if (showAds) return withFreeKernelAds(items, 2);
@@ -327,7 +416,11 @@ export function ImmersiveMediaFeed({
   }
 
   return (
-    <ul className={`immersive-feed immersive-feed--${mode}`} aria-label={mode === "reels" ? "Reels" : "Posts"}>
+    <ul
+      ref={listRef}
+      className={`immersive-feed immersive-feed--${mode}`}
+      aria-label={mode === "reels" ? "Reels" : "Posts"}
+    >
       {leading ? <li className="immersive-feed__leading">{leading}</li> : null}
       {rows.map((row) =>
         row.type === "ad" ? (
@@ -339,6 +432,7 @@ export function ImmersiveMediaFeed({
             lockedPremium={Boolean(gatePremium && resolveTier(row.item) === "premium" && !premium)}
             credits={credits}
             onCredits={setCredits}
+            overlayCaption={overlayCaption}
           />
         ),
       )}
