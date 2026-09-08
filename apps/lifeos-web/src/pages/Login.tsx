@@ -140,9 +140,7 @@ export function LoginPage() {
       <div className="welcome-grid" aria-hidden />
       <div className="welcome-inner welcome-inner--business welcome-inner--login">
         <header className="welcome-brand-block">
-          <p className="brand-hero">
-            LifeOS <span className="brand-hero__product">Business</span>
-          </p>
+          <p className="brand-hero">LifeOS</p>
         </header>
 
         <div className="welcome-login">

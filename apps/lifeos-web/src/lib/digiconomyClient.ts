@@ -1,16 +1,19 @@
 import { getPersonalApiBearer, getTrustIdToken } from "../auth/trustId";
-import { getStoredSessionToken, lifeosApiBase } from "../lib/api";
+import { getLifeOsApiBase, getStoredSessionToken } from "../lib/api";
 
 /**
  * Digiconomy Core / personal BFF base.
- * Default: LifeOS API (`/api`) which exposes `/v1/personal/*` and optionally bridges Digiconomy.
+ * Default: LifeOS API which exposes `/v1/personal/*` and optionally bridges Digiconomy.
  * Set VITE_DIGICONOMY_API_URL to hit Digiconomy Core or a custom gateway directly.
  */
-export const digiconomyApiBase = (
-  import.meta.env.VITE_DIGICONOMY_API_URL ||
-  lifeosApiBase ||
-  "/api"
-).replace(/\/$/, "");
+export function getDigiconomyApiBase(): string {
+  const fromEnv = (import.meta.env.VITE_DIGICONOMY_API_URL ?? "").trim();
+  if (fromEnv) return fromEnv.replace(/\/$/, "");
+  return getLifeOsApiBase();
+}
+
+/** @deprecated Prefer getDigiconomyApiBase() */
+export const digiconomyApiBase = "/api";
 
 export class DigiconomyApiError extends Error {
   status: number;
@@ -40,7 +43,7 @@ export async function fetchDigiconomyApi<T>(
   if (trustToken) headers["X-TrustID-Session"] = trustToken;
   if (lifeosSession) headers["X-LifeOS-Session"] = lifeosSession;
 
-  const response = await fetch(`${digiconomyApiBase}${path}`, {
+  const response = await fetch(`${getDigiconomyApiBase()}${path}`, {
     ...options,
     credentials: "include",
     headers,

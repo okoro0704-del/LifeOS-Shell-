@@ -64,10 +64,8 @@ export function WelcomePage() {
       <div className="welcome-grid" aria-hidden />
       <div className="welcome-inner welcome-inner--business">
         <header className="welcome-brand-block">
-          <p className="brand-hero">
-            LifeOS <span className="brand-hero__product">Business</span>
-          </p>
-          <p className="welcome-tagline">Operating system for everyday businesses</p>
+          <p className="brand-hero">LifeOS</p>
+          <p className="welcome-tagline">Your everyday operating system</p>
         </header>
 
         <section className="welcome-boards" aria-roledescription="carousel" aria-label="LifeOS">

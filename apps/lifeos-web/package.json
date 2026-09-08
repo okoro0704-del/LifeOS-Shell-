@@ -12,7 +12,7 @@
     "desktop:dev": "tauri dev",
     "desktop:build": "tauri build",
     "tauri": "tauri",
-    "mobile:sync": "npm run build && cap sync",
+    "mobile:sync": "node ./scripts/mobile-build.mjs",
     "mobile:open:android": "npm run mobile:sync && cap open android",
     "mobile:open:ios": "npm run mobile:sync && cap open ios",
     "cap": "cap"

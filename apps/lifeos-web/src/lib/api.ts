@@ -1,6 +1,5 @@
 import { LIFEOS_AUTH_SCOPES } from "@lifeos/shared";
 import { createAuthClient } from "@lifeos/auth-client";
-import { Capacitor } from "@capacitor/core";
 
 /**
  * Identity backend endpoints (env still uses TRUSTID_* for deploy compatibility).
@@ -15,18 +14,28 @@ export const authGatewayApi = trustIdApi;
 
 const DEFAULT_PROD_API = "https://lifeos-shell-production.up.railway.app";
 
-function resolveLifeOsApiBase(): string {
-  const fromEnv = import.meta.env.VITE_LIFEOS_API;
-  if (fromEnv) return fromEnv;
-  try {
-    if (Capacitor.isNativePlatform()) return DEFAULT_PROD_API;
-  } catch {
-    /* */
+/**
+ * Resolve API base at call time. Do not use Capacitor.isNativePlatform() in a
+ * top-level const — Vite/esbuild folds the web stub to false and strips the
+ * production URL from native APK bundles.
+ */
+export function getLifeOsApiBase(): string {
+  const fromEnv = (import.meta.env.VITE_LIFEOS_API ?? "").trim();
+  if (fromEnv) return fromEnv.replace(/\/$/, "");
+  if (typeof window !== "undefined") {
+    try {
+      const cap = (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
+      if (cap?.isNativePlatform?.()) return DEFAULT_PROD_API;
+    } catch {
+      /* */
+    }
   }
   return "/api";
 }
 
-export const lifeosApiBase = resolveLifeOsApiBase();
+/** @deprecated Prefer getLifeOsApiBase() — kept for older imports. */
+export const lifeosApiBase = "/api";
+
 
 const SESSION_STORAGE_KEY = "lifeos.session.token";
 /** Explicit sign-in / sign-out intent — survives refresh so cookies alone cannot re-login. */
@@ -205,7 +214,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
   let res: Response;
   try {
-    res = await fetch(`${lifeosApiBase}${path}`, {
+    res = await fetch(`${getLifeOsApiBase()}${path}`, {
       ...init,
       credentials: "include",
       headers,
