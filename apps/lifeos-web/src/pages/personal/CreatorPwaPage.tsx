@@ -1,11 +1,12 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PERSONAL_CATALOG, type MediaItem } from "../../lib/personalCatalog";
 import { creatorEarnings, listUserPosts } from "../../lib/personalMonetization";
+import { fetchMybrandPublicPosts } from "../../lib/mybrandPublicFeed";
 
-function byCreator(slug: string): MediaItem[] {
+function byCreator(slug: string, remote: MediaItem[]): MediaItem[] {
   const key = slug.toLowerCase();
-  return [...listUserPosts(), ...PERSONAL_CATALOG].filter((i) =>
+  return [...remote, ...listUserPosts(), ...PERSONAL_CATALOG].filter((i) =>
     (i.author || "").replace(/^@/, "").toLowerCase() === key,
   );
 }
@@ -16,7 +17,19 @@ function byCreator(slug: string): MediaItem[] {
 export function CreatorPwaPage() {
   const { creatorId = "creator" } = useParams();
   const slug = decodeURIComponent(creatorId);
-  const items = useMemo(() => byCreator(slug), [slug]);
+  const [remote, setRemote] = useState<MediaItem[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    void fetchMybrandPublicPosts(slug).then((items) => {
+      if (active) setRemote(items);
+    });
+    return () => {
+      active = false;
+    };
+  }, [slug]);
+
+  const items = useMemo(() => byCreator(slug, remote), [slug, remote]);
   const earned = creatorEarnings(slug);
 
   return (
@@ -42,6 +55,9 @@ export function CreatorPwaPage() {
             items.map((item) => (
               <li key={item.id} className="media-feed__item">
                 <span className="media-feed__kind">{item.kind}</span>
+                {item.posterUrl || item.mediaUrl ? (
+                  <img src={item.posterUrl || item.mediaUrl} alt="" loading="lazy" className="media-feed__thumb" />
+                ) : null}
                 <strong>{item.title}</strong>
                 <span className="muted small">{item.detail}</span>
               </li>

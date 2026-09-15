@@ -21,6 +21,9 @@ import {
   resolveTier,
   topUpLifeOsCredits,
 } from "../../lib/personalMonetization";
+import { fetchMybrandPublicPosts } from "../../lib/mybrandPublicFeed";
+import { installedAppsService } from "../../lib/services";
+import type { InstalledAppManifest } from "@lifeos/shared";
 
 export type HomeSection = "post" | "reels" | "products" | "communities" | "search";
 
@@ -216,15 +219,44 @@ export function PersonalKernelShell({
   );
 }
 
-function postItems(kernel: PersonalKernel) {
-  return filterForKernel(kernel, catalogByKinds(["picture", "video", "post"]));
+function postItems(kernel: PersonalKernel, remote: MediaItem[]) {
+  return filterForKernel(kernel, [...remote, ...catalogByKinds(["picture", "video", "post"])]);
 }
 
 export function KernelPostPage({ kernel }: { kernel: PersonalKernel }) {
+  const [remote, setRemote] = useState<MediaItem[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    void installedAppsService
+      .list()
+      .then(async (data) => {
+        const apps = (data.apps ?? []) as InstalledAppManifest[];
+        const slugs = [
+          ...new Set(
+            apps
+              .filter((a) => a.appId === "mybrandos" || Boolean(a.subdomain))
+              .map((a) => String(a.subdomain || "").trim().toLowerCase())
+              .filter(Boolean),
+          ),
+        ];
+        if (!slugs.length) slugs.push("mrfundzman");
+        const batches = await Promise.all(slugs.map((slug) => fetchMybrandPublicPosts(slug)));
+        if (active) setRemote(batches.flat());
+      })
+      .catch(async () => {
+        const fallback = await fetchMybrandPublicPosts("mrfundzman");
+        if (active) setRemote(fallback);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <PersonalKernelShell kernel={kernel} section="post" immersive>
       <ImmersiveMediaFeed
-        items={postItems(kernel)}
+        items={postItems(kernel, remote)}
         empty="Nothing here yet."
         gatePremium={kernel === "main"}
         mode="post"
