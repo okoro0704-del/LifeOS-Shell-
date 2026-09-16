@@ -220,7 +220,8 @@ export function PersonalKernelShell({
 }
 
 function postItems(kernel: PersonalKernel, remote: MediaItem[]) {
-  return filterForKernel(kernel, [...remote, ...catalogByKinds(["picture", "video", "post"])]);
+  // Digiconomy consume: real mybrandOS public Posts only — no mock catalog mix-in.
+  return filterForKernel(kernel, remote);
 }
 
 export function KernelPostPage({ kernel }: { kernel: PersonalKernel }) {
