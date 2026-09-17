@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { sharedService } from "../../lib/services";
 import { StatusBanner } from "../../components/StatusBanner";
@@ -54,7 +55,10 @@ export function IdentityPage() {
         <h1>TrustID identity</h1>
         <p className="muted">
           Decentralized identifier and zero-PII session controls shared by Personal and Business
-          spaces.
+          spaces.{" "}
+          <Link className="text-link" to="/app/shared/capabilities">
+            Shell capability mediation
+          </Link>
         </p>
       </header>
 

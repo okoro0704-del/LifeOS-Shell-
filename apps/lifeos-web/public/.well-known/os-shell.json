@@ -1,0 +1,10 @@
+{
+  "schema": "os-shell.manifest/0.1",
+  "name": "LifeOS",
+  "version": "1.0.0",
+  "origin": "http://127.0.0.1:5174",
+  "class": "native",
+  "embed": "allow",
+  "launch": "/",
+  "requested": ["digitallife.context", "commerce.checkout"]
+}

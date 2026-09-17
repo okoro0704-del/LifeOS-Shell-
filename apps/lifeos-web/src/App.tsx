@@ -12,6 +12,7 @@ import { WelcomePage } from "./pages/Welcome";
 import { LoginPage } from "./pages/Login";
 import { CallbackPage } from "./pages/Callback";
 import { Skeleton } from "@lifeos/ui";
+import { OsShellParticipant } from "./os-shell/OsShellParticipant";
 
 const LivePage = lazy(() => import("./pages/LivePage").then((m) => ({ default: m.LivePage })));
 const HomePage = lazy(() => import("./pages/Home").then((m) => ({ default: m.HomePage })));
@@ -104,6 +105,7 @@ function ThemedApp() {
     <ThemeProvider initial={user?.preferences.theme}>
       <WorkspaceProvider>
         <BrowserRouter>
+          <OsShellParticipant name="LifeOS">
           <ChromeVisibilityProvider>
           <Routes>
             <Route path="/" element={<WelcomePage />} />
@@ -333,6 +335,7 @@ function ThemedApp() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           </ChromeVisibilityProvider>
+          </OsShellParticipant>
         </BrowserRouter>
       </WorkspaceProvider>
     </ThemeProvider>
