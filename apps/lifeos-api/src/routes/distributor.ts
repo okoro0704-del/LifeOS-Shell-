@@ -162,6 +162,39 @@ export async function distributorRoutes(app: FastifyInstance) {
     return { ok: true, ...result, count: result.apps.length };
   });
 
+  /** Latest published artifact for OTA / sideload (public read). */
+  app.get("/v1/releases/latest", async (req) => {
+    const query = z
+      .object({
+        appId: z.string().min(1).max(64).default("lifeos-web"),
+        platform: z.string().min(1).max(32).default("android"),
+      })
+      .parse(req.query ?? {});
+
+    const row = await prisma.releaseArtifact.findFirst({
+      where: { appId: query.appId, platform: query.platform },
+      orderBy: { createdAt: "desc" },
+    });
+    if (!row) return { release: null };
+
+    const versionCodeMatch = /^(\d+)/.exec(row.version);
+    return {
+      release: {
+        id: row.id,
+        appId: row.appId,
+        version: row.version,
+        versionCode: versionCodeMatch ? Number(versionCodeMatch[1]) : undefined,
+        platform: row.platform,
+        filename: row.filename,
+        contentType: row.contentType,
+        sizeBytes: row.sizeBytes,
+        sha256: row.sha256,
+        artifactUrl: row.artifactUrl?.startsWith("data:") ? null : row.artifactUrl,
+        createdAt: row.createdAt.toISOString(),
+      },
+    };
+  });
+
   /**
    * Master Distribution Hub — accept web/desktop/mobile release uploads.
    */

@@ -1,6 +1,6 @@
 {
   "name": "@lifeos/web",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,6 +13,7 @@
     "desktop:build": "tauri build",
     "tauri": "tauri",
     "mobile:sync": "node ./scripts/mobile-build.mjs",
+    "mobile:apk": "node ./scripts/mobile-apk.mjs",
     "mobile:open:android": "npm run mobile:sync && cap open android",
     "mobile:open:ios": "npm run mobile:sync && cap open ios",
     "cap": "cap"

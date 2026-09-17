@@ -4,9 +4,11 @@ import { registerSW } from "virtual:pwa-register";
 import "@lifeos/ui/styles.css";
 import "@lifeos/shell-ui/styles.css";
 import { App } from "./App";
+import { startOtaUpdateListener } from "./lib/otaUpdate";
 import "./styles.css";
 
 registerSW({ immediate: true });
+startOtaUpdateListener();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

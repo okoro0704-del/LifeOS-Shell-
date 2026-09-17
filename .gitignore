@@ -21,5 +21,8 @@ apps/lifeos-web/android/captures/
 apps/lifeos-web/ios/App/Pods/
 apps/lifeos-web/ios/App/App/public/
 apps/lifeos-web/android/app/src/main/assets/public/
+apps/lifeos-web/android/app/*.keystore
+apps/lifeos-web/android/app/lifeos-release.keystore
+*.apk
 .tmp-pg-tunnel.*
 apps/lifeos-web/tsconfig.tsbuildinfo

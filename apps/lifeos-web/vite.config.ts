@@ -1,14 +1,49 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+import { writeFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
+import { createHash } from "node:crypto";
 
 const host = process.env.TAURI_DEV_HOST;
+const pkgVersion = process.env.npm_package_version || "1.0.0";
+const webOrigin =
+  (process.env.VITE_LIFEOS_WEB ?? "https://lifeosapp.getlifeos.app").replace(/\/$/, "");
+
+/** Emit /ota.json so the Capacitor shell can detect web updates on launch. */
+function otaManifestPlugin(): Plugin {
+  return {
+    name: "lifeos-ota-manifest",
+    closeBundle() {
+      const buildId = createHash("sha1")
+        .update(`${pkgVersion}:${Date.now()}:${process.env.COMMIT_REF || process.env.GITHUB_SHA || ""}`)
+        .digest("hex")
+        .slice(0, 12);
+      const outDir = join(process.cwd(), "dist");
+      mkdirSync(outDir, { recursive: true });
+      writeFileSync(
+        join(outDir, "ota.json"),
+        JSON.stringify(
+          {
+            buildId,
+            version: pkgVersion,
+            builtAt: new Date().toISOString(),
+            webOrigin,
+          },
+          null,
+          2,
+        ),
+      );
+    },
+  };
+}
 
 export default defineConfig({
   clearScreen: false,
   envPrefix: ["VITE_", "TAURI_"],
   plugins: [
     react(),
+    otaManifestPlugin(),
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "apple-touch-icon.png"],
