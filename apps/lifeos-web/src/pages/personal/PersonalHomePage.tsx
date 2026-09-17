@@ -21,7 +21,7 @@ import {
   resolveTier,
   topUpLifeOsCredits,
 } from "../../lib/personalMonetization";
-import { fetchMybrandPublicPosts } from "../../lib/mybrandPublicFeed";
+import { fetchLifeOsPublicationFeed, fetchMybrandPublicPosts } from "../../lib/mybrandPublicFeed";
 import { installedAppsService } from "../../lib/services";
 import type { InstalledAppManifest } from "@lifeos/shared";
 
@@ -229,26 +229,31 @@ export function KernelPostPage({ kernel }: { kernel: PersonalKernel }) {
 
   useEffect(() => {
     let active = true;
-    void installedAppsService
-      .list()
-      .then(async (data) => {
+    void (async () => {
+      // Prefer LifeOS server projections (ecosystem ingestion + reconciliation).
+      const projected = await fetchLifeOsPublicationFeed();
+      if (projected.length) {
+        if (active) setRemote(projected);
+        return;
+      }
+      // Fallback: direct public federation when projections are still empty.
+      try {
+        const data = await installedAppsService.list();
         const apps = (data.apps ?? []) as InstalledAppManifest[];
+        const reserved = new Set(["mybrandos", "hospitalityos", "serviceos", "ecommerceos"]);
         const slugs = [
           ...new Set(
             apps
-              .filter((a) => a.appId === "mybrandos" || Boolean(a.subdomain))
               .map((a) => String(a.subdomain || "").trim().toLowerCase())
-              .filter(Boolean),
+              .filter((slug) => slug && !reserved.has(slug)),
           ),
         ];
-        if (!slugs.length) slugs.push("mrfundzman");
         const batches = await Promise.all(slugs.map((slug) => fetchMybrandPublicPosts(slug)));
         if (active) setRemote(batches.flat());
-      })
-      .catch(async () => {
-        const fallback = await fetchMybrandPublicPosts("mrfundzman");
-        if (active) setRemote(fallback);
-      });
+      } catch {
+        if (active) setRemote([]);
+      }
+    })();
     return () => {
       active = false;
     };

@@ -432,3 +432,59 @@ model AppCatalogEntry {
   @@index([status, updatedAt])
 }
 
+/// Discovered origin apps that expose canonical PUBLIC publications for LifeOS consumption.
+model PublicationSource {
+  id                String    @id @default(cuid())
+  applicationId     String
+  tenantId          String
+  slug              String
+  displayName       String
+  /// Origin API base used to fetch public publications (no trailing slash).
+  publicApiBaseUrl  String
+  /// Canonical PUBLIC destination for humans (getlifeos.app — never /admin or localhost).
+  publicDestination String
+  /// Contract id, e.g. public_assets_v1
+  capability        String    @default("public_assets_v1")
+  status            String    @default("active")
+  lastScannedAt     DateTime?
+  lastError         String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([applicationId, tenantId, slug])
+  @@index([status, applicationId])
+  @@index([slug])
+}
+
+/// LifeOS consumer projection of an origin canonical PUBLIC publication (not a new CMS object).
+model PublicationProjection {
+  id                   String    @id @default(cuid())
+  originApplicationId  String
+  originTenantId       String
+  originPublicationId  String
+  /// JSON string array of canonical asset ids.
+  originAssetIds       String    @default("[]")
+  originCreatorId      String?
+  publicationType      String
+  privacy              String    @default("PUBLIC")
+  publicationState     String    @default("PUBLISHED")
+  title                String
+  caption              String    @default("")
+  authorDisplayName    String
+  authorSlug           String
+  publicDestinationUrl String
+  /// Canonical media URL from origin (never re-uploaded into LifeOS).
+  mediaUrl             String?
+  mediaStatus          String    @default("ok")
+  publishedAt          DateTime
+  ingestedAt           DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  hiddenAt             DateTime?
+  rawMetadata          String    @default("{}")
+
+  @@unique([originApplicationId, originPublicationId])
+  @@index([privacy, publicationState, hiddenAt, publishedAt])
+  @@index([originTenantId, publishedAt])
+  @@index([authorSlug, publishedAt])
+}
+

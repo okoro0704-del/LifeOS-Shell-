@@ -73,6 +73,13 @@ export const config = {
   sovereignDriveUrl: process.env.SOVEREIGN_DRIVE_URL ?? "",
   jobsEngineUrl: process.env.JOBS_ENGINE_URL ?? "",
   distributorUrl: process.env.DISTRIBUTOR_URL ?? "",
+  /** mybrandOS / creator public API origin (Railway). */
+  mybrandOsApiUrl: (process.env.MYBRANDOS_API_URL ?? "https://mybrandos-production.up.railway.app").replace(
+    /\/$/,
+    "",
+  ),
+  /** Public tenant root domain for canonical destinations. */
+  publicRootDomain: (process.env.LIFEOS_PUBLIC_ROOT_DOMAIN ?? "getlifeos.app").replace(/^\./, ""),
   /** Headless Finprove Engine — payment broker (LifeOS Gateway may reverse-proxy). */
   finproveUrl: (process.env.FINPROVE_URL ?? "http://localhost:4220").replace(/\/$/, ""),
   finproveBind: (process.env.FINPROVE_BIND ?? "").toLowerCase() === "true",

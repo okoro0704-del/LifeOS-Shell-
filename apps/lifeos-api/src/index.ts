@@ -21,6 +21,7 @@ import { wipeRoutes } from "./routes/wipe.js";
 import { distributorRoutes } from "./routes/distributor.js";
 import { finproveProxyRoutes } from "./routes/finprove-proxy.js";
 import { personalRoutes } from "./routes/personal.js";
+import { publicationRoutes } from "./routes/publications.js";
 import { sharedRoutes } from "./routes/shared.js";
 import {
   RemoteFinproveLedgerAdapter,
@@ -108,6 +109,7 @@ await actionRoutes(app);
 await bookingRoutes(app);
 await wipeRoutes(app);
 await distributorRoutes(app);
+await publicationRoutes(app);
 await personalRoutes(app);
 await sharedRoutes(app);
 await finproveProxyRoutes(app);

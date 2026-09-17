@@ -1,4 +1,5 @@
 import type { MediaItem } from "./personalCatalog";
+import { api } from "./api";
 import { MYBRANDOS_PRODUCTION_URL } from "./mybrandOS";
 
 type PublicAssetCard = {
@@ -17,6 +18,23 @@ type PublicExperience = {
   identity?: { displayName?: string };
   publishedAssets?: PublicAssetCard[];
   feed?: Array<{ id: string; kind: string; title: string; summary?: string; assetId?: string; coverAvailable?: boolean }>;
+};
+
+type LifeOsPublication = {
+  id: string;
+  originApplicationId: string;
+  originTenantId: string;
+  originPublicationId: string;
+  originAssetIds: string[];
+  publicationType: string;
+  title: string;
+  caption: string;
+  authorDisplayName: string;
+  authorSlug: string;
+  publicDestinationUrl: string;
+  mediaUrl: string | null;
+  mediaStatus: string;
+  publishedAt: string;
 };
 
 function publicApiBase(slug: string): string {
@@ -39,6 +57,33 @@ function publicOrigin(slug: string): string {
   return MYBRANDOS_PRODUCTION_URL;
 }
 
+function projectionToMediaItem(row: LifeOsPublication): MediaItem {
+  return {
+    id: `eco:${row.originApplicationId}:${row.originPublicationId}`,
+    title: row.title,
+    kind: "post",
+    detail: row.caption,
+    free: true,
+    ownedOrConsumed: true,
+    premiumRequired: false,
+    tier: "free",
+    author: row.authorSlug,
+    likes: "0",
+    posterUrl: row.mediaUrl || undefined,
+    mediaUrl: row.mediaUrl || undefined,
+  };
+}
+
+/** Preferred path: LifeOS server projections (ingestion + reconciliation). */
+export async function fetchLifeOsPublicationFeed(): Promise<MediaItem[]> {
+  try {
+    const data = await api<{ items: LifeOsPublication[]; count: number }>("/v1/publications/feed");
+    return (data.items ?? []).map(projectionToMediaItem);
+  } catch {
+    return [];
+  }
+}
+
 /** Digiconomy consume path: LifeOS reads the same public mybrandOS Assets (publish once). */
 export async function fetchMybrandPublicPosts(slug: string): Promise<MediaItem[]> {
   const clean = slug.replace(/^@/, "").trim().toLowerCase();
@@ -50,7 +95,6 @@ export async function fetchMybrandPublicPosts(slug: string): Promise<MediaItem[]
     });
     if (!res.ok) return [];
     const experience = (await res.json()) as PublicExperience;
-    const author = experience.identity?.displayName || clean;
     const origin = publicOrigin(clean);
     const assets = experience.publishedAssets ?? [];
     return assets
