@@ -1,18 +1,10 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { ImmersiveMediaFeed } from "../../components/ImmersiveMediaFeed";
 import { SegmentGlassBar } from "../../components/SegmentGlassBar";
 import { useChromeVisibility } from "../../context/ChromeVisibilityContext";
 import { catalogByKinds, hasPremium, setPremium, type MediaItem } from "../../lib/personalCatalog";
 import type { PersonalKernel } from "../../components/shell/nav";
-import { authClient } from "../../lib/api";
-import {
-  isAuthBypass,
-  markNeedsFaceOnKernelSwitch,
-  needsFaceOnKernelSwitch,
-  setPendingKernel,
-} from "../../lib/personalConnectivity";
-import { triggerWorkspaceHaptic } from "../../lib/mobileBridge";
 import {
   applyWatchedOffline,
   getLifeOsCredits,
@@ -21,9 +13,15 @@ import {
   resolveTier,
   topUpLifeOsCredits,
 } from "../../lib/personalMonetization";
-import { fetchLifeOsPublicationFeed, fetchMybrandPublicPosts } from "../../lib/mybrandPublicFeed";
+import {
+  fetchBrandedCatalogueItems,
+  fetchLifeOsPublicationFeed,
+  fetchMybrandPublicPosts,
+  type CatalogueItem,
+} from "../../lib/mybrandPublicFeed";
 import { installedAppsService } from "../../lib/services";
 import type { InstalledAppManifest } from "@lifeos/shared";
+import { openCreatorApp } from "../../lib/mybrandOS";
 
 export type HomeSection = "post" | "reels" | "products" | "communities" | "search";
 
@@ -33,49 +31,6 @@ const SECTIONS: { id: Exclude<HomeSection, "search">; label: string }[] = [
   { id: "products", label: "Products" },
   { id: "communities", label: "Communities" },
 ];
-
-const SOFTWARE_PRODUCTS = [
-  {
-    id: "sw1",
-    name: "RouteMesh",
-    maker: "Ada Labs",
-    seek: "Investment",
-  },
-  {
-    id: "sw2",
-    name: "ClinicOS Lite",
-    maker: "HealthStack",
-    seek: "Partnership",
-  },
-  {
-    id: "sw3",
-    name: "PayTrail",
-    maker: "NairaForge",
-    seek: "Sponsorship",
-  },
-  {
-    id: "sw4",
-    name: "ShelfSense",
-    maker: "RetailBit",
-    seek: "Sales",
-  },
-  {
-    id: "sw5",
-    name: "LearnKit API",
-    maker: "EduForge",
-    seek: "Partnership",
-  },
-  {
-    id: "sw6",
-    name: "StreamPipe",
-    maker: "MediaBit",
-    seek: "Investment",
-  },
-];
-
-function railThumb(seed: string) {
-  return `https://picsum.photos/seed/${encodeURIComponent(seed)}/640/800`;
-}
 
 function basePath(kernel: PersonalKernel): string {
   if (kernel === "free") return "/app/personal/free";
@@ -95,45 +50,13 @@ function filterForKernel(kernel: PersonalKernel, items: MediaItem[]): MediaItem[
   return merged;
 }
 
-export function KernelBrandBar({ kernel, hidden }: { kernel: PersonalKernel; hidden?: boolean }) {
-  const navigate = useNavigate();
-
-  function exitToMain() {
-    const online = typeof navigator === "undefined" ? true : navigator.onLine;
-    const leavingOffline = kernel === "offline";
-    const requireFace =
-      online && !isAuthBypass() && (needsFaceOnKernelSwitch() || leavingOffline);
-
-    if (requireFace) {
-      setPendingKernel("main");
-      markNeedsFaceOnKernelSwitch(false);
-      void triggerWorkspaceHaptic();
-      void authClient.beginLogin({
-        preferPasskey: true,
-        silentUi: true,
-        prompt: "login",
-      });
-      return;
-    }
-
-    void triggerWorkspaceHaptic();
-    navigate("/app/personal/post");
-  }
-
+export function KernelBrandBar({ hidden }: { kernel?: PersonalKernel; hidden?: boolean }) {
   return (
     <header
       className={`kernel-brand-bar kernel-brand-bar--clean${hidden ? " is-hidden" : ""}`}
       aria-label="LifeOS"
     >
-      <span className="kernel-brand-bar__side kernel-brand-bar__side--left" aria-hidden="true" />
       <span className="kernel-brand-bar__logo">LifeOS</span>
-      <span className="kernel-brand-bar__side kernel-brand-bar__side--right">
-        {kernel === "main" ? null : (
-          <button type="button" className="kernel-brand-bar__exit" aria-label="Exit to Main" onClick={exitToMain}>
-            ×
-          </button>
-        )}
-      </span>
     </header>
   );
 }
@@ -186,7 +109,7 @@ export function PersonalKernelShell({
       }${chromeHidden ? " is-scrolled is-chrome-hidden" : ""}`}
     >
       {/* Primary top bar stays fixed; never hidden by scroll. */}
-      <KernelBrandBar kernel={kernel} hidden={false} />
+      <KernelBrandBar hidden={false} />
       <div className="kernel-scroll" ref={scrollRef}>
         {immersive ? (
           children
@@ -319,28 +242,55 @@ export function KernelReelsPage({ kernel }: { kernel: PersonalKernel }) {
   );
 }
 
-/** Software products streamed from creator PWAs — seek invest / partner / sell. */
+/** Catalogue projections from branded Digital Spaces — no LifeOS-owned mock store. */
 export function KernelProductsPage({ kernel }: { kernel: PersonalKernel }) {
+  const [items, setItems] = useState<CatalogueItem[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      const next = await fetchBrandedCatalogueItems();
+      if (active) {
+        setItems(next);
+        setLoaded(true);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <PersonalKernelShell kernel={kernel} section="products">
-      <div className="near-rail near-rail--hero" role="list">
-        {SOFTWARE_PRODUCTS.map((p) => (
-          <button key={p.id} type="button" className="near-rail__card near-rail__card--media" role="listitem">
-            <img className="near-rail__thumb" src={railThumb(p.id)} alt="" loading="lazy" />
-            <span className="near-rail__boost">{p.seek}</span>
-            <span className="near-rail__caption">
-              <strong>{p.name}</strong>
-              <span className="muted small">{p.maker}</span>
-            </span>
-          </button>
-        ))}
-        <button type="button" className="near-rail__card near-rail__card--media near-rail__card--more" role="listitem">
-          <span className="near-rail__caption">
-            <strong>See more</strong>
-            <span className="muted small">Browse all</span>
-          </span>
-        </button>
-      </div>
+      {loaded && items.length === 0 ? (
+        <p className="muted padded" style={{ margin: "0.75rem 1rem" }}>
+          No catalogue items from branded Digital Spaces yet.
+        </p>
+      ) : (
+        <div className="near-rail near-rail--hero" role="list">
+          {items.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className="near-rail__card near-rail__card--media"
+              role="listitem"
+              onClick={() => void openCreatorApp(p.ownerSlug)}
+            >
+              {p.mediaUrl ? (
+                <img className="near-rail__thumb" src={p.mediaUrl} alt="" loading="lazy" />
+              ) : (
+                <span className="near-rail__thumb near-rail__thumb--empty" aria-hidden />
+              )}
+              <span className="near-rail__boost">{p.itemType}</span>
+              <span className="near-rail__caption">
+                <strong>{p.title}</strong>
+                <span className="muted small">{p.ownerDisplayName || p.ownerSlug}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </PersonalKernelShell>
   );
 }
