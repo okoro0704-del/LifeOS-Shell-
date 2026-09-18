@@ -89,3 +89,26 @@ export function adjacentKernel(
   // Swipe right → move toward left neighbor (lower index).
   return idx <= 0 ? null : KERNEL_NAV_ORDER[idx - 1]!;
 }
+
+export const KERNEL_SWIPE_MIN_DX = 72;
+export const KERNEL_SWIPE_MAX_DY_RATIO = 0.65;
+export const KERNEL_SWIPE_MIN_VX = 0.35;
+
+/** Pure recognizer: average of `needed` pointer samples → left/right or null. */
+export function evaluateKernelSwipe(
+  samples: Array<{ dx: number; dy: number; dtMs: number }>,
+  needed: number,
+): "left" | "right" | null {
+  if (samples.length < needed) return null;
+  const used = samples.slice(0, needed);
+  const avgDx = used.reduce((s, t) => s + t.dx, 0) / used.length;
+  const avgDy = used.reduce((s, t) => s + t.dy, 0) / used.length;
+  const dt = Math.max(16, ...used.map((t) => t.dtMs));
+  const vx = Math.abs(avgDx) / dt;
+  const horizontal =
+    Math.abs(avgDx) >= KERNEL_SWIPE_MIN_DX &&
+    Math.abs(avgDy) <= Math.abs(avgDx) * KERNEL_SWIPE_MAX_DY_RATIO &&
+    (Math.abs(avgDx) >= KERNEL_SWIPE_MIN_DX * 1.25 || vx >= KERNEL_SWIPE_MIN_VX);
+  if (!horizontal) return null;
+  return avgDx < 0 ? "left" : "right";
+}

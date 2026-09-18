@@ -48,7 +48,7 @@ function Shell({ active, children }: { active: string; children: ReactNode }) {
 
   return (
     <div className={`page personal-page personal-page--surface${chromeHidden ? " is-scrolled is-chrome-hidden" : ""}`}>
-      <KernelBrandBar kernel={kernel} hidden={chromeHidden} />
+      <KernelBrandBar hidden={false} />
       <SegmentGlassBar
         tabs={tabs}
         activeId={active}

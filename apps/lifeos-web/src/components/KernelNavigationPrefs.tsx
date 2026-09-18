@@ -17,7 +17,6 @@ export function KernelNavigationPrefs({ trustId }: { trustId?: string | null }) 
       <strong>Kernel Navigation</strong>
       <p className="muted small" style={{ margin: 0 }}>
         Swipe left or right with the selected number of fingers to move between LifeOS kernels.
-        Double-tap always opens the kernel chooser.
       </p>
       <label className="toggle-row">
         <span>Multi-finger swipe</span>

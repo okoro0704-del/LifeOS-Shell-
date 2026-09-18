@@ -9,8 +9,8 @@ export type GlassTab = {
 };
 
 /**
- * Pill-clustered tabs (bottom-nav shape) with search outside on the right.
- * Optional back icon on the left when scrolled (not used on Home).
+ * Home section rail: wide transparent tabs + search on the right.
+ * Selected tab keeps its accent wash; no full-header pill/plate.
  */
 export function SegmentGlassBar({
   tabs,
@@ -30,27 +30,32 @@ export function SegmentGlassBar({
   backTo: string;
 }) {
   const navigate = useNavigate();
+  const compact = !showBack;
 
   return (
     <nav
-      className={`segment-topbar segment-topbar--glass${scrolled ? " is-pinned is-chrome-hidden" : ""}`}
+      className={`segment-topbar segment-topbar--glass${compact ? " segment-topbar--wide" : ""}${
+        scrolled ? " is-pinned is-chrome-hidden" : ""
+      }`}
       aria-label={ariaLabel}
       aria-hidden={scrolled}
     >
-      <span className="segment-topbar__edge segment-topbar__edge--left">
-        {showBack && scrolled ? (
-          <button
-            type="button"
-            className="segment-topbar__icon-btn segment-topbar__icon-btn--back"
-            aria-label="Back"
-            onClick={() => navigate(backTo)}
-          >
-            ←
-          </button>
-        ) : (
-          <span className="segment-topbar__spacer" aria-hidden />
-        )}
-      </span>
+      {showBack ? (
+        <span className="segment-topbar__edge segment-topbar__edge--left">
+          {scrolled ? (
+            <button
+              type="button"
+              className="segment-topbar__icon-btn segment-topbar__icon-btn--back"
+              aria-label="Back"
+              onClick={() => navigate(backTo)}
+            >
+              ←
+            </button>
+          ) : (
+            <span className="segment-topbar__spacer" aria-hidden />
+          )}
+        </span>
+      ) : null}
 
       <div className="segment-topbar__cluster" role="presentation">
         {tabs.map((t) => (
