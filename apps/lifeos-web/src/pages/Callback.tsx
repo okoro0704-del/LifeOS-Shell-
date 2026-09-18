@@ -58,9 +58,11 @@ export function CallbackPage() {
         markIntroSeen();
         setUser(data.user);
         setMode("PERSONAL");
-        const pending = consumePendingKernel();
-        navigate(pending ? personalKernelPath(pending) : personalLandingPath(), { replace: true });
-      } catch (err) {
+        const pending = consumePendingKernel(data.user.trustId);
+        navigate(
+          pending ? personalKernelPath(pending) : personalLandingPath(data.user.trustId),
+          { replace: true },
+        );      } catch (err) {
         if (err instanceof AuthClientError) {
           setError(err.message);
         } else if (err instanceof ApiError && err.code === "authorization_revoked") {

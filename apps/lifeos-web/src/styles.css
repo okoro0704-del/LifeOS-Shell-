@@ -32,7 +32,7 @@ body {
   --los-text-xl: 1.45rem;
   --los-text-2xl: 1.75rem;
   --los-text-3xl: 2.15rem;
-  --kernel-chrome-h: calc(5.1rem + env(safe-area-inset-top, 0px));
+  --kernel-chrome-h: calc(2.35rem + env(safe-area-inset-top, 0px));
 }
 
 h1,
@@ -5202,31 +5202,33 @@ button.los-wallet__action:disabled {
   /* Sit at the very top of the post frame (status-safe only) */
   padding: env(safe-area-inset-top, 0px) 0.45rem 0.15rem;
   min-height: calc(1.85rem + env(safe-area-inset-top, 0px));
-  background: transparent;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s ease,
-    max-height 0.2s ease,
-    padding 0.2s ease;
-  max-height: calc(3.1rem + env(safe-area-inset-top, 0px));
-  overflow: hidden;
+  background: color-mix(in srgb, var(--los-bg, #0b1220) 88%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: none;
+  max-height: none;
+  overflow: visible;
 }
 
+.kernel-brand-bar--clean .kernel-brand-bar__logo {
+  justify-self: center;
+  text-align: center;
+}
+
+/* Primary LifeOS bar must not hide/collapse on scroll. */
 .kernel-brand-bar.is-hidden {
-  opacity: 0;
-  transform: translateY(-0.4rem);
-  max-height: 0;
-  min-height: 0;
-  padding: 0;
-  pointer-events: none;
+  opacity: 1;
+  transform: none;
+  max-height: none;
+  min-height: calc(1.85rem + env(safe-area-inset-top, 0px));
+  padding: env(safe-area-inset-top, 0px) 0.45rem 0.15rem;
+  pointer-events: auto;
 }
 
 .segment-topbar--glass {
-  position: sticky;
-  top: 0;
-  z-index: 38;
+  position: relative;
+  top: auto;
+  z-index: 1;
   display: grid;
   grid-template-columns: 1.85rem minmax(0, 1fr) 2.35rem;
   align-items: center;
@@ -5751,7 +5753,7 @@ button.los-wallet__action:disabled {
   flex-direction: column;
 }
 
-/* Landing: video stays between top chrome and bottom nav */
+/* Landing: video stays between fixed LifeOS brand bar and bottom nav */
 .personal-page--immersive:not(.is-scrolled):not(.is-chrome-hidden) .kernel-scroll {
   position: relative;
   flex: 1;
@@ -5759,7 +5761,7 @@ button.los-wallet__action:disabled {
   margin-top: 0;
   height: auto;
   max-height: calc(
-    100dvh - var(--kernel-chrome-h) - var(--nav-h) - 1.35rem - env(safe-area-inset-bottom, 0px)
+    100dvh - var(--kernel-chrome-h) - var(--nav-h) - env(safe-area-inset-bottom, 0px)
   );
 }
 
@@ -5771,30 +5773,36 @@ button.los-wallet__action:disabled {
   z-index: 1;
 }
 
-/* Scrolling: chrome gone — video can fill past former bar zones */
+/* Bottom nav may hide; brand bar stays. Feed expands under bottom chrome only. */
 .personal-page--immersive.is-scrolled .kernel-scroll,
 .personal-page--immersive.is-chrome-hidden .kernel-scroll {
   position: relative;
   flex: 1;
   min-height: 0;
-  height: 100dvh;
-  margin-top: calc(-1 * var(--kernel-chrome-h));
+  height: auto;
+  margin-top: 0;
   padding-top: 0;
-  max-height: none;
+  max-height: calc(100dvh - var(--kernel-chrome-h));
 }
 
 .personal-page--immersive.is-scrolled .immersive-feed,
 .personal-page--immersive.is-chrome-hidden .immersive-feed {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  inset: auto;
   height: 100% !important;
   z-index: 1;
 }
 
-.personal-page--immersive .kernel-brand-bar,
+.personal-page--immersive .kernel-brand-bar {
+  position: sticky;
+  top: 0;
+  z-index: 45;
+  flex: 0 0 auto;
+}
+
 .personal-page--immersive .segment-topbar--glass {
   position: relative;
-  z-index: 45;
+  z-index: 1;
   flex: 0 0 auto;
 }
 
@@ -5802,6 +5810,114 @@ button.los-wallet__action:disabled {
 .personal-page--immersive .kernel-peek-title {
   padding-left: 1.15rem;
   padding-right: 1.15rem;
+}
+
+.immersive-feed__leading {
+  list-style: none;
+  padding: 0.2rem 0 0.35rem;
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
+  background: transparent;
+}
+
+.kernel-chooser {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 1rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  background: color-mix(in srgb, #000 45%, transparent);
+}
+
+.kernel-chooser__sheet {
+  width: min(24rem, 100%);
+  border-radius: 1.1rem;
+  padding: 1rem 1rem 0.85rem;
+  background: var(--los-surface, #111827);
+  color: var(--los-text, #f8fafc);
+  box-shadow: 0 18px 48px color-mix(in srgb, #000 40%, transparent);
+}
+
+.kernel-chooser__title {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+  font-weight: 650;
+  text-align: center;
+}
+
+.kernel-chooser__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.kernel-chooser__option {
+  display: grid;
+  grid-template-columns: 1.4rem 1fr;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  border: 0;
+  border-radius: 0.75rem;
+  padding: 0.85rem 0.9rem;
+  background: color-mix(in srgb, var(--los-bg, #0b1220) 55%, transparent);
+  color: inherit;
+  font: inherit;
+  font-size: 1rem;
+  text-align: left;
+}
+
+.kernel-chooser__option.is-current {
+  outline: 1px solid color-mix(in srgb, var(--los-accent, #0d7a6f) 70%, transparent);
+  background: color-mix(in srgb, var(--los-accent, #0d7a6f) 18%, transparent);
+}
+
+.kernel-chooser__check {
+  min-width: 1.1rem;
+  font-weight: 700;
+}
+
+.kernel-chooser__cancel {
+  display: block;
+  width: 100%;
+  margin-top: 0.65rem;
+  border: 0;
+  border-radius: 0.75rem;
+  padding: 0.8rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  opacity: 0.85;
+}
+
+.kernel-nav-prefs {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.kernel-nav-prefs__fingers {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.kernel-nav-prefs__finger {
+  flex: 1;
+  border: 1px solid color-mix(in srgb, var(--los-text, #111) 18%, transparent);
+  border-radius: 0.65rem;
+  padding: 0.55rem 0.4rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.kernel-nav-prefs__finger.is-on {
+  border-color: var(--los-accent, #0d7a6f);
+  background: color-mix(in srgb, var(--los-accent, #0d7a6f) 16%, transparent);
 }
 
 .kernel-scroll {
@@ -5824,15 +5940,9 @@ button.los-wallet__action:disabled {
   -webkit-overflow-scrolling: touch;
 }
 
-.immersive-feed__leading {
-  list-style: none;
-  padding: 0 1.15rem;
-  scroll-snap-align: none;
-}
-
 .personal-page.is-scrolled .immersive-feed,
 html.lifeos-chrome-hidden .immersive-feed {
-  height: 100dvh;
+  height: 100%;
 }
 
 .immersive-feed__empty {

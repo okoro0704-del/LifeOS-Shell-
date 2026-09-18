@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useWorkspace, type WorkspaceMode } from "../../context/WorkspaceContext";
 import { triggerWorkspaceHaptic } from "../../lib/mobileBridge";
 import { personalLandingPath } from "../../lib/personalConnectivity";
+import { useAuth } from "../../hooks/useAuth";
 import { workspaceHomePath } from "./nav";
 
 const OPTIONS: { mode: WorkspaceMode; label: string }[] = [
@@ -29,11 +30,13 @@ export function WorkspaceToggle({
   variant = "segmented",
 }: WorkspaceToggleProps) {
   const { mode, setMode } = useWorkspace();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const lastFlipAt = useRef(0);
   const lastTapAt = useRef(0);
   /** Ignore the synthetic click that follows touchend on mobile. */
   const touchHandled = useRef(false);
+  const landing = () => personalLandingPath(user?.trustId);
 
   const flipSpace = useCallback(() => {
     const now = Date.now();
@@ -44,8 +47,8 @@ export function WorkspaceToggle({
     void triggerWorkspaceHaptic();
     setMode(next);
     onModeChange?.(next);
-    navigate(next === "PERSONAL" ? personalLandingPath() : workspaceHomePath(next));
-  }, [mode, setMode, onModeChange, navigate]);
+    navigate(next === "PERSONAL" ? landing() : workspaceHomePath(next));
+  }, [mode, setMode, onModeChange, navigate, user?.trustId]);
 
   const onDoubleActivate = useCallback(() => {
     const now = Date.now();
@@ -66,9 +69,9 @@ export function WorkspaceToggle({
       void triggerWorkspaceHaptic();
       setMode(next);
       onModeChange?.(next);
-      navigate(next === "PERSONAL" ? personalLandingPath() : workspaceHomePath(next));
+      navigate(next === "PERSONAL" ? landing() : workspaceHomePath(next));
     },
-    [mode, setMode, onModeChange, navigate],
+    [mode, setMode, onModeChange, navigate, user?.trustId],
   );
 
   if (variant === "space") {

@@ -15,6 +15,7 @@ import { connectionService, profileService, walletService } from "../lib/service
 import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../hooks/useTheme";
 import { StatusBanner } from "../components/StatusBanner";
+import { KernelNavigationPrefs } from "../components/KernelNavigationPrefs";
 
 /** Compress image to a small JPEG data URL for preference storage. */
 function fileToAvatarDataUrl(file: File): Promise<string> {
@@ -265,6 +266,7 @@ export function ProfilePage() {
             </label>
           </div>
         ) : null}
+        <KernelNavigationPrefs trustId={user?.trustId} />
       </section>
 
       <section className="profile-stack">

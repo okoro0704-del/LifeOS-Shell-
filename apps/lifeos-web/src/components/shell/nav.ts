@@ -79,4 +79,4 @@ export function personalKernelFromPath(pathname: string): PersonalKernel | null 
   return null;
 }
 
-export const PERSONAL_KERNEL_ORDER: PersonalKernel[] = ["offline", "main", "free"];
+export const PERSONAL_KERNEL_ORDER: PersonalKernel[] = ["free", "offline", "main"];

@@ -93,10 +93,11 @@ function PageFallback() {
 
 function WorkspaceHomeRedirect() {
   const { setMode } = useWorkspace();
+  const { user } = useAuth();
   useEffect(() => {
     setMode("PERSONAL");
   }, [setMode]);
-  return <Navigate to={personalLandingPath()} replace />;
+  return <Navigate to={personalLandingPath(user?.trustId)} replace />;
 }
 
 function ThemedApp() {

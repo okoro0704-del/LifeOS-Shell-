@@ -39,7 +39,7 @@ export function LoginPage() {
   useEffect(() => {
     if (!loading && user) {
       setMode("PERSONAL");
-      navigate(personalLandingPath(), { replace: true });
+      navigate(personalLandingPath(user.trustId), { replace: true });
     }
   }, [loading, user, navigate, setMode]);
 
@@ -66,7 +66,7 @@ export function LoginPage() {
       cacheUser(res.user);
       await refresh();
       setMode("PERSONAL");
-      navigate(personalLandingPath(), { replace: true });
+      navigate(personalLandingPath(res.user.trustId), { replace: true });
     } catch (err) {
       setBypassError(err instanceof Error ? err.message : "Dev session failed");
       entering.current = false;

@@ -1,6 +1,7 @@
 import type { PersonalKernel } from "../components/shell/nav";
 import { personalKernelPath } from "../components/shell/nav";
 import { isMobileApp } from "./mobileBridge";
+import { getLastSelectedKernel, setLastSelectedKernel } from "./kernelNavigation";
 
 const PENDING_KERNEL_KEY = "lifeos.pending_kernel";
 const NEEDS_FACE_KEY = "lifeos.needs_face_on_kernel";
@@ -24,11 +25,14 @@ export function setPendingKernel(kernel: PersonalKernel) {
   }
 }
 
-export function consumePendingKernel(): PersonalKernel | null {
+export function consumePendingKernel(trustId?: string | null): PersonalKernel | null {
   try {
     const raw = sessionStorage.getItem(PENDING_KERNEL_KEY);
     sessionStorage.removeItem(PENDING_KERNEL_KEY);
-    if (raw === "offline" || raw === "main" || raw === "free") return raw;
+    if (raw === "offline" || raw === "main" || raw === "free") {
+      setLastSelectedKernel(raw, trustId);
+      return raw;
+    }
   } catch {
     /* */
   }
@@ -65,11 +69,13 @@ export function needsFaceOnKernelSwitch(): boolean {
 }
 
 /** Default personal landing path after login /app redirect. */
-export function personalLandingPath(): string {
+export function personalLandingPath(trustId?: string | null): string {
   if (typeof navigator !== "undefined" && !navigator.onLine) {
     return "/app/personal/offline/post";
   }
   const pending = peekPendingKernelPath();
   if (pending) return pending;
+  const last = getLastSelectedKernel(trustId);
+  if (last) return personalKernelPath(last);
   return "/app/personal/post";
 }

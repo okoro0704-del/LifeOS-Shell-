@@ -95,12 +95,6 @@ function filterForKernel(kernel: PersonalKernel, items: MediaItem[]): MediaItem[
   return merged;
 }
 
-function kernelLabel(kernel: PersonalKernel): string {
-  if (kernel === "free") return "Free";
-  if (kernel === "offline") return "Offline";
-  return "Main";
-}
-
 export function KernelBrandBar({ kernel, hidden }: { kernel: PersonalKernel; hidden?: boolean }) {
   const navigate = useNavigate();
 
@@ -127,28 +121,17 @@ export function KernelBrandBar({ kernel, hidden }: { kernel: PersonalKernel; hid
   }
 
   return (
-    <header className={`kernel-brand-bar${hidden ? " is-hidden" : ""}`} aria-label="Kernel">
-      <span className="kernel-brand-bar__side kernel-brand-bar__side--left">{kernelLabel(kernel)}</span>
+    <header
+      className={`kernel-brand-bar kernel-brand-bar--clean${hidden ? " is-hidden" : ""}`}
+      aria-label="LifeOS"
+    >
+      <span className="kernel-brand-bar__side kernel-brand-bar__side--left" aria-hidden="true" />
       <span className="kernel-brand-bar__logo">LifeOS</span>
       <span className="kernel-brand-bar__side kernel-brand-bar__side--right">
-        {kernel === "main" ? (
-          <span className="kernel-brand-bar__main-actions">
-            <span className="kernel-brand-bar__credits" aria-label="LifeOS credits">
-              {getLifeOsCredits()} cr
-            </span>
-            {hasPremium() ? null : (
-              <Link to="/app/personal/premium" className="kernel-brand-bar__premium">
-                Go Premium
-              </Link>
-            )}
-          </span>
-        ) : (
-          <span className="kernel-brand-bar__main-actions">
-            <span className="kernel-brand-bar__credits">{getLifeOsCredits()} cr</span>
-            <button type="button" className="kernel-brand-bar__exit" aria-label="Exit to Main" onClick={exitToMain}>
-              ×
-            </button>
-          </span>
+        {kernel === "main" ? null : (
+          <button type="button" className="kernel-brand-bar__exit" aria-label="Exit to Main" onClick={exitToMain}>
+            ×
+          </button>
         )}
       </span>
     </header>
@@ -202,20 +185,54 @@ export function PersonalKernelShell({
         immersive ? " personal-page--immersive" : ""
       }${chromeHidden ? " is-scrolled is-chrome-hidden" : ""}`}
     >
-      <KernelBrandBar kernel={kernel} hidden={chromeHidden} />
-      <SegmentGlassBar
-        tabs={tabs}
-        activeId={section === "search" ? "post" : section}
-        scrolled={chromeHidden}
-        showBack={false}
-        searchTo={`${base}/search`}
-        backTo={`${base}/post`}
-        ariaLabel="Home sections"
-      />
+      {/* Primary top bar stays fixed; never hidden by scroll. */}
+      <KernelBrandBar kernel={kernel} hidden={false} />
       <div className="kernel-scroll" ref={scrollRef}>
-        {children}
+        {immersive ? (
+          children
+        ) : (
+          <>
+            <SegmentGlassBar
+              tabs={tabs}
+              activeId={section === "search" ? "post" : section}
+              scrolled={false}
+              showBack={false}
+              searchTo={`${base}/search`}
+              backTo={`${base}/post`}
+              ariaLabel="Home sections"
+            />
+            {children}
+          </>
+        )}
       </div>
     </div>
+  );
+}
+
+function SectionLeadingBar({
+  kernel,
+  section,
+}: {
+  kernel: PersonalKernel;
+  section: HomeSection;
+}) {
+  const base = basePath(kernel);
+  const tabs = SECTIONS.map((s) => ({
+    id: s.id,
+    label: s.label,
+    to: `${base}/${s.id}`,
+    end: s.id === "post",
+  }));
+  return (
+    <SegmentGlassBar
+      tabs={tabs}
+      activeId={section === "search" ? "post" : section}
+      scrolled={false}
+      showBack={false}
+      searchTo={`${base}/search`}
+      backTo={`${base}/post`}
+      ariaLabel="Home sections"
+    />
   );
 }
 
@@ -267,6 +284,7 @@ export function KernelPostPage({ kernel }: { kernel: PersonalKernel }) {
         gatePremium={kernel === "main"}
         mode="post"
         showAds={kernel === "free"}
+        leading={<SectionLeadingBar kernel={kernel} section="post" />}
       />
       {kernel === "offline" && listSavedAds().length > 0 ? (
         <section className="offline-saved-ads" aria-label="Saved ads">
@@ -295,6 +313,7 @@ export function KernelReelsPage({ kernel }: { kernel: PersonalKernel }) {
         gatePremium={kernel === "main"}
         mode="reels"
         showAds={kernel === "free"}
+        leading={<SectionLeadingBar kernel={kernel} section="reels" />}
       />
     </PersonalKernelShell>
   );
