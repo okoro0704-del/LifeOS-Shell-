@@ -19,6 +19,7 @@ import { installedAppsService, notificationService } from "../lib/services";
 import { markNeedsFaceOnKernelSwitch } from "../lib/personalConnectivity";
 import { setLastSelectedKernel } from "../lib/kernelNavigation";
 import { CommandOverlay } from "./CommandOverlay";
+import { ContentNavigationBar } from "./ContentNavigationBar";
 import { LiveFloat } from "./LiveFloat";
 import { LifeOSWakeListener } from "./LifeOSWakeListener";
 import { PageTopBar } from "./PageTopBar";
@@ -429,7 +430,8 @@ export function AppShell() {
 
         <CommandOverlay />
         <LifeOSWakeListener />
-        {mode === "PERSONAL" ? <LiveFloat apps={installedApps} /> : null}
+        {mode === "PERSONAL" ? <ContentNavigationBar apps={installedApps} /> : null}
+        {mode !== "PERSONAL" ? <LiveFloat apps={installedApps} /> : null}
 
         {!isImmersive ? (
           <nav
@@ -437,9 +439,9 @@ export function AppShell() {
               mode === "PERSONAL" && personalKernel !== "main"
                 ? ` bottom-nav--kernel-${personalKernel}`
                 : ""
-            }${chromeHidden ? " is-chrome-hidden" : ""}`}
+            }${chromeHidden && mode === "PERSONAL" ? " is-chrome-hidden" : ""}`}
             aria-label="Primary"
-            aria-hidden={chromeHidden}
+            aria-hidden={chromeHidden && mode === "PERSONAL"}
           >
             {tabs.slice(0, 2).map((t) => (
               <NavLink

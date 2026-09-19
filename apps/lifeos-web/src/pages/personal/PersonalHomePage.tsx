@@ -78,7 +78,7 @@ export function PersonalKernelShell({
   children: ReactNode;
   immersive?: boolean;
 }) {
-  const { chromeHidden, reportScroll } = useChromeVisibility();
+  const { chromeHidden, reportScroll, setChromeHidden } = useChromeVisibility();
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevY = useRef(0);
   const base = basePath(kernel);
@@ -86,6 +86,11 @@ export function PersonalKernelShell({
   useEffect(() => {
     applyWatchedOffline();
     prevY.current = 0;
+    // Non-immersive listings (Products / Communities) must not enter content-nav mode.
+    if (!immersive) {
+      setChromeHidden(false);
+      return;
+    }
     const root = scrollRef.current;
     if (!root) return;
     const onScroll = () => {
@@ -99,7 +104,7 @@ export function PersonalKernelShell({
     target.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
     return () => target.removeEventListener("scroll", onScroll);
-  }, [section, kernel, immersive, reportScroll]);
+  }, [section, kernel, immersive, reportScroll, setChromeHidden]);
 
   const tabs = SECTIONS.map((s) => ({
     id: s.id,
@@ -114,50 +119,21 @@ export function PersonalKernelShell({
         immersive ? " personal-page--immersive" : ""
       }${chromeHidden ? " is-scrolled is-chrome-hidden" : ""}`}
     >
-      {/* Primary top bar stays fixed; never hidden by scroll. */}
+      {/* Brand + section bar share one fixed top stack for every Home section. */}
       <KernelBrandBar hidden={false} />
-      {!immersive ? (
-        <SegmentGlassBar
-          tabs={tabs}
-          activeId={section === "search" ? "post" : section}
-          scrolled={false}
-          showBack={false}
-          searchTo={`${base}/search`}
-          backTo={`${base}/post`}
-          ariaLabel="Home sections"
-        />
-      ) : null}
+      <SegmentGlassBar
+        tabs={tabs}
+        activeId={section === "search" ? "post" : section}
+        scrolled={false}
+        showBack={false}
+        searchTo={`${base}/search`}
+        backTo={`${base}/post`}
+        ariaLabel="Home sections"
+      />
       <div className="kernel-scroll" ref={scrollRef}>
         {children}
       </div>
     </div>
-  );
-}
-
-function SectionLeadingBar({
-  kernel,
-  section,
-}: {
-  kernel: PersonalKernel;
-  section: HomeSection;
-}) {
-  const base = basePath(kernel);
-  const tabs = SECTIONS.map((s) => ({
-    id: s.id,
-    label: s.label,
-    to: `${base}/${s.id}`,
-    end: s.id === "post",
-  }));
-  return (
-    <SegmentGlassBar
-      tabs={tabs}
-      activeId={section === "search" ? "post" : section}
-      scrolled={false}
-      showBack={false}
-      searchTo={`${base}/search`}
-      backTo={`${base}/post`}
-      ariaLabel="Home sections"
-    />
   );
 }
 
@@ -259,7 +235,6 @@ export function KernelPostPage({ kernel }: { kernel: PersonalKernel }) {
         gatePremium={kernel === "main"}
         mode="post"
         showAds={kernel === "free"}
-        leading={<SectionLeadingBar kernel={kernel} section="post" />}
         initialPublicationId={initialPublicationId}
         hasMore={Boolean(nextCursor)}
         onNearEnd={onNearEnd}
@@ -291,7 +266,6 @@ export function KernelReelsPage({ kernel }: { kernel: PersonalKernel }) {
         gatePremium={kernel === "main"}
         mode="reels"
         showAds={kernel === "free"}
-        leading={<SectionLeadingBar kernel={kernel} section="reels" />}
       />
     </PersonalKernelShell>
   );

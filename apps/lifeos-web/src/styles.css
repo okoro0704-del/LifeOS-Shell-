@@ -33,6 +33,9 @@ body {
   --los-text-2xl: 1.75rem;
   --los-text-3xl: 2.15rem;
   --kernel-chrome-h: calc(1.55rem + env(safe-area-inset-top, 0px));
+  --kernel-section-h: 2.55rem;
+  --kernel-top-stack-h: calc(var(--kernel-chrome-h) + var(--kernel-section-h));
+  --nav-h: 4.25rem;
 }
 
 h1,
@@ -5775,7 +5778,7 @@ button.los-wallet__action:disabled {
   margin-top: 0;
   height: auto;
   max-height: calc(
-    100dvh - var(--kernel-chrome-h) - var(--nav-h) - env(safe-area-inset-bottom, 0px)
+    100dvh - var(--kernel-top-stack-h) - var(--nav-h) - env(safe-area-inset-bottom, 0px)
   );
 }
 
@@ -5796,7 +5799,7 @@ button.los-wallet__action:disabled {
   height: auto;
   margin-top: 0;
   padding-top: 0;
-  max-height: calc(100dvh - var(--kernel-chrome-h));
+  max-height: calc(100dvh - var(--kernel-top-stack-h));
 }
 
 .personal-page--immersive.is-scrolled .immersive-feed,
@@ -6455,6 +6458,26 @@ html.lifeos-chrome-hidden .immersive-feed {
   position: relative;
   z-index: 30;
   background: transparent;
+  min-height: var(--kernel-section-h);
+  height: var(--kernel-section-h);
+  margin: 0.05rem 0.15rem 0.1rem;
+  align-items: center;
+}
+
+.personal-page--kernel > .segment-topbar--glass .segment-topbar__tab {
+  height: 2.05rem;
+  min-height: 2.05rem;
+  max-height: 2.05rem;
+  line-height: 1.1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.personal-page--kernel > .segment-topbar--glass .segment-topbar__icon-btn--search {
+  width: 2.05rem;
+  height: 2.05rem;
 }
 
 .personal-page--kernel > .kernel-scroll {
@@ -6845,6 +6868,107 @@ html.lifeos-chrome-hidden .immersive-feed__copy--on,
 }
 
 /* Live float — blinking above bottom nav */
+.content-nav-bar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--nav-h) + 0.55rem + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 96;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: min(24.5rem, calc(100% - 1rem));
+  padding: 0.35rem 0.4rem;
+  border-radius: 1rem;
+  background: color-mix(in srgb, #0f172a 78%, transparent);
+  border: 1px solid color-mix(in srgb, #fff 14%, transparent);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: bottom 0.22s ease, width 0.22s ease, border-radius 0.22s ease;
+  pointer-events: auto;
+}
+
+.content-nav-bar.is-docked {
+  bottom: calc(0.45rem + env(safe-area-inset-bottom, 0px));
+  width: min(26rem, calc(100% - 0.7rem));
+  border-radius: 1.15rem;
+  padding: 0.42rem 0.5rem;
+}
+
+.content-nav-bar__chip {
+  flex: 0 0 auto;
+  min-width: 3.55rem;
+  min-height: 2.35rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 0.65rem;
+  border: 1px solid color-mix(in srgb, #fff 18%, transparent);
+  background: color-mix(in srgb, #0f172a 55%, transparent);
+  color: #f8fafc;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.content-nav-bar__chip.is-active {
+  background: color-mix(in srgb, var(--los-accent, #0d7a6f) 42%, #0f172a);
+  border-color: color-mix(in srgb, var(--los-accent, #0d7a6f) 70%, transparent);
+  outline: 1px solid color-mix(in srgb, #fff 28%, transparent);
+}
+
+.content-nav-bar__live {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 2.35rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  text-decoration: none;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  background: #dc2626;
+  box-shadow: 0 8px 20px rgba(220, 38, 38, 0.35);
+}
+
+.content-nav-bar__icon {
+  flex: 0 0 auto;
+  width: 2.35rem;
+  height: 2.35rem;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  text-decoration: none;
+  color: #f8fafc;
+  background: color-mix(in srgb, #0f172a 72%, transparent);
+  border: 1px solid color-mix(in srgb, #fff 16%, transparent);
+}
+
+.content-nav-bar__icon--msg {
+  background: #0f766e;
+  border-color: transparent;
+  color: #ecfdf5;
+}
+
+.content-nav-bar__icon--spacer {
+  visibility: hidden;
+  pointer-events: none;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Keep content-nav visible while primary shell nav yields in content mode */
+html.lifeos-chrome-hidden .content-nav-bar {
+  pointer-events: auto;
+}
+
 .live-dock {
   position: fixed;
   left: 50%;
