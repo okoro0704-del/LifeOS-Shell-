@@ -25,6 +25,10 @@ import {
   mapPublicationToMediaItem,
   type DatedMediaItem,
 } from "../../lib/ecommerceLifeOsFeed";
+import {
+  fetchHospitalityLifeOsFeed,
+  mapHospitalityPublicationToMediaItem,
+} from "../../lib/hospitalityLifeOsFeed";
 import { installedAppsService } from "../../lib/services";
 import type { InstalledAppManifest } from "@lifeos/shared";
 import { openCreatorApp } from "../../lib/mybrandOS";
@@ -56,10 +60,20 @@ function filterForKernel(kernel: PersonalKernel, items: MediaItem[]): MediaItem[
   return merged;
 }
 
-export function KernelBrandBar({ hidden }: { kernel?: PersonalKernel; hidden?: boolean }) {
+export function KernelBrandBar({
+  hidden,
+  align = "center",
+}: {
+  kernel?: PersonalKernel;
+  hidden?: boolean;
+  /** Business Space: top-right LifeOS mark. */
+  align?: "center" | "end";
+}) {
   return (
     <header
-      className={`kernel-brand-bar kernel-brand-bar--clean${hidden ? " is-hidden" : ""}`}
+      className={`kernel-brand-bar kernel-brand-bar--clean${
+        align === "end" ? " kernel-brand-bar--end" : ""
+      }${hidden ? " is-hidden" : ""}`}
       aria-label="LifeOS"
     >
       <span className="kernel-brand-bar__logo">LifeOS</span>
@@ -137,15 +151,18 @@ export function KernelPostPage({ kernel }: { kernel: PersonalKernel }) {
   const initialPublicationId = searchParams.get("publication") || searchParams.get("p");
 
   const loadPage = useCallback(async (cursor?: string | null) => {
-    const [projected, eco] = await Promise.all([
+    const [projected, eco, hos] = await Promise.all([
       fetchLifeOsPublicationFeed({
         cursor: cursor || undefined,
         limit: 24,
       }),
-      // First page only — EcommerceOS public feed is not cursor-aligned with LifeOS.
+      // First page only — vertical public feeds are not cursor-aligned with LifeOS.
       cursor
         ? Promise.resolve({ ok: false as const, items: [], nextCursor: null as string | null })
         : fetchEcommerceLifeOsFeed({ kind: "publication", timeoutMs: 1500, limit: 24 }),
+      cursor
+        ? Promise.resolve({ ok: false as const, items: [], nextCursor: null as string | null })
+        : fetchHospitalityLifeOsFeed({ kind: "publication", timeoutMs: 1500, limit: 24 }),
     ]);
 
     let baseItems: MediaItem[] = projected.items;
@@ -179,9 +196,16 @@ export function KernelPostPage({ kernel }: { kernel: PersonalKernel }) {
             publishedAt: row.publishedAt ?? null,
           }))
         : [];
+    const hosDated: DatedMediaItem[] =
+      hos.ok && hos.items.length
+        ? hos.items.map((row) => ({
+            item: mapHospitalityPublicationToMediaItem(row),
+            publishedAt: row.publishedAt ?? null,
+          }))
+        : [];
 
-    // Partial success: EcommerceOS failure keeps mybrand / LifeOS items.
-    const items = assembleMediaFeed([lifeosDated, ecoDated]);
+    // Partial success: any vertical failure keeps remaining items.
+    const items = assembleMediaFeed([lifeosDated, ecoDated, hosDated]);
     return { items, nextCursor: projected.nextCursor };
   }, []);
 

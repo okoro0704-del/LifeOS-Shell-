@@ -4,6 +4,7 @@ import { MYBRANDOS_PRODUCTION_URL } from "./mybrandOS";
 import { installedAppsService } from "./services";
 import type { InstalledAppManifest } from "@lifeos/shared";
 import { fetchEcommerceLifeOsFeed, mapProductToCatalogueItem } from "./ecommerceLifeOsFeed";
+import { fetchHospitalityLifeOsFeed, mapOfferingToCatalogueItem } from "./hospitalityLifeOsFeed";
 
 type PublicAssetCard = {
   id: string;
@@ -298,7 +299,17 @@ export async function fetchBrandedCatalogueItems(): Promise<CatalogueItem[]> {
     /* EcommerceOS optional — keep mybrand / LifeOS catalogue */
   }
 
-  const merged = [...fromEcommerce, ...fromFeed, ...batches.flat()];
+  let fromHospitality: CatalogueItem[] = [];
+  try {
+    const hos = await fetchHospitalityLifeOsFeed({ kind: "offering", timeoutMs: 1500, limit: 48 });
+    if (hos.ok && hos.items.length) {
+      fromHospitality = hos.items.map(mapOfferingToCatalogueItem);
+    }
+  } catch {
+    /* HospitalityOS optional — keep other catalogue sources */
+  }
+
+  const merged = [...fromEcommerce, ...fromHospitality, ...fromFeed, ...batches.flat()];
   const seen = new Set<string>();
   return merged.filter((item) => {
     if (seen.has(item.id)) return false;
