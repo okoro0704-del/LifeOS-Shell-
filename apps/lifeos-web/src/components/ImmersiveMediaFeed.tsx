@@ -327,6 +327,19 @@ function ContentSlide({
           {vipRate} cr · {credits} left · 80% to creator
         </span>
       ) : null}
+      {item.sourceUrl ? (
+        <a
+          className="los-btn los-btn--soft los-btn--sm immersive-feed__source"
+          href={item.sourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+        >
+          {item.sourceLabel || "Open source"}
+        </a>
+      ) : null}
       {lockedPremium ? (
         <button
           type="button"

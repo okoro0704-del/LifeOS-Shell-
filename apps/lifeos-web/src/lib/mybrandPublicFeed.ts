@@ -3,6 +3,7 @@ import { api } from "./api";
 import { MYBRANDOS_PRODUCTION_URL } from "./mybrandOS";
 import { installedAppsService } from "./services";
 import type { InstalledAppManifest } from "@lifeos/shared";
+import { fetchEcommerceLifeOsFeed, mapProductToCatalogueItem } from "./ecommerceLifeOsFeed";
 
 type PublicAssetCard = {
   id: string;
@@ -125,6 +126,7 @@ function projectionToMediaItem(row: LifeOsPublication): MediaItem {
     likes: "0",
     posterUrl: row.mediaUrl || undefined,
     mediaUrl: row.mediaUrl || undefined,
+    publishedAt: row.publishedAt || undefined,
   };
 }
 
@@ -286,7 +288,17 @@ export async function fetchBrandedCatalogueItems(): Promise<CatalogueItem[]> {
     }),
   );
 
-  const merged = [...fromFeed, ...batches.flat()];
+  let fromEcommerce: CatalogueItem[] = [];
+  try {
+    const eco = await fetchEcommerceLifeOsFeed({ kind: "product", timeoutMs: 1500, limit: 48 });
+    if (eco.ok && eco.items.length) {
+      fromEcommerce = eco.items.map(mapProductToCatalogueItem);
+    }
+  } catch {
+    /* EcommerceOS optional — keep mybrand / LifeOS catalogue */
+  }
+
+  const merged = [...fromEcommerce, ...fromFeed, ...batches.flat()];
   const seen = new Set<string>();
   return merged.filter((item) => {
     if (seen.has(item.id)) return false;

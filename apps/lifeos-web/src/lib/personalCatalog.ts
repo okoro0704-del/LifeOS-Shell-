@@ -36,6 +36,14 @@ export type MediaItem = {
   likes?: string;
   mediaUrl?: string;
   posterUrl?: string;
+  /** Deep link back to owning OS / product / storefront */
+  sourceUrl?: string;
+  /** CTA label for sourceUrl — e.g. "View Product" | "Visit Store" */
+  sourceLabel?: string;
+  sourceApplicationId?: string;
+  storeDisplayName?: string;
+  /** ISO timestamp for cross-source assemble (newest first) */
+  publishedAt?: string;
   /** Paid to appear in Plus trending */
   trending?: boolean;
   trendScore?: number;

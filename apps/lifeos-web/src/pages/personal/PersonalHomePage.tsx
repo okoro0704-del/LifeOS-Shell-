@@ -19,6 +19,12 @@ import {
   fetchMybrandPublicPosts,
   type CatalogueItem,
 } from "../../lib/mybrandPublicFeed";
+import {
+  assembleMediaFeed,
+  fetchEcommerceLifeOsFeed,
+  mapPublicationToMediaItem,
+  type DatedMediaItem,
+} from "../../lib/ecommerceLifeOsFeed";
 import { installedAppsService } from "../../lib/services";
 import type { InstalledAppManifest } from "@lifeos/shared";
 import { openCreatorApp } from "../../lib/mybrandOS";
@@ -170,30 +176,52 @@ export function KernelPostPage({ kernel }: { kernel: PersonalKernel }) {
   const initialPublicationId = searchParams.get("publication") || searchParams.get("p");
 
   const loadPage = useCallback(async (cursor?: string | null) => {
-    const projected = await fetchLifeOsPublicationFeed({
-      cursor: cursor || undefined,
-      limit: 24,
-    });
-    if (projected.items.length) {
-      return projected;
+    const [projected, eco] = await Promise.all([
+      fetchLifeOsPublicationFeed({
+        cursor: cursor || undefined,
+        limit: 24,
+      }),
+      // First page only — EcommerceOS public feed is not cursor-aligned with LifeOS.
+      cursor
+        ? Promise.resolve({ ok: false as const, items: [], nextCursor: null as string | null })
+        : fetchEcommerceLifeOsFeed({ kind: "publication", timeoutMs: 1500, limit: 24 }),
+    ]);
+
+    let baseItems: MediaItem[] = projected.items;
+    if (!baseItems.length && !cursor) {
+      try {
+        const data = await installedAppsService.list();
+        const apps = (data.apps ?? []) as InstalledAppManifest[];
+        const reserved = new Set(["mybrandos", "hospitalityos", "serviceos", "ecommerceos"]);
+        const slugs = [
+          ...new Set(
+            apps
+              .map((a) => String(a.subdomain || "").trim().toLowerCase())
+              .filter((slug) => slug && !reserved.has(slug)),
+          ),
+        ];
+        const batches = await Promise.all(slugs.map((slug) => fetchMybrandPublicPosts(slug)));
+        baseItems = batches.flat();
+      } catch {
+        baseItems = [];
+      }
     }
-    if (cursor) return { items: [] as MediaItem[], nextCursor: null };
-    try {
-      const data = await installedAppsService.list();
-      const apps = (data.apps ?? []) as InstalledAppManifest[];
-      const reserved = new Set(["mybrandos", "hospitalityos", "serviceos", "ecommerceos"]);
-      const slugs = [
-        ...new Set(
-          apps
-            .map((a) => String(a.subdomain || "").trim().toLowerCase())
-            .filter((slug) => slug && !reserved.has(slug)),
-        ),
-      ];
-      const batches = await Promise.all(slugs.map((slug) => fetchMybrandPublicPosts(slug)));
-      return { items: batches.flat(), nextCursor: null };
-    } catch {
-      return { items: [] as MediaItem[], nextCursor: null };
-    }
+
+    const lifeosDated: DatedMediaItem[] = baseItems.map((item) => ({
+      item,
+      publishedAt: item.publishedAt ?? null,
+    }));
+    const ecoDated: DatedMediaItem[] =
+      eco.ok && eco.items.length
+        ? eco.items.map((row) => ({
+            item: mapPublicationToMediaItem(row),
+            publishedAt: row.publishedAt ?? null,
+          }))
+        : [];
+
+    // Partial success: EcommerceOS failure keeps mybrand / LifeOS items.
+    const items = assembleMediaFeed([lifeosDated, ecoDated]);
+    return { items, nextCursor: projected.nextCursor };
   }, []);
 
   useEffect(() => {
@@ -302,7 +330,13 @@ export function KernelProductsPage({ kernel }: { kernel: PersonalKernel }) {
               type="button"
               className="products-feed__card"
               role="listitem"
-              onClick={() => void openCreatorApp(p.ownerSlug)}
+              onClick={() => {
+                if (p.destinationUrl) {
+                  window.open(p.destinationUrl, "_blank", "noopener,noreferrer");
+                  return;
+                }
+                void openCreatorApp(p.ownerSlug);
+              }}
             >
               {p.mediaUrl ? (
                 <img className="products-feed__thumb" src={p.mediaUrl} alt="" loading="lazy" />

@@ -5994,6 +5994,12 @@ html.lifeos-chrome-hidden .immersive-feed {
   max-width: 28rem;
 }
 
+.immersive-feed__source {
+  margin-top: 0.35rem;
+  align-self: flex-start;
+  text-decoration: none;
+}
+
 .immersive-feed__likes {
   font-size: 0.78rem;
   opacity: 0.75;
