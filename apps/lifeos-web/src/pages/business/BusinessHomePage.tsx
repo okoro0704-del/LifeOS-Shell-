@@ -8,6 +8,12 @@ import {
   type DiscoveryKind,
 } from "../../components/DiscoveryQuadGrid";
 import { discoverService } from "../../lib/services";
+import {
+  buildDemoBusinesses,
+  buildDemoProducts,
+  buildDemoServices,
+  isLifeOsDemoDiscoveryEnabled,
+} from "../../lib/demoDiscoveryFixtures";
 
 /**
  * Business Space home — edge-to-edge discovery quads + diamond expand/contract.
@@ -33,9 +39,16 @@ export function BusinessHomePage() {
       if (cancelled) return;
       const liveBiz = biz.businesses ?? [];
       const liveOff = offs.offerings ?? [];
-      setBusinesses(liveBiz);
-      setServices(liveOff.filter((o) => o.type !== "PRODUCT"));
-      setProducts(liveOff.filter((o) => o.type === "PRODUCT"));
+      if (isLifeOsDemoDiscoveryEnabled()) {
+        // Isolated demo fixtures for experience testing — never written to production DB.
+        setBusinesses(buildDemoBusinesses(24));
+        setServices(buildDemoServices(24));
+        setProducts(buildDemoProducts(24));
+      } else {
+        setBusinesses(liveBiz);
+        setServices(liveOff.filter((o) => o.type !== "PRODUCT"));
+        setProducts(liveOff.filter((o) => o.type === "PRODUCT"));
+      }
       setLoading(false);
     });
     return () => {

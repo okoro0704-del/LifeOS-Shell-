@@ -13,8 +13,11 @@ import { useWorkspace } from "./WorkspaceContext";
 export type NavSide = "left" | "right";
 
 type NavDockCtx = {
+  /** Unified shell reveal — side nav + kernel switcher together. */
+  shellControlsVisible: boolean;
+  /** @deprecated alias of shellControlsVisible */
   expanded: boolean;
-  /** PERSONAL → left, BUSINESS → right (from activeSpace/mode, not pathname). */
+  /** PERSONAL → right, BUSINESS → left (from activeSpace/mode). */
   side: NavSide;
   open: () => void;
   close: () => void;
@@ -44,17 +47,17 @@ export function markNavDockHintSeen(): void {
 export function NavigationDockProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
   const { mode } = useWorkspace();
-  const [expanded, setExpanded] = useState(false);
+  const [shellControlsVisible, setVisible] = useState(false);
   const side: NavSide = mode === "BUSINESS" ? "left" : "right";
 
   useEffect(() => {
-    setExpanded(false);
+    setVisible(false);
   }, [location.pathname, mode]);
 
   useEffect(() => {
-    document.documentElement.classList.toggle("lifeos-nav-dock-open", expanded);
+    document.documentElement.classList.toggle("lifeos-nav-dock-open", shellControlsVisible);
     document.documentElement.dataset.navSide = side;
-    if (expanded) {
+    if (shellControlsVisible) {
       const prev = document.body.style.overflow;
       document.body.style.overflow = "hidden";
       return () => {
@@ -63,25 +66,32 @@ export function NavigationDockProvider({ children }: { children: ReactNode }) {
       };
     }
     return () => document.documentElement.classList.remove("lifeos-nav-dock-open");
-  }, [expanded, side]);
+  }, [shellControlsVisible, side]);
 
   const open = useCallback(() => {
-    setExpanded(true);
+    setVisible(true);
     markNavDockHintSeen();
   }, []);
 
-  const close = useCallback(() => setExpanded(false), []);
+  const close = useCallback(() => setVisible(false), []);
 
   const toggle = useCallback(() => {
-    setExpanded((v) => {
+    setVisible((v) => {
       if (!v) markNavDockHintSeen();
       return !v;
     });
   }, []);
 
   const value = useMemo(
-    () => ({ expanded, side, open, close, toggle }),
-    [expanded, side, open, close, toggle],
+    () => ({
+      shellControlsVisible,
+      expanded: shellControlsVisible,
+      side,
+      open,
+      close,
+      toggle,
+    }),
+    [shellControlsVisible, side, open, close, toggle],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
@@ -91,8 +101,9 @@ export function useNavigationDock() {
   const ctx = useContext(Ctx);
   if (!ctx) {
     return {
+      shellControlsVisible: false,
       expanded: false,
-      side: "left" as NavSide,
+      side: "right" as NavSide,
       open: () => undefined,
       close: () => undefined,
       toggle: () => undefined,

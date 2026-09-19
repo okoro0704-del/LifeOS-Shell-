@@ -43,7 +43,7 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { mode, setMode } = useWorkspace();
-  const { expanded, side, open, close } = useNavigationDock();
+  const { expanded, side, close, toggle } = useNavigationDock();
   const panelId = useId();
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const [spaceOpen, setSpaceOpen] = useState(false);
@@ -102,11 +102,16 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
     navigate(`${personalNavBase(mode === "BUSINESS" ? "main" : kernel)}/streamify`);
   }
 
-  function goKernel(next: PersonalKernel) {
-    dismiss();
+  /** Offline | Main | Free — close shell; skip remount when already on kernel. */
+  function selectKernel(next: PersonalKernel) {
+    if (next === kernel && mode === "PERSONAL") {
+      dismiss();
+      return;
+    }
     void triggerWorkspaceHaptic();
     setMode("PERSONAL");
     setLastSelectedKernel(next, user?.trustId);
+    dismiss();
     navigate(personalKernelPath(next));
   }
 
@@ -132,6 +137,7 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
         path === "/app/personal/offline";
 
   const showHint = !expanded && !hasSeenNavDockHint();
+  const edgeLabel = expanded ? "Close LifeOS controls" : "Open LifeOS controls";
 
   return (
     <>
@@ -140,14 +146,30 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
         className="lifeos-cmd-nav__a11y-open"
         aria-expanded={expanded}
         aria-controls={panelId}
-        onClick={() => open()}
+        onClick={() => toggle()}
       >
-        Open LifeOS navigation
+        {edgeLabel}
+      </button>
+
+      {/* Always-visible edge reveal handle */}
+      <button
+        type="button"
+        className={`lifeos-cmd-nav__edge lifeos-cmd-nav__edge--${side}${expanded ? " is-open" : ""}`}
+        aria-label={edgeLabel}
+        aria-expanded={expanded}
+        aria-controls={panelId}
+        title={edgeLabel}
+        data-no-nav-dock
+        onClick={() => toggle()}
+      >
+        <span className="lifeos-cmd-nav__edge-hit" aria-hidden>
+          <EdgeChevron side={side} open={expanded} />
+        </span>
       </button>
 
       {showHint ? (
         <div className="lifeos-cmd-nav__hint" role="status">
-          Double tap to open LifeOS
+          Double tap or use the edge control to open LifeOS
         </div>
       ) : null}
 
@@ -155,7 +177,7 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
         <button
           type="button"
           className="lifeos-cmd-nav__hitlayer"
-          aria-label="Close navigation"
+          aria-label="Close LifeOS controls"
           data-no-nav-dock
           onClick={() => dismiss()}
         />
@@ -196,23 +218,6 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
             Icon={IconMessage}
             active={path === messagesTo || path.startsWith(`${messagesTo}/`)}
             onNavigate={dismiss}
-          />
-
-          <span className="lifeos-cmd-nav__gap" aria-hidden />
-
-          <IconBtn
-            label="Free"
-            Icon={IconTicket}
-            active={kernel === "free"}
-            pressed={kernel === "free"}
-            onClick={() => goKernel("free")}
-          />
-          <IconBtn
-            label="Offline"
-            Icon={IconReceive}
-            active={kernel === "offline"}
-            pressed={kernel === "offline"}
-            onClick={() => goKernel("offline")}
           />
 
           <span className="lifeos-cmd-nav__gap" aria-hidden />
@@ -266,6 +271,46 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
           </button>
         </nav>
       </div>
+
+      {/* Bottom kernel switcher — same reveal state as side nav */}
+      <nav
+        className={`lifeos-kernel-bar${expanded ? " is-open" : ""}`}
+        aria-label="Kernel switcher"
+        aria-hidden={!expanded}
+        data-no-nav-dock
+        hidden={!expanded}
+      >
+        <button
+          type="button"
+          className={`lifeos-kernel-bar__btn${kernel === "offline" ? " is-active" : ""}`}
+          aria-label="Offline"
+          aria-pressed={kernel === "offline"}
+          title="Offline"
+          onClick={() => selectKernel("offline")}
+        >
+          <IconReceive size={22} />
+        </button>
+        <button
+          type="button"
+          className={`lifeos-kernel-bar__btn${kernel === "main" ? " is-active" : ""}`}
+          aria-label="Main"
+          aria-pressed={kernel === "main"}
+          title="Main"
+          onClick={() => selectKernel("main")}
+        >
+          <IconHome size={22} />
+        </button>
+        <button
+          type="button"
+          className={`lifeos-kernel-bar__btn${kernel === "free" ? " is-active" : ""}`}
+          aria-label="Free"
+          aria-pressed={kernel === "free"}
+          title="Free"
+          onClick={() => selectKernel("free")}
+        >
+          <IconTicket size={22} />
+        </button>
+      </nav>
     </>
   );
 }
@@ -339,6 +384,21 @@ function StreamGlyph({ size = 20 }: { size?: number }) {
         strokeLinejoin="round"
       />
       <path d="M4 8.5c2-1 4-1 6 0M4 15.5c2 1 4 1 6 0" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** PERSONAL right: chevron points left (◀). BUSINESS left: points right (▶). Flips when open. */
+function EdgeChevron({ side, open }: { side: "left" | "right"; open: boolean }) {
+  // Open state inverts to suggest collapse direction.
+  const pointLeft = side === "right" ? !open : open;
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      {pointLeft ? (
+        <path d="M14.5 6 9 12l5.5 6" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
+      ) : (
+        <path d="M9.5 6 15 12l-5.5 6" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
+      )}
     </svg>
   );
 }

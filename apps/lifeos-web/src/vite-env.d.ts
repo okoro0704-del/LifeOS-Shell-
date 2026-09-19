@@ -13,6 +13,8 @@ interface ImportMetaEnv {
   readonly VITE_ECOMMERCEOS_API_URL?: string;
   /** Temporary TrustID bypass for testing — pair with LIFEOS_AUTH_BYPASS on the API. */
   readonly VITE_AUTH_BYPASS?: string;
+  /** Enable isolated Business discovery demo fixtures (never production DB). */
+  readonly VITE_LIFEOS_DEMO_DISCOVERY?: string;
 }
 
 interface ImportMeta {

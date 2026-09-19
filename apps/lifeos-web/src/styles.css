@@ -8179,3 +8179,123 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
     animation: none;
   }
 }
+/* Edge reveal handle — always visible */
+.lifeos-cmd-nav__edge {
+  position: fixed;
+  top: 50%;
+  z-index: 98;
+  width: 2.75rem;
+  height: 2.75rem;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  transform: translateY(-50%);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lifeos-cmd-nav__edge--right {
+  right: 0;
+}
+
+.lifeos-cmd-nav__edge--left {
+  left: 0;
+}
+
+.lifeos-cmd-nav__edge-hit {
+  display: grid;
+  place-items: center;
+  width: 1.55rem;
+  height: 2.35rem;
+  border: 1px solid var(--lifeos-nav-border);
+  background: var(--lifeos-nav-surface-strong);
+  color: var(--lifeos-nav-icon);
+  box-shadow: var(--lifeos-nav-shadow), var(--lifeos-nav-glow);
+  backdrop-filter: blur(10px) saturate(1.15);
+  -webkit-backdrop-filter: blur(10px) saturate(1.15);
+}
+
+.lifeos-cmd-nav__edge--right .lifeos-cmd-nav__edge-hit {
+  margin-left: auto;
+  border-radius: 0.85rem 0 0 0.85rem;
+  border-right: 0;
+}
+
+.lifeos-cmd-nav__edge--left .lifeos-cmd-nav__edge-hit {
+  margin-right: auto;
+  border-radius: 0 0.85rem 0.85rem 0;
+  border-left: 0;
+}
+
+.lifeos-cmd-nav__edge.is-open .lifeos-cmd-nav__edge-hit {
+  background: var(--lifeos-nav-active);
+}
+
+.lifeos-cmd-nav__edge:focus-visible .lifeos-cmd-nav__edge-hit {
+  outline: 2px solid var(--los-accent, #0d7a6f);
+  outline-offset: 2px;
+}
+
+/* Bottom kernel switcher — unified with side reveal */
+.lifeos-kernel-bar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(0.55rem + env(safe-area-inset-bottom, 0px));
+  z-index: 106;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.55rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 1.25rem;
+  border: 1px solid var(--lifeos-nav-border);
+  background: var(--lifeos-nav-surface-strong);
+  box-shadow: var(--lifeos-nav-shadow), var(--lifeos-nav-glow);
+  backdrop-filter: blur(12px) saturate(1.15);
+  -webkit-backdrop-filter: blur(12px) saturate(1.15);
+  transform: translate(-50%, 140%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.22s ease, opacity 0.22s ease;
+  width: min(16.5rem, calc(100vw - 2rem));
+}
+
+.lifeos-kernel-bar.is-open {
+  transform: translate(-50%, 0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.lifeos-kernel-bar__btn {
+  width: 100%;
+  min-height: 2.75rem;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--lifeos-nav-icon);
+  cursor: pointer;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lifeos-kernel-bar__btn.is-active {
+  background: var(--lifeos-nav-active);
+  border-color: color-mix(in srgb, #ecfdf5 40%, transparent);
+  box-shadow: var(--lifeos-nav-glow);
+  transform: scale(1.06);
+}
+
+.lifeos-kernel-bar__btn:focus-visible {
+  outline: 2px solid var(--los-accent, #0d7a6f);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lifeos-kernel-bar {
+    transition: none;
+  }
+}

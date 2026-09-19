@@ -12,6 +12,8 @@
   VITE_LIFEOS_API = "/api"
   # Temporary TrustID bypass for testing — remove when reconnecting TrustID
   VITE_AUTH_BYPASS = "true"
+  # Isolated Business Space discovery fixtures for experience testing
+  VITE_LIFEOS_DEMO_DISCOVERY = "true"
 
 # Also declared in public/_redirects (publish folder) — keep both in sync.
 [[redirects]]

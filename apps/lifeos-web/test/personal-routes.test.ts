@@ -44,15 +44,18 @@ describe("personal consumer space wiring", () => {
   it("command nav is icons-only with accessible labels", () => {
     const src = readFileSync(join(root, "src/components/LifeOsCommandNavigation.tsx"), "utf8");
     expect(src).toContain("lifeos-cmd-nav__icon");
-    expect(src).toContain('label="Notifications"');
-    expect(src).toContain('label="Space Switcher"');
+    expect(src).toContain("lifeos-cmd-nav__edge");
+    expect(src).toContain("lifeos-kernel-bar");
+    expect(src).toContain('aria-label="Offline"');
+    expect(src).toContain('aria-label="Main"');
+    expect(src).toContain('aria-label="Free"');
     expect(src).not.toContain(">{label}</span>");
-    expect(src).not.toContain(">Home</span>");
   });
 
   it("nav side is PERSONAL right / BUSINESS left", () => {
     const ctx = readFileSync(join(root, "src/context/NavigationDockContext.tsx"), "utf8");
     expect(ctx).toContain('mode === "BUSINESS" ? "left" : "right"');
+    expect(ctx).toContain("shellControlsVisible");
   });
 
   it("App mounts personal/* routes", () => {

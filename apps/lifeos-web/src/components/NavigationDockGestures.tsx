@@ -3,24 +3,24 @@ import { useNavigationDock } from "../context/NavigationDockContext";
 import { attachNavDockDoubleTap } from "../lib/navDockGesture";
 
 /**
- * Shell-level double-tap → summon LifeOS command navigation.
- * Skips interactive controls and immersive media (double-tap-to-like).
+ * Shell-level double-tap toggles unified LifeOS controls (side nav + kernel bar).
  */
 export function NavigationDockGestures({ children }: { children: ReactNode }) {
-  const { open, expanded } = useNavigationDock();
+  const { toggle, expanded } = useNavigationDock();
   const rootRef = useRef<HTMLDivElement>(null);
   const [ripple, setRipple] = useState<{ x: number; y: number; id: number } | null>(null);
+  const expandedRef = useRef(expanded);
+  expandedRef.current = expanded;
 
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
     return attachNavDockDoubleTap(root, (x, y) => {
-      if (expanded) return;
       setRipple({ x, y, id: Date.now() });
-      open();
+      toggle();
       window.setTimeout(() => setRipple(null), 420);
     });
-  }, [open, expanded]);
+  }, [toggle]);
 
   return (
     <div className="lifeos-nav-dock-gesture-root" ref={rootRef}>
