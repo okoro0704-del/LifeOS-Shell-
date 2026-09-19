@@ -33,19 +33,26 @@ describe("personal consumer space wiring", () => {
     expect(src).toContain("KernelBrandBar");
   });
 
-  it("AppShell mounts one Personal bottom dock controller", () => {
+  it("AppShell mounts Personal right-side navigation dock", () => {
     const src = readFileSync(join(root, "src/components/AppShell.tsx"), "utf8");
-    expect(src).toContain("LifeOsBottomDock");
+    expect(src).toContain("LifeOsNavigationDock");
+    expect(src).not.toContain("LifeOsBottomDock");
     expect(src).not.toContain("ContentNavigationBar");
     expect(src).not.toContain("ElComFloat");
   });
 
-  it("LifeOsBottomDock exposes FREE / OFFLINE / LIVE kernel controls", () => {
-    const src = readFileSync(join(root, "src/components/LifeOsBottomDock.tsx"), "utf8");
+  it("LifeOsNavigationDock exposes FREE / OFFLINE / LIVE kernel controls", () => {
+    const src = readFileSync(join(root, "src/components/LifeOsNavigationDock.tsx"), "utf8");
     expect(src).toContain('goKernel("free")');
     expect(src).toContain('goKernel("offline")');
     expect(src).toContain('to="/app/live"');
     expect(src).toContain("personalKernelPath");
+  });
+
+  it("nav dock gesture blocks immersive media double-tap-to-like", () => {
+    const src = readFileSync(join(root, "src/lib/navDockGesture.ts"), "utf8");
+    expect(src).toContain(".immersive-feed__media");
+    expect(src).toContain("isNavDockGestureBlocked");
   });
 
   it("App mounts personal/* routes", () => {

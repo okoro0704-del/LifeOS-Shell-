@@ -41,6 +41,7 @@ import {
   shouldRequestNextPage,
 } from "../lib/immersiveFeedController";
 import { useChromeVisibility } from "../context/ChromeVisibilityContext";
+import { useNavigationDock } from "../context/NavigationDockContext";
 
 function isWritingItem(item: MediaItem): boolean {
   return item.kind === "post" && Boolean(item.detail) && !item.mediaUrl && !item.posterUrl;
@@ -243,6 +244,7 @@ function ContentSlide({
   const [readOpen, setReadOpen] = useState(false);
   const lastTap = useRef(0);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const { expanded: dockExpanded } = useNavigationDock();
 
   useEffect(() => {
     if (locked) return;
@@ -252,13 +254,13 @@ function ContentSlide({
   useEffect(() => {
     const el = videoRef.current;
     if (!el || !isVideo || locked) return;
-    if (active) {
+    if (active && !dockExpanded) {
       el.muted = true;
       void el.play().catch(() => undefined);
     } else {
       el.pause();
     }
-  }, [active, isVideo, locked, item.mediaUrl]);
+  }, [active, isVideo, locked, item.mediaUrl, dockExpanded]);
 
   useEffect(() => {
     if (!active) setReadOpen(false);

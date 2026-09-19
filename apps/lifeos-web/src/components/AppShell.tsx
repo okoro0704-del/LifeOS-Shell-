@@ -19,7 +19,9 @@ import { installedAppsService, notificationService } from "../lib/services";
 import { markNeedsFaceOnKernelSwitch } from "../lib/personalConnectivity";
 import { setLastSelectedKernel } from "../lib/kernelNavigation";
 import { CommandOverlay } from "./CommandOverlay";
-import { LifeOsBottomDock } from "./LifeOsBottomDock";
+import { LifeOsNavigationDock } from "./LifeOsNavigationDock";
+import { NavigationDockGestures } from "./NavigationDockGestures";
+import { TransientAlertSurface } from "./TransientAlertSurface";
 import { LiveFloat } from "./LiveFloat";
 import { LifeOSWakeListener } from "./LifeOSWakeListener";
 import { PageTopBar } from "./PageTopBar";
@@ -185,7 +187,8 @@ export function AppShell() {
   }, []);
 
   return (
-    <div className="shell">
+    <NavigationDockGestures>
+    <div className={`shell${mode === "PERSONAL" ? " shell--side-dock" : ""}`}>
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
@@ -429,13 +432,17 @@ export function AppShell() {
         <CommandOverlay />
         <LifeOSWakeListener />
         {mode === "PERSONAL" && !isImmersive ? (
-          <LifeOsBottomDock
-            apps={installedApps}
-            tabs={tabs}
-            onExplore={onExplore}
-            personalKernel={personalKernel}
-            onModeChange={handleModeChange}
-          />
+          <>
+            <LifeOsNavigationDock
+              apps={installedApps}
+              tabs={tabs}
+              onExplore={onExplore}
+              personalKernel={personalKernel}
+              onModeChange={handleModeChange}
+              unread={unread}
+            />
+            <TransientAlertSurface />
+          </>
         ) : null}
         {mode !== "PERSONAL" ? <LiveFloat apps={installedApps} /> : null}
 
@@ -496,5 +503,6 @@ export function AppShell() {
         ) : null}
       </div>
     </div>
+    </NavigationDockGestures>
   );
 }
