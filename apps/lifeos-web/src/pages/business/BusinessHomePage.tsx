@@ -1,16 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { DiscoverableBusiness, DiscoverableOffering } from "@lifeos/shared";
 import { KernelBrandBar } from "../personal/PersonalHomePage";
-import { DiscoveryQuadGrid } from "../../components/DiscoveryQuadGrid";
+import {
+  DiscoveryQuad,
+  ExpandedDiscoveryGrid,
+  type DiscoveryKind,
+} from "../../components/DiscoveryQuadGrid";
 import { discoverService } from "../../lib/services";
 
 /**
- * Business Space home — zero conventional chrome.
- * Green LifeOS identity (shared KernelBrandBar) + discovery sections.
- *
- * "Businesses Near" uses canonical discover listings. Proximity/distance is NOT
- * fabricated — no km claims unless the API later provides them.
+ * Business Space home — edge-to-edge discovery quads + diamond expand/contract.
+ * activeDiscovery is exclusive: null | business | service | product.
  */
 export function BusinessHomePage() {
   const navigate = useNavigate();
@@ -18,9 +19,9 @@ export function BusinessHomePage() {
   const [services, setServices] = useState<DiscoverableOffering[]>([]);
   const [products, setProducts] = useState<DiscoverableOffering[]>([]);
   const [loading, setLoading] = useState(true);
-  const [bizExpanded, setBizExpanded] = useState(false);
-  const [svcExpanded, setSvcExpanded] = useState(false);
-  const [prdExpanded, setPrdExpanded] = useState(false);
+  const [activeDiscovery, setActiveDiscovery] = useState<DiscoveryKind | null>(null);
+  const homeScrollRef = useRef<HTMLDivElement>(null);
+  const savedScroll = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,29 +43,162 @@ export function BusinessHomePage() {
     };
   }, []);
 
+  const expand = useCallback((kind: DiscoveryKind) => {
+    const root = homeScrollRef.current;
+    savedScroll.current = root?.scrollTop ?? window.scrollY ?? 0;
+    setActiveDiscovery(kind);
+    window.history.pushState({ lifeosBizDiscovery: kind }, "");
+  }, []);
+
+  const contract = useCallback(() => {
+    const state = window.history.state as { lifeosBizDiscovery?: DiscoveryKind } | null;
+    if (state?.lifeosBizDiscovery) {
+      window.history.back();
+      return;
+    }
+    setActiveDiscovery(null);
+    requestAnimationFrame(() => {
+      const root = homeScrollRef.current;
+      if (root) root.scrollTop = savedScroll.current;
+      else window.scrollTo(0, savedScroll.current);
+    });
+  }, []);
+
+  useEffect(() => {
+    const onPop = () => {
+      setActiveDiscovery(null);
+      requestAnimationFrame(() => {
+        const root = homeScrollRef.current;
+        if (root) root.scrollTop = savedScroll.current;
+        else window.scrollTo(0, savedScroll.current);
+      });
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
   const bizItems = useMemo(() => businesses.map((b) => ({ ...b, id: b.id || b.businessId })), [businesses]);
   const svcItems = useMemo(() => services.map((o) => ({ ...o, id: o.id })), [services]);
   const prdItems = useMemo(() => products.map((o) => ({ ...o, id: o.id })), [products]);
 
+  if (activeDiscovery === "business") {
+    return (
+      <div className="page business-home business-home--discovery">
+        <KernelBrandBar hidden={false} align="end" />
+        <ExpandedDiscoveryGrid
+          title="Businesses"
+          items={bizItems}
+          contractAriaLabel="Close business discovery"
+          onContract={contract}
+          renderItem={(b) => (
+            <button
+              type="button"
+              className="discovery-quad__card"
+              data-no-nav-dock
+              onClick={() => navigate(`/app/business/${b.businessId || b.id}`)}
+            >
+              {b.logo ? (
+                <img className="discovery-quad__media" src={b.logo} alt="" loading="lazy" />
+              ) : (
+                <span className="discovery-quad__media discovery-quad__media--fallback" aria-hidden />
+              )}
+              <span className="discovery-quad__caption">
+                <strong>{b.businessName}</strong>
+                {b.category ? <span className="muted small">{b.category}</span> : null}
+              </span>
+            </button>
+          )}
+        />
+      </div>
+    );
+  }
+
+  if (activeDiscovery === "service") {
+    return (
+      <div className="page business-home business-home--discovery">
+        <KernelBrandBar hidden={false} align="end" />
+        <ExpandedDiscoveryGrid
+          title="Services"
+          items={svcItems}
+          contractAriaLabel="Close service discovery"
+          onContract={contract}
+          renderItem={(o) => (
+            <button
+              type="button"
+              className="discovery-quad__card"
+              data-no-nav-dock
+              onClick={() => navigate(`/app/discover?offering=${o.id}`)}
+            >
+              {o.image ? (
+                <img className="discovery-quad__media" src={o.image} alt="" loading="lazy" />
+              ) : (
+                <span className="discovery-quad__media discovery-quad__media--fallback" aria-hidden />
+              )}
+              <span className="discovery-quad__caption">
+                <strong>{o.name}</strong>
+                {o.businessName ? <span className="muted small">{o.businessName}</span> : null}
+              </span>
+            </button>
+          )}
+        />
+      </div>
+    );
+  }
+
+  if (activeDiscovery === "product") {
+    return (
+      <div className="page business-home business-home--discovery">
+        <KernelBrandBar hidden={false} align="end" />
+        <ExpandedDiscoveryGrid
+          title="Products"
+          items={prdItems}
+          contractAriaLabel="Close product discovery"
+          onContract={contract}
+          renderItem={(o) => (
+            <button
+              type="button"
+              className="discovery-quad__card"
+              data-no-nav-dock
+              onClick={() => navigate(`/app/discover?offering=${o.id}`)}
+            >
+              {o.image ? (
+                <img className="discovery-quad__media" src={o.image} alt="" loading="lazy" />
+              ) : (
+                <span className="discovery-quad__media discovery-quad__media--fallback" aria-hidden />
+              )}
+              <span className="discovery-quad__caption">
+                <strong>{o.name}</strong>
+                {o.priceFormatted ? (
+                  <span className="muted small">{o.priceFormatted}</span>
+                ) : o.businessName ? (
+                  <span className="muted small">{o.businessName}</span>
+                ) : null}
+              </span>
+            </button>
+          )}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="page business-home business-home--immersive">
+    <div className="page business-home business-home--immersive" ref={homeScrollRef}>
       <KernelBrandBar hidden={false} align="end" />
 
       <div className="business-home__body">
-        <DiscoveryQuadGrid
+        <DiscoveryQuad
           title="Businesses Near"
           subtitle="From LifeOS discovery"
           items={bizItems}
           loading={loading}
           emptyLabel="No businesses available."
           expandAriaLabel="View all businesses"
-          expanded={bizExpanded}
-          onExpand={() => setBizExpanded(true)}
-          onCollapse={() => setBizExpanded(false)}
+          onExpand={() => expand("business")}
           renderItem={(b) => (
             <button
               type="button"
               className="discovery-quad__card"
+              data-no-nav-dock
               onClick={() => navigate(`/app/business/${b.businessId || b.id}`)}
             >
               {b.logo ? (
@@ -80,19 +214,18 @@ export function BusinessHomePage() {
           )}
         />
 
-        <DiscoveryQuadGrid
+        <DiscoveryQuad
           title="Services"
           items={svcItems}
           loading={loading}
           emptyLabel="No services available."
           expandAriaLabel="View all services"
-          expanded={svcExpanded}
-          onExpand={() => setSvcExpanded(true)}
-          onCollapse={() => setSvcExpanded(false)}
+          onExpand={() => expand("service")}
           renderItem={(o) => (
             <button
               type="button"
               className="discovery-quad__card"
+              data-no-nav-dock
               onClick={() => navigate(`/app/discover?offering=${o.id}`)}
             >
               {o.image ? (
@@ -108,19 +241,18 @@ export function BusinessHomePage() {
           )}
         />
 
-        <DiscoveryQuadGrid
+        <DiscoveryQuad
           title="Products"
           items={prdItems}
           loading={loading}
           emptyLabel="No products available."
           expandAriaLabel="View all products"
-          expanded={prdExpanded}
-          onExpand={() => setPrdExpanded(true)}
-          onCollapse={() => setPrdExpanded(false)}
+          onExpand={() => expand("product")}
           renderItem={(o) => (
             <button
               type="button"
               className="discovery-quad__card"
+              data-no-nav-dock
               onClick={() => navigate(`/app/discover?offering=${o.id}`)}
             >
               {o.image ? (

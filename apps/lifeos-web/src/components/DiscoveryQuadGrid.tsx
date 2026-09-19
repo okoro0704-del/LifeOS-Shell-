@@ -1,42 +1,36 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { IconExplore } from "@lifeos/ui";
+
+export type DiscoveryKind = "business" | "service" | "product";
 
 export type DiscoveryQuadItem = {
   id: string;
 };
 
-type Props<T extends DiscoveryQuadItem> = {
+type QuadProps<T extends DiscoveryQuadItem> = {
   title: string;
   items: T[];
   loading?: boolean;
   emptyLabel: string;
   expandAriaLabel: string;
-  expanded: boolean;
   onExpand: () => void;
-  onCollapse?: () => void;
   renderItem: (item: T, mode: "quad" | "grid") => ReactNode;
-  /** Optional footnote under the title (e.g. discovery semantics). */
   subtitle?: string;
 };
 
 const PREVIEW = 4;
 
-/**
- * Shared Business Space discovery layout:
- * compact 2×2 preview with center expand, then 2-column scrollable grid.
- */
-export function DiscoveryQuadGrid<T extends DiscoveryQuadItem>({
+/** Collapsed edge-to-edge 2×2 with center diamond expand control. */
+export function DiscoveryQuad<T extends DiscoveryQuadItem>({
   title,
   items,
   loading,
   emptyLabel,
   expandAriaLabel,
-  expanded,
   onExpand,
-  onCollapse,
   renderItem,
   subtitle,
-}: Props<T>) {
+}: QuadProps<T>) {
   const preview = items.slice(0, PREVIEW);
 
   return (
@@ -55,21 +49,6 @@ export function DiscoveryQuadGrid<T extends DiscoveryQuadItem>({
         </div>
       ) : items.length === 0 ? (
         <p className="muted discovery-quad__empty">{emptyLabel}</p>
-      ) : expanded ? (
-        <div className="discovery-quad__expanded">
-          {onCollapse ? (
-            <button type="button" className="discovery-quad__collapse" onClick={onCollapse}>
-              Show preview
-            </button>
-          ) : null}
-          <ul className="discovery-quad__grid" aria-label={`All ${title}`}>
-            {items.map((item) => (
-              <li key={item.id} className="discovery-quad__grid-cell">
-                {renderItem(item, "grid")}
-              </li>
-            ))}
-          </ul>
-        </div>
       ) : (
         <div className="discovery-quad__box">
           <div className="discovery-quad__tiles" role="list">
@@ -79,19 +58,104 @@ export function DiscoveryQuadGrid<T extends DiscoveryQuadItem>({
               </div>
             ))}
           </div>
-          {items.length > 0 ? (
-            <button
-              type="button"
-              className="discovery-quad__expand"
-              aria-label={expandAriaLabel}
-              title={expandAriaLabel}
-              onClick={onExpand}
-            >
-              <IconExplore size={18} />
-            </button>
-          ) : null}
+          <DiamondControl ariaLabel={expandAriaLabel} onActivate={onExpand} />
         </div>
       )}
     </section>
   );
+}
+
+type ExpandedProps<T extends DiscoveryQuadItem> = {
+  title: string;
+  items: T[];
+  contractAriaLabel: string;
+  onContract: () => void;
+  renderItem: (item: T, mode: "quad" | "grid") => ReactNode;
+};
+
+/**
+ * Full-viewport discovery mode — 2 columns, floating viewport-centered diamond contracts.
+ */
+export function ExpandedDiscoveryGrid<T extends DiscoveryQuadItem>({
+  title,
+  items,
+  contractAriaLabel,
+  onContract,
+  renderItem,
+}: ExpandedProps<T>) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onContract();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onContract]);
+
+  return (
+    <div className="discovery-expanded" role="dialog" aria-modal="true" aria-label={title}>
+      <ul className="discovery-expanded__grid" aria-label={title}>
+        {items.map((item) => (
+          <li key={item.id} className="discovery-expanded__cell">
+            {renderItem(item, "grid")}
+          </li>
+        ))}
+      </ul>
+      <DiamondControl ariaLabel={contractAriaLabel} onActivate={onContract} floating />
+    </div>
+  );
+}
+
+function DiamondControl({
+  ariaLabel,
+  onActivate,
+  floating = false,
+}: {
+  ariaLabel: string;
+  onActivate: () => void;
+  floating?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      className={`discovery-diamond${floating ? " discovery-diamond--float" : ""}`}
+      aria-label={ariaLabel}
+      title={ariaLabel}
+      data-no-nav-dock
+      onClick={(e) => {
+        e.stopPropagation();
+        onActivate();
+      }}
+      onPointerDown={(e) => e.stopPropagation()}
+    >
+      <span className="discovery-diamond__face" aria-hidden>
+        <span className="discovery-diamond__icon">
+          <IconExplore size={16} />
+        </span>
+      </span>
+    </button>
+  );
+}
+
+/** @deprecated Prefer DiscoveryQuad + ExpandedDiscoveryGrid */
+export function DiscoveryQuadGrid<T extends DiscoveryQuadItem>(
+  props: QuadProps<T> & {
+    expanded?: boolean;
+    onCollapse?: () => void;
+  },
+) {
+  if (props.expanded) {
+    return (
+      <ExpandedDiscoveryGrid
+        title={props.title}
+        items={props.items}
+        contractAriaLabel="Return to Business Space"
+        onContract={props.onCollapse ?? (() => undefined)}
+        renderItem={props.renderItem}
+      />
+    );
+  }
+  return <DiscoveryQuad {...props} />;
 }

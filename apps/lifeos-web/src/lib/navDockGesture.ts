@@ -28,6 +28,9 @@ const INTERACTIVE_SELECTOR = [
   ".lifeos-transient-alerts",
   ".bottom-nav",
   ".command-overlay",
+  ".discovery-quad__card",
+  ".discovery-diamond",
+  ".discovery-expanded",
   "video",
 ].join(",");
 
