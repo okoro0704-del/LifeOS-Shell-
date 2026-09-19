@@ -6439,6 +6439,111 @@ html.lifeos-chrome-hidden .immersive-feed {
 
 .personal-page--kernel {
   padding-top: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.personal-page--kernel > .segment-topbar--glass {
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 30;
+  background: transparent;
+}
+
+.personal-page--kernel > .kernel-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.products-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 0.55rem 0.75rem 1.5rem;
+  margin: 0;
+}
+
+.products-feed__card {
+  display: grid;
+  grid-template-rows: minmax(11rem, 42vw) auto;
+  width: 100%;
+  border: 0;
+  border-radius: 1rem;
+  overflow: hidden;
+  padding: 0;
+  text-align: left;
+  color: inherit;
+  background: color-mix(in srgb, var(--los-surface, #111827) 88%, transparent);
+  cursor: pointer;
+}
+
+.products-feed__thumb {
+  width: 100%;
+  height: 100%;
+  min-height: 11rem;
+  object-fit: cover;
+  display: block;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.products-feed__thumb--empty {
+  min-height: 11rem;
+}
+
+.products-feed__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.75rem 0.85rem 0.9rem;
+}
+
+.products-feed__type {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.offline-kernel-prompt {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 1rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  background: color-mix(in srgb, #000 45%, transparent);
+}
+
+.offline-kernel-prompt__sheet {
+  width: min(24rem, 100%);
+  border-radius: 1.1rem;
+  padding: 1.1rem 1rem 1rem;
+  background: var(--los-surface, #111827);
+  color: var(--los-text, #f8fafc);
+  box-shadow: 0 18px 48px color-mix(in srgb, #000 40%, transparent);
+}
+
+.offline-kernel-prompt__sheet h2 {
+  margin: 0 0 0.45rem;
+  font-size: 1.1rem;
+}
+
+.offline-kernel-prompt__sheet p {
+  margin: 0 0 1rem;
+  opacity: 0.88;
+  line-height: 1.45;
+}
+
+.offline-kernel-prompt__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
 }
 
 .segment-topbar--home {
@@ -6600,6 +6705,74 @@ html.lifeos-chrome-hidden .immersive-feed__copy--on,
   font-size: 0.78rem;
   font-weight: 650;
   pointer-events: none;
+}
+
+.immersive-feed__slide--placeholder {
+  background: #0b1220;
+}
+
+.immersive-feed__writing {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 2.5rem 1.5rem 6rem;
+  z-index: 1;
+}
+
+.immersive-feed__writing p {
+  margin: 0;
+  max-width: 32rem;
+  font-size: clamp(1.15rem, 3.6vw, 1.55rem);
+  line-height: 1.45;
+  color: #f8fafc;
+  text-align: left;
+}
+
+.immersive-feed__detail--expand {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  padding: 0;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.immersive-feed__read-body {
+  padding: 0.75rem 1rem 1.25rem;
+  max-height: min(70dvh, 28rem);
+  overflow-y: auto;
+}
+
+.immersive-feed__read-body p {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .immersive-feed {
+    scroll-behavior: auto;
+  }
+}
+
+@media (min-width: 768px) {
+  .personal-page--immersive .immersive-feed__slide--overlay .immersive-feed__media {
+    max-width: 28rem;
+    margin-inline: auto;
+  }
+}
+
+@media (min-width: 1200px) {
+  .personal-page--immersive .immersive-feed__slide--overlay .immersive-feed__media {
+    max-width: 32rem;
+  }
 }
 
 .engage-sheet {

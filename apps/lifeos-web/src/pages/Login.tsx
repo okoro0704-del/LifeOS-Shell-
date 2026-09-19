@@ -18,7 +18,7 @@ import {
 } from "../lib/returningIdentity";
 import { hasSeenIntro, markIntroSeen } from "../lib/introSeen";
 import { meService } from "../lib/services";
-import { personalLandingPath, isAuthBypass } from "../lib/personalConnectivity";
+import { personalLandingPath, isAuthBypass, offlineLoginFallbackPath } from "../lib/personalConnectivity";
 
 /**
  * Login surface. Returning users land here directly (intro is skipped).
@@ -57,6 +57,11 @@ export function LoginPage() {
 
   async function enterBypass() {
     if (entering.current || bypassBusy) return;
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setMode("PERSONAL");
+      navigate(offlineLoginFallbackPath(), { replace: true });
+      return;
+    }
     entering.current = true;
     setBypassBusy(true);
     setBypassError(null);
@@ -68,6 +73,11 @@ export function LoginPage() {
       setMode("PERSONAL");
       navigate(personalLandingPath(res.user.trustId), { replace: true });
     } catch (err) {
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        setMode("PERSONAL");
+        navigate(offlineLoginFallbackPath(), { replace: true });
+        return;
+      }
       setBypassError(err instanceof Error ? err.message : "Dev session failed");
       entering.current = false;
     } finally {
@@ -76,11 +86,22 @@ export function LoginPage() {
   }
 
   function enterLifeOS() {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setMode("PERSONAL");
+      navigate(offlineLoginFallbackPath(returning?.trustId), { replace: true });
+      return;
+    }
     if (AUTH_BYPASS) {
       void enterBypass();
       return;
     }
-    if (!returning || entering.current || gatewayUp === false) return;
+    if (!returning || entering.current || gatewayUp === false) {
+      if (gatewayUp === false) {
+        setMode("PERSONAL");
+        navigate(offlineLoginFallbackPath(returning?.trustId), { replace: true });
+      }
+      return;
+    }
     entering.current = true;
     void authClient.beginLogin({
       loginHint: returning.trustId,
@@ -92,11 +113,22 @@ export function LoginPage() {
   }
 
   function startFresh() {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setMode("PERSONAL");
+      navigate(offlineLoginFallbackPath(), { replace: true });
+      return;
+    }
     if (AUTH_BYPASS) {
       void enterBypass();
       return;
     }
-    if (entering.current || gatewayUp === false) return;
+    if (entering.current || gatewayUp === false) {
+      if (gatewayUp === false) {
+        setMode("PERSONAL");
+        navigate(offlineLoginFallbackPath(), { replace: true });
+      }
+      return;
+    }
     entering.current = true;
     void authClient.beginLogin({ prompt: "login", silentUi: true });
   }

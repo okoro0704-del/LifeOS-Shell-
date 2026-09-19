@@ -17,6 +17,7 @@ import { useCommandLayer } from "../hooks/useCommandLayer";
 import { useWorkspace, type WorkspaceMode } from "../context/WorkspaceContext";
 import { installedAppsService, notificationService } from "../lib/services";
 import { markNeedsFaceOnKernelSwitch } from "../lib/personalConnectivity";
+import { setLastSelectedKernel } from "../lib/kernelNavigation";
 import { CommandOverlay } from "./CommandOverlay";
 import { LiveFloat } from "./LiveFloat";
 import { LifeOSWakeListener } from "./LifeOSWakeListener";
@@ -79,6 +80,7 @@ export function AppShell() {
   const { openCommand } = useCommandLayer();
   const [unread, setUnread] = useState(0);
   const [offline, setOffline] = useState(!navigator.onLine);
+  const [offlinePrompt, setOfflinePrompt] = useState(false);
   const [backOnlineNotice, setBackOnlineNotice] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<{
     prompt: () => Promise<void>;
@@ -151,14 +153,16 @@ export function AppShell() {
       .finally(() => setAppsLoading(false));
     const on = () => {
       setOffline(false);
+      setOfflinePrompt(false);
       setBackOnlineNotice(true);
       markNeedsFaceOnKernelSwitch(true);
     };
     const off = () => {
       setOffline(true);
       setBackOnlineNotice(false);
-      if (mode === "PERSONAL") {
-        navigate("/app/personal/offline/post");
+      // Never auto-switch kernels — ask the user.
+      if (mode === "PERSONAL" && personalKernel !== "offline") {
+        setOfflinePrompt(true);
       }
     };
     window.addEventListener("online", on);
@@ -167,7 +171,7 @@ export function AppShell() {
       window.removeEventListener("online", on);
       window.removeEventListener("offline", off);
     };
-  }, [mode, navigate]);
+  }, [mode, navigate, personalKernel]);
 
   useEffect(() => {
     const dismissed = sessionStorage.getItem("lifeos.install.dismissed");
@@ -327,6 +331,43 @@ export function AppShell() {
         {offline ? (
           <div className="offline-banner" role="status">
             <strong>You&apos;re offline</strong>
+          </div>
+        ) : null}
+
+        {offlinePrompt ? (
+          <div
+            className="offline-kernel-prompt"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Go offline"
+          >
+            <div className="offline-kernel-prompt__sheet">
+              <h2>You lost internet</h2>
+              <p>
+                Would you like to go to the Offline kernel until your network is restored? You can
+                keep watching saved movies there.
+              </p>
+              <div className="offline-kernel-prompt__actions">
+                <button
+                  type="button"
+                  className="los-btn los-btn--primary"
+                  onClick={() => {
+                    setOfflinePrompt(false);
+                    setLastSelectedKernel("offline", user?.trustId);
+                    navigate("/app/personal/offline/post");
+                  }}
+                >
+                  Go
+                </button>
+                <button
+                  type="button"
+                  className="los-btn"
+                  onClick={() => setOfflinePrompt(false)}
+                >
+                  Stay
+                </button>
+              </div>
+            </div>
           </div>
         ) : null}
 

@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { hasPremium, setPremium, type MediaItem } from "../lib/personalCatalog";
 import { openCreatorApp } from "../lib/mybrandOS";
 import {
@@ -22,6 +30,20 @@ import {
   withFreeKernelAds,
   type AdCreative,
 } from "../lib/personalMonetization";
+import {
+  activeIndexFromScroll,
+  immersiveScrollBehavior,
+  isEditableKeyboardTarget,
+  nextFeedIndex,
+  previousFeedIndex,
+  resolveInitialIndex,
+  shouldMountSlide,
+  shouldRequestNextPage,
+} from "../lib/immersiveFeedController";
+
+function isWritingItem(item: MediaItem): boolean {
+  return item.kind === "post" && Boolean(item.detail) && !item.mediaUrl && !item.posterUrl;
+}
 
 function mediaTone(id: string): string {
   const tones = [
@@ -41,22 +63,38 @@ function creatorSlug(author?: string) {
   return (author || "creator").replace(/^@/, "");
 }
 
-function AdSlide({ ad, onSaved }: { ad: AdCreative; onSaved: () => void }) {
+function AdSlide({ ad, active, onSaved }: { ad: AdCreative; active: boolean; onSaved: () => void }) {
   const [saved, setSaved] = useState(() => isAdSaved(ad.id));
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    if (active) {
+      el.muted = true;
+      void el.play().catch(() => undefined);
+    } else {
+      el.pause();
+    }
+  }, [active]);
 
   return (
-    <li className="immersive-feed__slide immersive-feed__slide--overlay immersive-feed__slide--ad">
+    <li
+      className="immersive-feed__slide immersive-feed__slide--overlay immersive-feed__slide--ad"
+      data-active={active ? "true" : undefined}
+      aria-hidden={!active}
+    >
       <div className="immersive-feed__media" style={{ background: mediaTone(ad.id) }}>
         {ad.mediaUrl ? (
           <video
+            ref={videoRef}
             className="immersive-feed__asset"
             src={ad.mediaUrl}
             poster={ad.posterUrl}
             muted
             playsInline
             loop
-            autoPlay
-            preload="metadata"
+            preload={active ? "auto" : "metadata"}
           />
         ) : ad.posterUrl ? (
           <img className="immersive-feed__asset" src={ad.posterUrl} alt="" loading="lazy" />
@@ -175,12 +213,14 @@ function SideRail({
 
 function ContentSlide({
   item,
+  active,
   lockedPremium,
   credits,
   onCredits,
   overlayCaption,
 }: {
   item: MediaItem;
+  active: boolean;
   lockedPremium: boolean;
   credits: number;
   onCredits: (n: number) => void;
@@ -189,6 +229,7 @@ function ContentSlide({
   const tier = resolveTier(item);
   const vipRate = vipRateFor(item);
   const isVideo = item.kind === "video" || item.kind === "reel";
+  const writing = isWritingItem(item);
   const lockedVip = tier === "vip" && credits <= 0;
   const locked = lockedPremium || lockedVip;
   const creator = creatorSlug(item.author);
@@ -198,15 +239,32 @@ function ContentSlide({
   const [commentOpen, setCommentOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [toast, setToast] = useState<string | null>(null);
+  const [readOpen, setReadOpen] = useState(false);
   const lastTap = useRef(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     if (locked) return;
-    if (isVideo) markWatchedOffline(item);
-  }, [item, isVideo, locked]);
+    if (isVideo && active) markWatchedOffline(item);
+  }, [item, isVideo, locked, active]);
 
   useEffect(() => {
-    if (tier !== "vip" || lockedPremium || locked) return;
+    const el = videoRef.current;
+    if (!el || !isVideo || locked) return;
+    if (active) {
+      el.muted = true;
+      void el.play().catch(() => undefined);
+    } else {
+      el.pause();
+    }
+  }, [active, isVideo, locked, item.mediaUrl]);
+
+  useEffect(() => {
+    if (!active) setReadOpen(false);
+  }, [active]);
+
+  useEffect(() => {
+    if (tier !== "vip" || lockedPremium || locked || !active) return;
     const id = window.setInterval(() => {
       const bal = getLifeOsCredits();
       if (bal <= 0) {
@@ -217,7 +275,7 @@ function ContentSlide({
       markWatchedOffline(item);
     }, 4000);
     return () => window.clearInterval(id);
-  }, [tier, lockedPremium, locked, vipRate, item, creator, onCredits]);
+  }, [tier, lockedPremium, locked, vipRate, item, creator, onCredits, active]);
 
   function flash(msg: string) {
     setToast(msg);
@@ -246,7 +304,24 @@ function ContentSlide({
         </button>
       ) : null}
       <strong className="immersive-feed__title">{item.title}</strong>
-      {item.detail ? <p className="immersive-feed__detail">{item.detail}</p> : null}
+      {item.detail ? (
+        writing ? (
+          <button
+            type="button"
+            className="immersive-feed__detail immersive-feed__detail--expand"
+            onClick={() => setReadOpen(true)}
+          >
+            {item.detail}
+          </button>
+        ) : (
+          <p className="immersive-feed__detail">{item.detail}</p>
+        )
+      ) : null}
+      {writing ? (
+        <button type="button" className="los-btn los-btn--ghost los-btn--sm" onClick={() => setReadOpen(true)}>
+          Read
+        </button>
+      ) : null}
       {tier === "vip" ? (
         <span className="immersive-feed__credits">
           {vipRate} cr · {credits} left · 80% to creator
@@ -276,7 +351,10 @@ function ContentSlide({
     <li
       className={`immersive-feed__slide${overlayCaption ? " immersive-feed__slide--overlay" : " immersive-feed__slide--split"}${
         locked ? " is-locked" : ""
-      }`}
+      }${writing ? " immersive-feed__slide--writing" : ""}`}
+      data-active={active ? "true" : undefined}
+      data-publication-id={item.id}
+      aria-hidden={!active}
     >
       <div
         className="immersive-feed__media"
@@ -288,20 +366,29 @@ function ContentSlide({
         }}
         role="presentation"
       >
-        {item.posterUrl || item.mediaUrl ? (
+        {writing && !item.posterUrl && !item.mediaUrl ? (
+          <div className="immersive-feed__writing" aria-hidden={!active}>
+            <p>{item.detail || item.title}</p>
+          </div>
+        ) : item.posterUrl || item.mediaUrl ? (
           isVideo && item.mediaUrl && !locked ? (
             <video
+              ref={videoRef}
               className="immersive-feed__asset"
               src={item.mediaUrl}
               poster={item.posterUrl}
               muted
               playsInline
               loop
-              autoPlay
-              preload="metadata"
+              preload={active ? "auto" : "metadata"}
             />
           ) : (
-            <img className="immersive-feed__asset" src={item.posterUrl || item.mediaUrl} alt="" loading="lazy" />
+            <img
+              className="immersive-feed__asset"
+              src={item.posterUrl || item.mediaUrl}
+              alt=""
+              loading={active ? "eager" : "lazy"}
+            />
           )
         ) : null}
         {overlayCaption ? <div className="immersive-feed__scrim" aria-hidden /> : null}
@@ -333,6 +420,22 @@ function ContentSlide({
       </div>
 
       {!overlayCaption ? <div className="immersive-feed__meta-block">{caption}</div> : null}
+
+      {readOpen ? (
+        <div className="engage-sheet immersive-feed__read-sheet" role="dialog" aria-label="Read">
+          <div className="engage-sheet__panel">
+            <header className="engage-sheet__head">
+              <strong>{item.title}</strong>
+              <button type="button" className="text-link" onClick={() => setReadOpen(false)}>
+                Close
+              </button>
+            </header>
+            <div className="immersive-feed__read-body">
+              <p>{item.detail}</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {commentOpen ? (
         <div className="engage-sheet" role="dialog" aria-label="Comments">
@@ -381,6 +484,10 @@ function ContentSlide({
   );
 }
 
+type FeedRow =
+  | { type: "content"; item: MediaItem; key: string }
+  | { type: "ad"; ad: AdCreative; key: string };
+
 export function ImmersiveMediaFeed({
   items,
   empty,
@@ -388,6 +495,9 @@ export function ImmersiveMediaFeed({
   mode = "post",
   leading,
   showAds = false,
+  initialPublicationId,
+  hasMore = false,
+  onNearEnd,
 }: {
   items: MediaItem[];
   empty: string;
@@ -395,16 +505,143 @@ export function ImmersiveMediaFeed({
   mode?: "post" | "reels";
   leading?: ReactNode;
   showAds?: boolean;
+  /** Deep-link: start with this canonical MediaItem.id as active. */
+  initialPublicationId?: string | null;
+  hasMore?: boolean;
+  onNearEnd?: () => void;
 }) {
   const premium = hasPremium();
   const [credits, setCredits] = useState(() => getLifeOsCredits());
   const listRef = useRef<HTMLUListElement>(null);
   const overlayCaption = true;
+  const leadingOffset = leading ? 1 : 0;
 
-  const rows = useMemo(() => {
-    if (showAds) return withFreeKernelAds(items, 2);
-    return items.map((item) => ({ type: "content" as const, item }));
+  const rows = useMemo<FeedRow[]>(() => {
+    if (showAds) {
+      return withFreeKernelAds(items, 2).map((row) =>
+        row.type === "ad"
+          ? { type: "ad" as const, ad: row.ad, key: `ad-${row.ad.id}` }
+          : { type: "content" as const, item: row.item, key: row.item.id },
+      );
+    }
+    return items.map((item) => ({ type: "content" as const, item, key: item.id }));
   }, [items, showAds]);
+
+  const contentIds = useMemo(
+    () => rows.filter((r): r is Extract<FeedRow, { type: "content" }> => r.type === "content").map((r) => r.item.id),
+    [rows],
+  );
+
+  const initialContentIndex = resolveInitialIndex(contentIds, initialPublicationId);
+  const initialRowIndex = useMemo(() => {
+    if (!initialPublicationId) return 0;
+    const i = rows.findIndex((r) => r.type === "content" && r.item.id === initialPublicationId);
+    return i >= 0 ? i : 0;
+  }, [rows, initialPublicationId]);
+
+  const [activeRowIndex, setActiveRowIndex] = useState(initialRowIndex);
+  const activeRowIndexRef = useRef(activeRowIndex);
+  activeRowIndexRef.current = activeRowIndex;
+  const didInitScroll = useRef(false);
+  const nearEndSent = useRef(false);
+
+  const activePublicationId =
+    rows[activeRowIndex]?.type === "content" ? rows[activeRowIndex].item.id : null;
+
+  const snapToRow = useCallback(
+    (rowIndex: number) => {
+      const root = listRef.current;
+      if (!root) return;
+      const slides = root.querySelectorAll<HTMLElement>(".immersive-feed__slide");
+      const target = slides[rowIndex];
+      if (!target) return;
+      root.scrollTo({ top: target.offsetTop, behavior: immersiveScrollBehavior() });
+    },
+    [],
+  );
+
+  useLayoutEffect(() => {
+    if (didInitScroll.current) return;
+    if (!initialPublicationId || initialRowIndex <= 0) {
+      didInitScroll.current = true;
+      return;
+    }
+    const root = listRef.current;
+    if (!root) return;
+    const slides = root.querySelectorAll<HTMLElement>(".immersive-feed__slide");
+    const target = slides[initialRowIndex];
+    if (target) {
+      root.scrollTop = target.offsetTop;
+      setActiveRowIndex(initialRowIndex);
+      didInitScroll.current = true;
+    }
+  }, [initialPublicationId, initialRowIndex]);
+
+  useEffect(() => {
+    const root = listRef.current;
+    if (!root) return;
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = window.requestAnimationFrame(() => {
+        raf = 0;
+        const h = root.clientHeight || 1;
+        const next = activeIndexFromScroll(
+          root.scrollTop,
+          h,
+          rows.length + leadingOffset,
+          activeRowIndexRef.current + leadingOffset,
+        );
+        const contentIdx = Math.max(0, next - leadingOffset);
+        if (contentIdx !== activeRowIndexRef.current && contentIdx < rows.length) {
+          setActiveRowIndex(contentIdx);
+        }
+      });
+    };
+    root.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      root.removeEventListener("scroll", onScroll);
+      if (raf) window.cancelAnimationFrame(raf);
+    };
+  }, [rows.length, leadingOffset]);
+
+  useEffect(() => {
+    if (!onNearEnd) return;
+    if (shouldRequestNextPage(activeRowIndex, rows.length, hasMore)) {
+      if (!nearEndSent.current) {
+        nearEndSent.current = true;
+        onNearEnd();
+      }
+    } else {
+      nearEndSent.current = false;
+    }
+  }, [activeRowIndex, rows.length, hasMore, onNearEnd]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (isEditableKeyboardTarget(e.target)) return;
+      const root = listRef.current;
+      if (!root) return;
+      const focusOk =
+        root.contains(document.activeElement) ||
+        document.activeElement === document.body ||
+        root.matches(":focus-within");
+      if (!focusOk) return;
+      if (e.key === "ArrowDown" || e.key === "PageDown") {
+        e.preventDefault();
+        const next = nextFeedIndex(activeRowIndexRef.current, rows.length);
+        setActiveRowIndex(next);
+        snapToRow(next);
+      } else if (e.key === "ArrowUp" || e.key === "PageUp") {
+        e.preventDefault();
+        const prev = previousFeedIndex(activeRowIndexRef.current, rows.length);
+        setActiveRowIndex(prev);
+        snapToRow(prev);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [rows.length, snapToRow]);
 
   if (!items.length) {
     return (
@@ -420,22 +657,40 @@ export function ImmersiveMediaFeed({
       ref={listRef}
       className={`immersive-feed immersive-feed--${mode}`}
       aria-label={mode === "reels" ? "Reels" : "Posts"}
+      tabIndex={0}
+      data-active-publication-id={activePublicationId ?? undefined}
+      data-active-index={String(activeRowIndex)}
+      data-initial-content-index={String(initialContentIndex)}
     >
       {leading ? <li className="immersive-feed__leading">{leading}</li> : null}
-      {rows.map((row) =>
-        row.type === "ad" ? (
-          <AdSlide key={`ad-${row.ad.id}`} ad={row.ad} onSaved={() => undefined} />
-        ) : (
+      {rows.map((row, index) => {
+        const active = index === activeRowIndex;
+        const mount = shouldMountSlide(index, activeRowIndex, rows.length);
+        if (!mount) {
+          return (
+            <li
+              key={row.key}
+              className="immersive-feed__slide immersive-feed__slide--placeholder"
+              aria-hidden
+              data-index={index}
+            />
+          );
+        }
+        if (row.type === "ad") {
+          return <AdSlide key={row.key} ad={row.ad} active={active} onSaved={() => undefined} />;
+        }
+        return (
           <ContentSlide
-            key={row.item.id}
+            key={row.key}
             item={row.item}
+            active={active}
             lockedPremium={Boolean(gatePremium && resolveTier(row.item) === "premium" && !premium)}
             credits={credits}
             onCredits={setCredits}
             overlayCaption={overlayCaption}
           />
-        ),
-      )}
+        );
+      })}
     </ul>
   );
 }

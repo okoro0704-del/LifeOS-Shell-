@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { ImmersiveMediaFeed } from "../../components/ImmersiveMediaFeed";
 import { SegmentGlassBar } from "../../components/SegmentGlassBar";
@@ -110,23 +110,19 @@ export function PersonalKernelShell({
     >
       {/* Primary top bar stays fixed; never hidden by scroll. */}
       <KernelBrandBar hidden={false} />
+      {!immersive ? (
+        <SegmentGlassBar
+          tabs={tabs}
+          activeId={section === "search" ? "post" : section}
+          scrolled={false}
+          showBack={false}
+          searchTo={`${base}/search`}
+          backTo={`${base}/post`}
+          ariaLabel="Home sections"
+        />
+      ) : null}
       <div className="kernel-scroll" ref={scrollRef}>
-        {immersive ? (
-          children
-        ) : (
-          <>
-            <SegmentGlassBar
-              tabs={tabs}
-              activeId={section === "search" ? "post" : section}
-              scrolled={false}
-              showBack={false}
-              searchTo={`${base}/search`}
-              backTo={`${base}/post`}
-              ariaLabel="Home sections"
-            />
-            {children}
-          </>
-        )}
+        {children}
       </div>
     </div>
   );
@@ -166,38 +162,66 @@ function postItems(kernel: PersonalKernel, remote: MediaItem[]) {
 
 export function KernelPostPage({ kernel }: { kernel: PersonalKernel }) {
   const [remote, setRemote] = useState<MediaItem[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const searchParams = new URLSearchParams(
+    typeof window !== "undefined" ? window.location.search : "",
+  );
+  const initialPublicationId = searchParams.get("publication") || searchParams.get("p");
+
+  const loadPage = useCallback(async (cursor?: string | null) => {
+    const projected = await fetchLifeOsPublicationFeed({
+      cursor: cursor || undefined,
+      limit: 24,
+    });
+    if (projected.items.length) {
+      return projected;
+    }
+    if (cursor) return { items: [] as MediaItem[], nextCursor: null };
+    try {
+      const data = await installedAppsService.list();
+      const apps = (data.apps ?? []) as InstalledAppManifest[];
+      const reserved = new Set(["mybrandos", "hospitalityos", "serviceos", "ecommerceos"]);
+      const slugs = [
+        ...new Set(
+          apps
+            .map((a) => String(a.subdomain || "").trim().toLowerCase())
+            .filter((slug) => slug && !reserved.has(slug)),
+        ),
+      ];
+      const batches = await Promise.all(slugs.map((slug) => fetchMybrandPublicPosts(slug)));
+      return { items: batches.flat(), nextCursor: null };
+    } catch {
+      return { items: [] as MediaItem[], nextCursor: null };
+    }
+  }, []);
 
   useEffect(() => {
     let active = true;
     void (async () => {
-      // Prefer LifeOS server projections (ecosystem ingestion + reconciliation).
-      const projected = await fetchLifeOsPublicationFeed();
-      if (projected.length) {
-        if (active) setRemote(projected);
-        return;
-      }
-      // Fallback: direct public federation when projections are still empty.
-      try {
-        const data = await installedAppsService.list();
-        const apps = (data.apps ?? []) as InstalledAppManifest[];
-        const reserved = new Set(["mybrandos", "hospitalityos", "serviceos", "ecommerceos"]);
-        const slugs = [
-          ...new Set(
-            apps
-              .map((a) => String(a.subdomain || "").trim().toLowerCase())
-              .filter((slug) => slug && !reserved.has(slug)),
-          ),
-        ];
-        const batches = await Promise.all(slugs.map((slug) => fetchMybrandPublicPosts(slug)));
-        if (active) setRemote(batches.flat());
-      } catch {
-        if (active) setRemote([]);
-      }
+      const page = await loadPage(null);
+      if (!active) return;
+      setRemote(page.items);
+      setNextCursor(page.nextCursor);
     })();
     return () => {
       active = false;
     };
-  }, []);
+  }, [loadPage]);
+
+  const onNearEnd = useCallback(() => {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    void loadPage(nextCursor).then((page) => {
+      setRemote((prev) => {
+        const seen = new Set(prev.map((i) => i.id));
+        const appended = page.items.filter((i) => !seen.has(i.id));
+        return appended.length ? [...prev, ...appended] : prev;
+      });
+      setNextCursor(page.nextCursor);
+      setLoadingMore(false);
+    });
+  }, [nextCursor, loadingMore, loadPage]);
 
   return (
     <PersonalKernelShell kernel={kernel} section="post" immersive>
@@ -208,6 +232,9 @@ export function KernelPostPage({ kernel }: { kernel: PersonalKernel }) {
         mode="post"
         showAds={kernel === "free"}
         leading={<SectionLeadingBar kernel={kernel} section="post" />}
+        initialPublicationId={initialPublicationId}
+        hasMore={Boolean(nextCursor)}
+        onNearEnd={onNearEnd}
       />
       {kernel === "offline" && listSavedAds().length > 0 ? (
         <section className="offline-saved-ads" aria-label="Saved ads">
@@ -268,22 +295,22 @@ export function KernelProductsPage({ kernel }: { kernel: PersonalKernel }) {
           No catalogue items from branded Digital Spaces yet.
         </p>
       ) : (
-        <div className="near-rail near-rail--hero" role="list">
+        <div className="products-feed" role="list">
           {items.map((p) => (
             <button
               key={p.id}
               type="button"
-              className="near-rail__card near-rail__card--media"
+              className="products-feed__card"
               role="listitem"
               onClick={() => void openCreatorApp(p.ownerSlug)}
             >
               {p.mediaUrl ? (
-                <img className="near-rail__thumb" src={p.mediaUrl} alt="" loading="lazy" />
+                <img className="products-feed__thumb" src={p.mediaUrl} alt="" loading="lazy" />
               ) : (
-                <span className="near-rail__thumb near-rail__thumb--empty" aria-hidden />
+                <span className="products-feed__thumb products-feed__thumb--empty" aria-hidden />
               )}
-              <span className="near-rail__boost">{p.itemType}</span>
-              <span className="near-rail__caption">
+              <span className="products-feed__meta">
+                <span className="products-feed__type">{p.itemType}</span>
                 <strong>{p.title}</strong>
                 <span className="muted small">{p.ownerDisplayName || p.ownerSlug}</span>
               </span>

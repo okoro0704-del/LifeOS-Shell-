@@ -1,7 +1,7 @@
 import type { PersonalKernel } from "../components/shell/nav";
 import { personalKernelPath } from "../components/shell/nav";
 import { isMobileApp } from "./mobileBridge";
-import { getLastSelectedKernel, setLastSelectedKernel } from "./kernelNavigation";
+import { setLastSelectedKernel } from "./kernelNavigation";
 
 const PENDING_KERNEL_KEY = "lifeos.pending_kernel";
 const NEEDS_FACE_KEY = "lifeos.needs_face_on_kernel";
@@ -68,14 +68,23 @@ export function needsFaceOnKernelSwitch(): boolean {
   }
 }
 
-/** Default personal landing path after login /app redirect. */
+/** Landing after login /app redirect.
+ * Online → Main. Offline → Offline (saved media).
+ * Pending face-gate kernel still wins when present.
+ */
 export function personalLandingPath(trustId?: string | null): string {
   if (typeof navigator !== "undefined" && !navigator.onLine) {
+    setLastSelectedKernel("offline", trustId);
     return "/app/personal/offline/post";
   }
   const pending = peekPendingKernelPath();
   if (pending) return pending;
-  const last = getLastSelectedKernel(trustId);
-  if (last) return personalKernelPath(last);
+  setLastSelectedKernel("main", trustId);
   return "/app/personal/post";
+}
+
+/** When login cannot reach the network, enter Offline instead of failing. */
+export function offlineLoginFallbackPath(trustId?: string | null): string {
+  setLastSelectedKernel("offline", trustId);
+  return "/app/personal/offline/post";
 }

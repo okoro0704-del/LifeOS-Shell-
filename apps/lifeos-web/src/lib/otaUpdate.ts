@@ -39,6 +39,40 @@ function apiBase(): string {
   return DEFAULT_API;
 }
 
+function showUpdatingOverlay() {
+  if (typeof document === "undefined") return;
+  if (document.getElementById("lifeos-ota-updating")) return;
+  const el = document.createElement("div");
+  el.id = "lifeos-ota-updating";
+  el.setAttribute("role", "status");
+  el.setAttribute("aria-live", "polite");
+  el.textContent = "Updating LifeOS…";
+  Object.assign(el.style, {
+    position: "fixed",
+    inset: "0",
+    zIndex: "99999",
+    display: "grid",
+    placeItems: "center",
+    background: "rgba(11, 18, 32, 0.92)",
+    color: "#f8fafc",
+    fontFamily: "system-ui, sans-serif",
+    fontSize: "1.05rem",
+    fontWeight: "600",
+  });
+  document.documentElement.appendChild(el);
+}
+
+async function clearWebCaches() {
+  try {
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    }
+  } catch {
+    /* */
+  }
+}
+
 async function fetchOtaManifest(): Promise<OtaManifest | null> {
   try {
     const res = await fetch(`${webOrigin()}/ota.json?t=${Date.now()}`, {
@@ -76,8 +110,8 @@ async function fetchLatestAndroidRelease(): Promise<NativeReleaseInfo | null> {
 }
 
 /**
- * On native launch / resume: pick up Netlify web updates and surface newer APK shells.
- * Web content updates via live origin (Capacitor server.url) + hard reload when buildId changes.
+ * On native launch / resume: apply Netlify web updates automatically.
+ * Production APKs load CAPACITOR_SERVER_URL — no WhatsApp/file reinstall needed for UI.
  */
 export async function checkForOtaUpdates(opts?: { forceReload?: boolean }): Promise<{
   webUpdated: boolean;
@@ -96,10 +130,12 @@ export async function checkForOtaUpdates(opts?: { forceReload?: boolean }): Prom
     const prevId = prior.value ?? "";
     if (prevId && prevId !== manifest.buildId) {
       webUpdated = true;
+      showUpdatingOverlay();
       await Preferences.set({ key: OTA_BUILD_KEY, value: manifest.buildId });
+      await clearWebCaches();
       if (opts?.forceReload !== false) {
-        // Bust caches and load the newest shell assets.
-        window.location.replace(`${manifest.webOrigin}/?ota=${encodeURIComponent(manifest.buildId)}`);
+        const target = `${manifest.webOrigin}/?ota=${encodeURIComponent(manifest.buildId)}&t=${Date.now()}`;
+        window.location.replace(target);
         return { webUpdated: true, nativeUpdateAvailable: false, manifest };
       }
     } else if (!prevId) {
@@ -107,6 +143,7 @@ export async function checkForOtaUpdates(opts?: { forceReload?: boolean }): Prom
     }
   }
 
+  // Track newer native shells for ops; do not open browser/WhatsApp downloads.
   let nativeUpdateAvailable = false;
   try {
     const info = await App.getInfo();
@@ -119,8 +156,6 @@ export async function checkForOtaUpdates(opts?: { forceReload?: boolean }): Prom
         key: OTA_NATIVE_KEY,
         value: String(remoteCode),
       });
-      // Open APK URL — user confirms install (sideload / FileProvider flow).
-      window.open(release.artifactUrl, "_system");
     }
   } catch {
     /* App.getInfo unavailable in some webviews */

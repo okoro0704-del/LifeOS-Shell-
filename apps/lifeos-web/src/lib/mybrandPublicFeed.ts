@@ -129,14 +129,35 @@ function projectionToMediaItem(row: LifeOsPublication): MediaItem {
 }
 
 /** Preferred path: LifeOS server projections (ingestion + reconciliation). */
-export async function fetchLifeOsPublicationFeed(): Promise<MediaItem[]> {
+export async function fetchLifeOsPublicationFeed(opts?: {
+  cursor?: string;
+  limit?: number;
+}): Promise<{ items: MediaItem[]; nextCursor: string | null }> {
   try {
-    const data = await api<{ items: LifeOsPublication[]; count: number }>("/v1/publications/feed");
-    return (data.items ?? [])
+    const params = new URLSearchParams();
+    if (opts?.cursor) params.set("cursor", opts.cursor);
+    if (opts?.limit) params.set("limit", String(opts.limit));
+    const qs = params.toString();
+    const data = await api<{
+      items: LifeOsPublication[];
+      count: number;
+      nextCursor?: string | null;
+    }>(`/v1/publications/feed${qs ? `?${qs}` : ""}`);
+    const items = (data.items ?? [])
       .filter((row) => row.mediaStatus !== "broken")
       .map(projectionToMediaItem);
+    const nextCursor =
+      data.nextCursor && items.length
+        ? data.nextCursor
+        : null;
+    // Avoid false "has more" when API echoes last id but page was short.
+    const pageLimit = opts?.limit ?? 50;
+    return {
+      items,
+      nextCursor: items.length >= pageLimit ? nextCursor : null,
+    };
   } catch {
-    return [];
+    return { items: [], nextCursor: null };
   }
 }
 

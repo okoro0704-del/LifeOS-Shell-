@@ -3,7 +3,7 @@ import type { PersonalKernel } from "../components/shell/nav";
 /** Canonical spatial order: Free ↔ Offline ↔ Main */
 export const KERNEL_NAV_ORDER: PersonalKernel[] = ["free", "offline", "main"];
 
-export type KernelSwipeFingers = 2 | 3 | 4;
+export type KernelSwipeFingers = 2;
 
 const LAST_KERNEL_KEY = "lifeos.last_selected_kernel";
 const SWIPE_ENABLED_KEY = "lifeos.kernel_swipe_enabled";
@@ -65,11 +65,9 @@ export function setKernelSwipeEnabled(enabled: boolean, trustId?: string | null)
   writeRaw(scopeKey(SWIPE_ENABLED_KEY, trustId), enabled ? "1" : "0");
 }
 
-/** Default: 3 fingers (safer vs common 2-finger accessibility/system gestures). */
-export function getKernelSwipeFingers(trustId?: string | null): KernelSwipeFingers {
-  const raw = readRaw(scopeKey(SWIPE_FINGERS_KEY, trustId));
-  if (raw === "2" || raw === "4") return Number(raw) as KernelSwipeFingers;
-  return 3;
+/** Kernel swipe is always 2 fingers (avoids Android 3-finger screenshot). */
+export function getKernelSwipeFingers(_trustId?: string | null): KernelSwipeFingers {
+  return 2;
 }
 
 export function setKernelSwipeFingers(fingers: KernelSwipeFingers, trustId?: string | null) {

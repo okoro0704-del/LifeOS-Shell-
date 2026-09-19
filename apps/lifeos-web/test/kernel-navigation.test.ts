@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   adjacentKernel,
   evaluateKernelSwipe,
+  getKernelSwipeFingers,
   KERNEL_NAV_ORDER,
   kernelDisplayName,
 } from "../src/lib/kernelNavigation";
@@ -17,6 +18,11 @@ describe("kernel navigation", () => {
     expect(kernelDisplayName("main")).toBe("Main");
   });
 
+  it("always uses 2-finger swipe (avoids Android screenshot)", () => {
+    expect(getKernelSwipeFingers()).toBe(2);
+    expect(getKernelSwipeFingers("any-user")).toBe(2);
+  });
+
   it("swipes left toward Main without wrapping", () => {
     expect(adjacentKernel("free", "left")).toBe("offline");
     expect(adjacentKernel("offline", "left")).toBe("main");
@@ -29,15 +35,14 @@ describe("kernel navigation", () => {
     expect(adjacentKernel("free", "right")).toBeNull();
   });
 
-  it("recognizes horizontal multi-finger swipe left/right", () => {
+  it("recognizes horizontal 2-finger swipe left/right", () => {
     const left = [
       { dx: -90, dy: 8, dtMs: 180 },
       { dx: -95, dy: -4, dtMs: 180 },
-      { dx: -88, dy: 10, dtMs: 180 },
     ];
-    expect(evaluateKernelSwipe(left, 3)).toBe("left");
+    expect(evaluateKernelSwipe(left, 2)).toBe("left");
     const right = left.map((s) => ({ ...s, dx: -s.dx }));
-    expect(evaluateKernelSwipe(right, 3)).toBe("right");
+    expect(evaluateKernelSwipe(right, 2)).toBe("right");
   });
 
   it("rejects vertical or under-threshold motion", () => {
@@ -46,9 +51,8 @@ describe("kernel navigation", () => {
         [
           { dx: -40, dy: 10, dtMs: 200 },
           { dx: -42, dy: 12, dtMs: 200 },
-          { dx: -38, dy: 8, dtMs: 200 },
         ],
-        3,
+        2,
       ),
     ).toBeNull();
     expect(
@@ -56,19 +60,22 @@ describe("kernel navigation", () => {
         [
           { dx: -20, dy: -120, dtMs: 200 },
           { dx: -10, dy: -110, dtMs: 200 },
-          { dx: -15, dy: -130, dtMs: 200 },
         ],
-        3,
+        2,
       ),
     ).toBeNull();
   });
 
-  it("requires configured pointer count", () => {
-    const samples = [
-      { dx: -100, dy: 0, dtMs: 160 },
-      { dx: -100, dy: 0, dtMs: 160 },
-    ];
-    expect(evaluateKernelSwipe(samples, 3)).toBeNull();
-    expect(evaluateKernelSwipe(samples, 2)).toBe("left");
+  it("requires exactly 2 pointers", () => {
+    expect(evaluateKernelSwipe([{ dx: -100, dy: 0, dtMs: 160 }], 2)).toBeNull();
+    expect(
+      evaluateKernelSwipe(
+        [
+          { dx: -100, dy: 0, dtMs: 160 },
+          { dx: -100, dy: 0, dtMs: 160 },
+        ],
+        2,
+      ),
+    ).toBe("left");
   });
 });
