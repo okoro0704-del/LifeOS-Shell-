@@ -6869,6 +6869,151 @@ html.lifeos-chrome-hidden .immersive-feed__copy--on,
 }
 
 /* Live float — blinking above bottom nav */
+/* Unified Personal bottom dock — shell + content (one controller) */
+.lifeos-dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 96;
+  pointer-events: none;
+  height: calc(var(--nav-h) + 3.2rem + env(safe-area-inset-bottom, 0px));
+}
+
+.lifeos-dock > * {
+  pointer-events: auto;
+}
+
+.lifeos-dock__content {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--nav-h) + 0.55rem + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: min(22rem, calc(100% - 1.2rem));
+  padding: 0.35rem 0.4rem;
+  border-radius: 1rem;
+  background: color-mix(in srgb, #0f172a 78%, transparent);
+  border: 1px solid color-mix(in srgb, #fff 14%, transparent);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition:
+    bottom 0.22s ease,
+    width 0.22s ease,
+    border-radius 0.22s ease,
+    padding 0.22s ease,
+    gap 0.22s ease;
+}
+
+.lifeos-dock.is-shell .lifeos-dock__chip {
+  display: none;
+}
+
+.lifeos-dock.is-content .lifeos-dock__content {
+  bottom: calc(0.45rem + env(safe-area-inset-bottom, 0px));
+  width: min(26rem, calc(100% - 0.7rem));
+  border-radius: 1.15rem;
+  padding: 0.42rem 0.5rem;
+  gap: 0.3rem;
+}
+
+.lifeos-dock__shell {
+  /* inherits .bottom-nav--float fixed positioning; nest relative to dock */
+  position: absolute !important;
+  left: max(0.85rem, env(safe-area-inset-left, 0px)) !important;
+  right: max(0.85rem, env(safe-area-inset-right, 0px)) !important;
+  bottom: max(0.7rem, calc(0.45rem + var(--safe-bottom))) !important;
+  z-index: 1;
+  transition:
+    transform 0.22s ease,
+    opacity 0.22s ease;
+}
+
+.lifeos-dock.is-content .lifeos-dock__shell {
+  transform: translateY(120%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.lifeos-dock__chip {
+  flex: 0 0 auto;
+  min-width: 3.55rem;
+  min-height: 2.35rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 0.65rem;
+  border: 1px solid color-mix(in srgb, #fff 18%, transparent);
+  background: color-mix(in srgb, #0f172a 55%, transparent);
+  color: #f8fafc;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.lifeos-dock__chip.is-active {
+  background: color-mix(in srgb, var(--los-accent, #0d7a6f) 42%, #0f172a);
+  border-color: color-mix(in srgb, var(--los-accent, #0d7a6f) 70%, transparent);
+  outline: 1px solid color-mix(in srgb, #fff 28%, transparent);
+}
+
+.lifeos-dock__live {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 2.35rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  text-decoration: none;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  background: #dc2626;
+  box-shadow: 0 8px 20px rgba(220, 38, 38, 0.35);
+}
+
+.lifeos-dock__icon {
+  flex: 0 0 auto;
+  width: 2.35rem;
+  height: 2.35rem;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  text-decoration: none;
+  color: #f8fafc;
+  background: color-mix(in srgb, #0f172a 72%, transparent);
+  border: 1px solid color-mix(in srgb, #fff 16%, transparent);
+}
+
+.lifeos-dock__icon--msg {
+  background: #0f766e;
+  border-color: transparent;
+  color: #ecfdf5;
+}
+
+.lifeos-dock__icon--spacer {
+  visibility: hidden;
+  pointer-events: none;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lifeos-dock__content,
+  .lifeos-dock__shell {
+    transition: none;
+  }
+}
+
 .content-nav-bar {
   position: fixed;
   left: 50%;
@@ -6966,8 +7111,16 @@ html.lifeos-chrome-hidden .immersive-feed__copy--on,
 }
 
 /* Keep content-nav visible while primary shell nav yields in content mode */
-html.lifeos-chrome-hidden .content-nav-bar {
+html.lifeos-chrome-hidden .content-nav-bar,
+html.lifeos-chrome-hidden .lifeos-dock__content {
   pointer-events: auto;
+}
+
+html.lifeos-chrome-hidden .lifeos-dock.is-content .lifeos-dock__shell,
+.lifeos-dock.is-content .lifeos-dock__shell {
+  transform: translateY(120%);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .live-dock {

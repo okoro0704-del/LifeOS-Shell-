@@ -33,9 +33,19 @@ describe("personal consumer space wiring", () => {
     expect(src).toContain("KernelBrandBar");
   });
 
-  it("AppShell mounts a single personal ElCom float", () => {
+  it("AppShell mounts one Personal bottom dock controller", () => {
     const src = readFileSync(join(root, "src/components/AppShell.tsx"), "utf8");
-    expect(src).toContain("ElComFloat");
+    expect(src).toContain("LifeOsBottomDock");
+    expect(src).not.toContain("ContentNavigationBar");
+    expect(src).not.toContain("ElComFloat");
+  });
+
+  it("LifeOsBottomDock exposes FREE / OFFLINE / LIVE kernel controls", () => {
+    const src = readFileSync(join(root, "src/components/LifeOsBottomDock.tsx"), "utf8");
+    expect(src).toContain('goKernel("free")');
+    expect(src).toContain('goKernel("offline")');
+    expect(src).toContain('to="/app/live"');
+    expect(src).toContain("personalKernelPath");
   });
 
   it("App mounts personal/* routes", () => {

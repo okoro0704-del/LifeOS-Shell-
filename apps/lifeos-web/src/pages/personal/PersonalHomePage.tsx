@@ -78,33 +78,18 @@ export function PersonalKernelShell({
   children: ReactNode;
   immersive?: boolean;
 }) {
-  const { chromeHidden, reportScroll, setChromeHidden } = useChromeVisibility();
+  const { chromeHidden, setChromeHidden } = useChromeVisibility();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const prevY = useRef(0);
   const base = basePath(kernel);
 
   useEffect(() => {
     applyWatchedOffline();
-    prevY.current = 0;
     // Non-immersive listings (Products / Communities) must not enter content-nav mode.
+    // Immersive Post/Reels drive chrome via ImmersiveMediaFeed activeRowIndex.
     if (!immersive) {
       setChromeHidden(false);
-      return;
     }
-    const root = scrollRef.current;
-    if (!root) return;
-    const onScroll = () => {
-      const feed = root.querySelector(".immersive-feed") as HTMLElement | null;
-      const y = (feed ?? root).scrollTop;
-      reportScroll(y, prevY.current);
-      prevY.current = y;
-    };
-    const feed = root.querySelector(".immersive-feed");
-    const target = (feed as HTMLElement | null) ?? root;
-    target.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-    return () => target.removeEventListener("scroll", onScroll);
-  }, [section, kernel, immersive, reportScroll, setChromeHidden]);
+  }, [section, kernel, immersive, setChromeHidden]);
 
   const tabs = SECTIONS.map((s) => ({
     id: s.id,

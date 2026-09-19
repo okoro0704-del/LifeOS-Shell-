@@ -40,6 +40,7 @@ import {
   shouldMountSlide,
   shouldRequestNextPage,
 } from "../lib/immersiveFeedController";
+import { useChromeVisibility } from "../context/ChromeVisibilityContext";
 
 function isWritingItem(item: MediaItem): boolean {
   return item.kind === "post" && Boolean(item.detail) && !item.mediaUrl && !item.posterUrl;
@@ -528,6 +529,7 @@ export function ImmersiveMediaFeed({
   const listRef = useRef<HTMLUListElement>(null);
   const overlayCaption = true;
   const leadingOffset = leading ? 1 : 0;
+  const { setChromeHidden } = useChromeVisibility();
 
   const rows = useMemo<FeedRow[]>(() => {
     if (showAds) {
@@ -617,6 +619,12 @@ export function ImmersiveMediaFeed({
       if (raf) window.cancelAnimationFrame(raf);
     };
   }, [rows.length, leadingOffset]);
+
+  useEffect(() => {
+    // Content mode once the feed owns a row past the landing slide.
+    setChromeHidden(activeRowIndex >= 1);
+    return () => setChromeHidden(false);
+  }, [activeRowIndex, setChromeHidden]);
 
   useEffect(() => {
     if (!onNearEnd) return;
