@@ -102,14 +102,15 @@ export function AppShell() {
     location.pathname === "/app/" ||
     pathNorm === "/app" ||
     isBusinessHome;
-  /** Personal Home / LearnVerse / Streamify use their own glass chrome. */
+  /** Personal Home / LearnVerse / Streamify / Business home use their own glass chrome. */
   const hideChrome =
-    mode === "PERSONAL" &&
-    (/^\/app\/personal\/(post|reels|products|communities|search)$/.test(pathNorm) ||
-      /^\/app\/personal\/(free|offline)\/(post|reels|products|communities|search)$/.test(pathNorm) ||
-      /\/personal(\/(free|offline))?\/(learnverse|streamify)/.test(pathNorm) ||
-      pathNorm === "/app/personal" ||
-      pathNorm.endsWith("/plus"));
+    (mode === "PERSONAL" &&
+      (/^\/app\/personal\/(post|reels|products|communities|search)$/.test(pathNorm) ||
+        /^\/app\/personal\/(free|offline)\/(post|reels|products|communities|search)$/.test(pathNorm) ||
+        /\/personal(\/(free|offline))?\/(learnverse|streamify)/.test(pathNorm) ||
+        pathNorm === "/app/personal" ||
+        pathNorm.endsWith("/plus"))) ||
+    (mode === "BUSINESS" && pathNorm === "/app/business");
   const pageMeta =
     isHome || hideChrome || pathNorm === "/app/elcom" || pathNorm === "/app/services/explore"
       ? null

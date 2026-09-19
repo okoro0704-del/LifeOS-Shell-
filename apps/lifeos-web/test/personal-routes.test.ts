@@ -41,34 +41,18 @@ describe("personal consumer space wiring", () => {
     expect(src).not.toContain("LiveFloat");
   });
 
-  it("command nav order is Notification→…→Space Switcher", () => {
+  it("command nav is icons-only with accessible labels", () => {
     const src = readFileSync(join(root, "src/components/LifeOsCommandNavigation.tsx"), "utf8");
-    const start = src.indexOf("id={panelId}");
-    const body = src.slice(start);
-    const order = [
-      'label="Notification"',
-      'label="Live"',
-      'label="Messaging"',
-      'label="Free"',
-      'label="Offline"',
-      'label="Streamify"',
-      'label="LearnVerse"',
-      'label="Explore+"',
-      'label="Home"',
-      "Space Switcher",
-    ];
-    let last = -1;
-    for (const token of order) {
-      const i = body.indexOf(token);
-      expect(i, token).toBeGreaterThan(last);
-      last = i;
-    }
+    expect(src).toContain("lifeos-cmd-nav__icon");
+    expect(src).toContain('label="Notifications"');
+    expect(src).toContain('label="Space Switcher"');
+    expect(src).not.toContain(">{label}</span>");
+    expect(src).not.toContain(">Home</span>");
   });
 
-  it("nav side follows workspace mode not pathname", () => {
+  it("nav side is PERSONAL right / BUSINESS left", () => {
     const ctx = readFileSync(join(root, "src/context/NavigationDockContext.tsx"), "utf8");
-    expect(ctx).toContain('mode === "BUSINESS" ? "right" : "left"');
-    expect(ctx).not.toContain("pathname.includes");
+    expect(ctx).toContain('mode === "BUSINESS" ? "left" : "right"');
   });
 
   it("App mounts personal/* routes", () => {

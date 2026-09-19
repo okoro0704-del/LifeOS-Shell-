@@ -45,7 +45,7 @@ export function NavigationDockProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
   const { mode } = useWorkspace();
   const [expanded, setExpanded] = useState(false);
-  const side: NavSide = mode === "BUSINESS" ? "right" : "left";
+  const side: NavSide = mode === "BUSINESS" ? "left" : "right";
 
   useEffect(() => {
     setExpanded(false);

@@ -1,7 +1,17 @@
 import { useEffect, useId, useRef, useState, type ComponentType, type SVGProps } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { InstalledAppManifest } from "@lifeos/shared";
-import { IconBell, IconBook, IconExplore, IconHome, IconMessage } from "@lifeos/ui";
+import {
+  IconActivity,
+  IconBell,
+  IconBook,
+  IconExplore,
+  IconHome,
+  IconLink,
+  IconMessage,
+  IconReceive,
+  IconTicket,
+} from "@lifeos/ui";
 import { hasDeployedMyBrandOS } from "../lib/mybrandOS";
 import { useAuth } from "../hooks/useAuth";
 import { triggerWorkspaceHaptic } from "../lib/mobileBridge";
@@ -25,10 +35,8 @@ type Props = {
 };
 
 /**
- * ONE shared LifeOS command navigation.
- * CLEAN by default. Double-tap summons transparent gold controls over content.
- * PERSONAL → enters from LEFT. BUSINESS → enters from RIGHT (activeSpace/mode).
- * Stack order is defined in the rendered JSX (top → bottom).
+ * Shared LifeOS command navigation — icons only, transparent green glass.
+ * PERSONAL → RIGHT · BUSINESS → LEFT (from activeSpace/mode).
  */
 export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
   const location = useLocation();
@@ -73,7 +81,6 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
     navigate(mode === "BUSINESS" ? workspaceHomePath("BUSINESS") : `${personalBase}/post`);
   }
 
-  /** Explore+ → Personal Plus discover, or Business services explore. */
   function goExplorePlus() {
     dismiss();
     if (mode === "BUSINESS") {
@@ -108,7 +115,6 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
       dismiss();
       return;
     }
-    // CLOSE → SWITCH → CLEAN (do not slide an open dock across).
     dismiss();
     void triggerWorkspaceHaptic();
     setMode(next);
@@ -141,7 +147,7 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
 
       {showHint ? (
         <div className="lifeos-cmd-nav__hint" role="status">
-          Double tap anywhere to open LifeOS
+          Double tap to open LifeOS
         </div>
       ) : null}
 
@@ -168,23 +174,23 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
           aria-label="LifeOS command navigation"
           hidden={!expanded}
         >
-          <CmdRow
+          <IconLinkBtn
             to="/app/notifications"
-            label="Notification"
+            label="Notifications"
             Icon={IconBell}
             active={path.startsWith("/app/notifications")}
             onNavigate={dismiss}
             badge={unread}
           />
-          <CmdRow
+          <IconLinkBtn
             to="/app/live"
             label="Live"
-            Icon={LiveGlyph}
+            Icon={IconActivity}
             active={path.startsWith("/app/live")}
             onNavigate={dismiss}
             tone="live"
           />
-          <CmdRow
+          <IconLinkBtn
             to={messagesTo}
             label="Messaging"
             Icon={IconMessage}
@@ -194,16 +200,16 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
 
           <span className="lifeos-cmd-nav__gap" aria-hidden />
 
-          <CmdButton
+          <IconBtn
             label="Free"
-            Icon={FreeGlyph}
+            Icon={IconTicket}
             active={kernel === "free"}
             pressed={kernel === "free"}
             onClick={() => goKernel("free")}
           />
-          <CmdButton
+          <IconBtn
             label="Offline"
-            Icon={OfflineGlyph}
+            Icon={IconReceive}
             active={kernel === "offline"}
             pressed={kernel === "offline"}
             onClick={() => goKernel("offline")}
@@ -211,60 +217,38 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
 
           <span className="lifeos-cmd-nav__gap" aria-hidden />
 
-          <CmdButton
-            label="Streamify"
-            Icon={IconExplore}
-            active={path.includes("/streamify")}
-            onClick={goStreamify}
-          />
-          <CmdButton
-            label="LearnVerse"
-            Icon={IconBook}
-            active={path.includes("/learnverse")}
-            onClick={goLearnVerse}
-          />
-          <CmdButton
-            label="Explore+"
-            Icon={ExplorePlusGlyph}
-            active={exploreActive}
-            onClick={goExplorePlus}
-          />
-          <CmdButton label="Home" Icon={IconHome} active={homeActive} onClick={goHome} />
+          <IconBtn label="Streamify" Icon={StreamGlyph} active={path.includes("/streamify")} onClick={goStreamify} />
+          <IconBtn label="LearnVerse" Icon={IconBook} active={path.includes("/learnverse")} onClick={goLearnVerse} />
+          <IconBtn label="Explore+" Icon={IconExplore} active={exploreActive} onClick={goExplorePlus} />
+          <IconBtn label="Home" Icon={IconHome} active={homeActive} onClick={goHome} />
 
           <span className="lifeos-cmd-nav__gap" aria-hidden />
 
           <div className="lifeos-cmd-nav__space">
-            <button
-              type="button"
-              className={`lifeos-cmd-nav__pill lifeos-cmd-nav__pill--space${spaceOpen ? " is-active" : ""}`}
-              aria-expanded={spaceOpen}
-              aria-haspopup="listbox"
+            <IconBtn
+              label="Space Switcher"
+              Icon={IconLink}
+              active={spaceOpen}
+              pressed={spaceOpen}
               onClick={() => setSpaceOpen((v) => !v)}
-            >
-              <span className="lifeos-cmd-nav__ico" aria-hidden>
-                {mode === "PERSONAL" ? "◎" : "◈"}
-              </span>
-              <span>Space Switcher</span>
-            </button>
+            />
             {spaceOpen ? (
               <ul className="lifeos-cmd-nav__space-list" role="listbox" aria-label="Spaces">
                 <li role="option" aria-selected={mode === "PERSONAL"}>
-                  <button
-                    type="button"
-                    className={`lifeos-cmd-nav__space-opt${mode === "PERSONAL" ? " is-active" : ""}`}
+                  <IconBtn
+                    label="Personal Space"
+                    Icon={IconHome}
+                    active={mode === "PERSONAL"}
                     onClick={() => switchSpace("PERSONAL")}
-                  >
-                    Personal Space
-                  </button>
+                  />
                 </li>
                 <li role="option" aria-selected={mode === "BUSINESS"}>
-                  <button
-                    type="button"
-                    className={`lifeos-cmd-nav__space-opt${mode === "BUSINESS" ? " is-active" : ""}`}
+                  <IconBtn
+                    label="Business Space"
+                    Icon={IconExplore}
+                    active={mode === "BUSINESS"}
                     onClick={() => switchSpace("BUSINESS")}
-                  >
-                    Business Space
-                  </button>
+                  />
                 </li>
               </ul>
             ) : null}
@@ -275,6 +259,7 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
             type="button"
             className="lifeos-cmd-nav__close"
             aria-label="Close menu"
+            title="Close"
             onClick={() => dismiss()}
           >
             ×
@@ -285,7 +270,7 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
   );
 }
 
-function CmdRow({
+function IconLinkBtn({
   to,
   label,
   Icon,
@@ -305,24 +290,19 @@ function CmdRow({
   return (
     <Link
       to={to}
-      className={`lifeos-cmd-nav__pill${active ? " is-active" : ""}${tone === "live" ? " lifeos-cmd-nav__pill--live" : ""}`}
+      className={`lifeos-cmd-nav__icon${active ? " is-active" : ""}${tone === "live" ? " lifeos-cmd-nav__icon--live" : ""}`}
+      aria-label={badge && badge > 0 ? `${label}, ${badge} unread` : label}
       aria-current={active ? "page" : undefined}
+      title={label}
       onClick={onNavigate}
     >
-      <span className="lifeos-cmd-nav__ico" aria-hidden>
-        <Icon size={18} />
-      </span>
-      <span>{label}</span>
-      {badge && badge > 0 ? (
-        <span className="lifeos-cmd-nav__count" aria-label={`${badge} unread`}>
-          {badge > 9 ? "9+" : badge}
-        </span>
-      ) : null}
+      <Icon size={20} />
+      {badge && badge > 0 ? <span className="lifeos-cmd-nav__badge" aria-hidden /> : null}
     </Link>
   );
 }
 
-function CmdButton({
+function IconBtn({
   label,
   Icon,
   active,
@@ -338,55 +318,27 @@ function CmdButton({
   return (
     <button
       type="button"
-      className={`lifeos-cmd-nav__pill${active ? " is-active" : ""}`}
+      className={`lifeos-cmd-nav__icon${active ? " is-active" : ""}`}
+      aria-label={label}
       aria-pressed={pressed}
+      title={label}
       onClick={onClick}
     >
-      <span className="lifeos-cmd-nav__ico" aria-hidden>
-        <Icon size={18} />
-      </span>
-      <span>{label}</span>
+      <Icon size={20} />
     </button>
   );
 }
 
-function LiveGlyph({ size = 18 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="7" stroke="currentColor" strokeWidth="1.75" />
-      <circle cx="12" cy="12" r="3" fill="currentColor" />
-    </svg>
-  );
-}
-
-function OfflineGlyph({ size = 18 }: { size?: number }) {
+function StreamGlyph({ size = 20 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
       <path
-        d="M4 12h4l2-6 4 12 2-6h4"
+        d="M8 6.5v11l9-5.5-9-5.5z"
         stroke="currentColor"
         strokeWidth="1.75"
-        strokeLinecap="round"
         strokeLinejoin="round"
       />
-    </svg>
-  );
-}
-
-function FreeGlyph({ size = 18 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <rect x="4" y="8" width="16" height="12" rx="2" stroke="currentColor" strokeWidth="1.75" />
-      <path d="M8 8V6a4 4 0 0 1 8 0v2" stroke="currentColor" strokeWidth="1.75" />
-    </svg>
-  );
-}
-
-function ExplorePlusGlyph({ size = 18 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.75" />
-      <path d="M12 8v8M8 12h8" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+      <path d="M4 8.5c2-1 4-1 6 0M4 15.5c2 1 4 1 6 0" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
     </svg>
   );
 }
