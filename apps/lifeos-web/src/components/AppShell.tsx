@@ -19,16 +19,15 @@ import { installedAppsService, notificationService } from "../lib/services";
 import { markNeedsFaceOnKernelSwitch } from "../lib/personalConnectivity";
 import { setLastSelectedKernel } from "../lib/kernelNavigation";
 import { CommandOverlay } from "./CommandOverlay";
-import { LifeOsNavigationDock } from "./LifeOsNavigationDock";
+import { LifeOsCommandNavigation } from "./LifeOsCommandNavigation";
 import { NavigationDockGestures } from "./NavigationDockGestures";
 import { TransientAlertSurface } from "./TransientAlertSurface";
-import { LiveFloat } from "./LiveFloat";
 import { LifeOSWakeListener } from "./LifeOSWakeListener";
 import { PageTopBar } from "./PageTopBar";
 import { VerificationStars } from "./VerificationStars";
 import { resolvePageMeta } from "../lib/pageMeta";
 import { WorkspaceToggle } from "./shell/WorkspaceToggle";
-import { primaryNavForMode, personalKernelFromPath, personalNavBase, workspaceHomePath, type ShellNavItem } from "./shell/nav";
+import { primaryNavForMode, personalKernelFromPath, type ShellNavItem } from "./shell/nav";
 
 type IconComp = ComponentType<SVGProps<SVGSVGElement> & { size?: number }>;
 
@@ -93,11 +92,6 @@ export function AppShell() {
   const firstName = user?.firstName || user?.displayName?.split(" ")[0] || "there";
   const pathNorm = location.pathname.replace(/\/+$/, "") || "/";
   const personalKernel = personalKernelFromPath(location.pathname) ?? "main";
-  const personalBase = personalNavBase(personalKernel);
-  const onExplore =
-    location.pathname === `${personalBase}/plus` ||
-    location.pathname.endsWith("/plus") ||
-    pathNorm === "/app/services/explore";
   const isImmersive =
     isBusinessDetailPath(location.pathname) ||
     pathNorm === "/app/elcom" ||
@@ -188,7 +182,7 @@ export function AppShell() {
 
   return (
     <NavigationDockGestures>
-    <div className={`shell${mode === "PERSONAL" ? " shell--side-dock" : ""}`}>
+    <div className="shell shell--side-dock">
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
@@ -431,75 +425,11 @@ export function AppShell() {
 
         <CommandOverlay />
         <LifeOSWakeListener />
-        {mode === "PERSONAL" && !isImmersive ? (
+        {!isImmersive ? (
           <>
-            <LifeOsNavigationDock
-              apps={installedApps}
-              tabs={tabs}
-              onExplore={onExplore}
-              personalKernel={personalKernel}
-              onModeChange={handleModeChange}
-              unread={unread}
-            />
+            <LifeOsCommandNavigation apps={installedApps} unread={unread} />
             <TransientAlertSurface />
           </>
-        ) : null}
-        {mode !== "PERSONAL" ? <LiveFloat apps={installedApps} /> : null}
-
-        {mode !== "PERSONAL" && !isImmersive ? (
-          <nav className="bottom-nav bottom-nav--fab bottom-nav--float" aria-label="Primary">
-            {tabs.slice(0, 2).map((t) => (
-              <NavLink
-                key={t.to}
-                to={t.to}
-                end={t.end}
-                className={({ isActive }) => {
-                  const path = location.pathname.replace(/\/+$/, "") || "/";
-                  const prefixHit = t.matchPrefixes?.some(
-                    (p) => path === p || path.startsWith(`${p}/`),
-                  );
-                  return `bottom-item${isActive || prefixHit ? " active" : ""}`;
-                }}
-              >
-                <span className="bottom-icon" aria-hidden>
-                  <t.Icon size={22} />
-                </span>
-                <span>{t.label}</span>
-              </NavLink>
-            ))}
-            <button
-              type="button"
-              className={`bottom-fab${onExplore ? " active" : ""}`}
-              aria-label={onExplore ? "Close Plus discover" : "Open Plus — random content"}
-              aria-pressed={onExplore}
-              onClick={() => {
-                if (onExplore) navigate(workspaceHomePath(mode));
-                else navigate("/app/services/explore");
-              }}
-            >
-              <span aria-hidden>{onExplore ? "×" : "+"}</span>
-            </button>
-            {tabs.slice(2, 3).map((t) => (
-              <NavLink
-                key={t.to}
-                to={t.to}
-                end={t.end}
-                className={({ isActive }) => {
-                  const path = location.pathname.replace(/\/+$/, "") || "/";
-                  const prefixHit = t.matchPrefixes?.some(
-                    (p) => path === p || path.startsWith(`${p}/`),
-                  );
-                  return `bottom-item${isActive || prefixHit ? " active" : ""}`;
-                }}
-              >
-                <span className="bottom-icon" aria-hidden>
-                  <t.Icon size={22} />
-                </span>
-                <span>{t.label}</span>
-              </NavLink>
-            ))}
-            <WorkspaceToggle variant="space" onModeChange={handleModeChange} />
-          </nav>
         ) : null}
       </div>
     </div>

@@ -23,6 +23,8 @@ const INTERACTIVE_SELECTOR = [
   ".kernel-brand-bar",
   ".lifeos-nav-dock",
   ".lifeos-nav-dock__backdrop",
+  ".lifeos-cmd-nav",
+  ".lifeos-cmd-nav__hitlayer",
   ".lifeos-transient-alerts",
   ".bottom-nav",
   ".command-overlay",

@@ -8,18 +8,17 @@ import {
   type ReactNode,
 } from "react";
 import { useLocation } from "react-router-dom";
+import { useWorkspace } from "./WorkspaceContext";
 
-export type NavDockVisual = "clean" | "compact" | "expanded";
+export type NavSide = "left" | "right";
 
 type NavDockCtx = {
-  visual: NavDockVisual;
   expanded: boolean;
+  /** PERSONAL → left, BUSINESS → right (from activeSpace/mode, not pathname). */
+  side: NavSide;
   open: () => void;
   close: () => void;
   toggle: () => void;
-  /** Prefer compact rail after first open / while browsing immersive. */
-  preferCompact: boolean;
-  setPreferCompact: (v: boolean) => void;
 };
 
 const Ctx = createContext<NavDockCtx | null>(null);
@@ -44,15 +43,17 @@ export function markNavDockHintSeen(): void {
 
 export function NavigationDockProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
+  const { mode } = useWorkspace();
   const [expanded, setExpanded] = useState(false);
-  const [preferCompact, setPreferCompact] = useState(false);
+  const side: NavSide = mode === "BUSINESS" ? "right" : "left";
 
   useEffect(() => {
     setExpanded(false);
-  }, [location.pathname]);
+  }, [location.pathname, mode]);
 
   useEffect(() => {
     document.documentElement.classList.toggle("lifeos-nav-dock-open", expanded);
+    document.documentElement.dataset.navSide = side;
     if (expanded) {
       const prev = document.body.style.overflow;
       document.body.style.overflow = "hidden";
@@ -62,30 +63,25 @@ export function NavigationDockProvider({ children }: { children: ReactNode }) {
       };
     }
     return () => document.documentElement.classList.remove("lifeos-nav-dock-open");
-  }, [expanded]);
+  }, [expanded, side]);
 
   const open = useCallback(() => {
-    setPreferCompact(true);
     setExpanded(true);
     markNavDockHintSeen();
   }, []);
 
   const close = useCallback(() => setExpanded(false), []);
+
   const toggle = useCallback(() => {
     setExpanded((v) => {
-      if (!v) {
-        setPreferCompact(true);
-        markNavDockHintSeen();
-      }
+      if (!v) markNavDockHintSeen();
       return !v;
     });
   }, []);
 
-  const visual: NavDockVisual = expanded ? "expanded" : preferCompact ? "compact" : "clean";
-
   const value = useMemo(
-    () => ({ visual, expanded, open, close, toggle, preferCompact, setPreferCompact }),
-    [visual, expanded, open, close, toggle, preferCompact],
+    () => ({ expanded, side, open, close, toggle }),
+    [expanded, side, open, close, toggle],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
@@ -95,13 +91,11 @@ export function useNavigationDock() {
   const ctx = useContext(Ctx);
   if (!ctx) {
     return {
-      visual: "clean" as NavDockVisual,
       expanded: false,
+      side: "left" as NavSide,
       open: () => undefined,
       close: () => undefined,
       toggle: () => undefined,
-      preferCompact: false,
-      setPreferCompact: () => undefined,
     };
   }
   return ctx;

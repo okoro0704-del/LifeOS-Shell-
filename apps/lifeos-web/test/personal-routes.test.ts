@@ -33,31 +33,53 @@ describe("personal consumer space wiring", () => {
     expect(src).toContain("KernelBrandBar");
   });
 
-  it("AppShell mounts Personal right-side navigation dock", () => {
+  it("AppShell mounts shared LifeOsCommandNavigation", () => {
     const src = readFileSync(join(root, "src/components/AppShell.tsx"), "utf8");
-    expect(src).toContain("LifeOsNavigationDock");
+    expect(src).toContain("LifeOsCommandNavigation");
+    expect(src).not.toContain("LifeOsNavigationDock");
     expect(src).not.toContain("LifeOsBottomDock");
-    expect(src).not.toContain("ContentNavigationBar");
-    expect(src).not.toContain("ElComFloat");
+    expect(src).not.toContain("LiveFloat");
   });
 
-  it("LifeOsNavigationDock exposes FREE / OFFLINE / LIVE kernel controls", () => {
-    const src = readFileSync(join(root, "src/components/LifeOsNavigationDock.tsx"), "utf8");
-    expect(src).toContain('goKernel("free")');
-    expect(src).toContain('goKernel("offline")');
-    expect(src).toContain('to="/app/live"');
-    expect(src).toContain("personalKernelPath");
+  it("command nav order is Notification→…→Space Switcher", () => {
+    const src = readFileSync(join(root, "src/components/LifeOsCommandNavigation.tsx"), "utf8");
+    const start = src.indexOf("id={panelId}");
+    const body = src.slice(start);
+    const order = [
+      'label="Notification"',
+      'label="Live"',
+      'label="Messaging"',
+      'label="Free"',
+      'label="Offline"',
+      'label="Streamify"',
+      'label="LearnVerse"',
+      'label="Explore+"',
+      'label="Home"',
+      "Space Switcher",
+    ];
+    let last = -1;
+    for (const token of order) {
+      const i = body.indexOf(token);
+      expect(i, token).toBeGreaterThan(last);
+      last = i;
+    }
   });
 
-  it("nav dock gesture blocks immersive media double-tap-to-like", () => {
-    const src = readFileSync(join(root, "src/lib/navDockGesture.ts"), "utf8");
-    expect(src).toContain(".immersive-feed__media");
-    expect(src).toContain("isNavDockGestureBlocked");
+  it("nav side follows workspace mode not pathname", () => {
+    const ctx = readFileSync(join(root, "src/context/NavigationDockContext.tsx"), "utf8");
+    expect(ctx).toContain('mode === "BUSINESS" ? "right" : "left"');
+    expect(ctx).not.toContain("pathname.includes");
   });
 
   it("App mounts personal/* routes", () => {
     const src = readFileSync(join(root, "src/App.tsx"), "utf8");
     expect(src).toContain('path="personal/*"');
     expect(src).toContain("PersonalRoutes");
+  });
+
+  it("nav dock gesture blocks immersive media double-tap-to-like", () => {
+    const src = readFileSync(join(root, "src/lib/navDockGesture.ts"), "utf8");
+    expect(src).toContain(".immersive-feed__media");
+    expect(src).toContain("isNavDockGestureBlocked");
   });
 });

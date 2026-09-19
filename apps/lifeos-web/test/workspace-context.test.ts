@@ -13,11 +13,11 @@ describe("workspace Phase 1 wiring", () => {
     expect(src).toContain("lifeos_active_business_id");
   });
 
-  it("AppShell mounts WorkspaceToggle with Space variant on bottom nav", () => {
+  it("AppShell mounts shared command navigation and workspace toggle in sidebar", () => {
     const src = readFileSync(join(root, "src/components/AppShell.tsx"), "utf8");
     expect(src).toContain("WorkspaceToggle");
     expect(src).toContain("primaryNavForMode");
-    expect(src).toContain('variant="space"');
+    expect(src).toContain("LifeOsCommandNavigation");
     expect(src).toContain('brandName = "LifeOS"');
   });
 

@@ -3,7 +3,7 @@ import { useNavigationDock } from "../context/NavigationDockContext";
 import { attachNavDockDoubleTap } from "../lib/navDockGesture";
 
 /**
- * Shell-level double-tap → open right navigation dock.
+ * Shell-level double-tap → summon LifeOS command navigation.
  * Skips interactive controls and immersive media (double-tap-to-like).
  */
 export function NavigationDockGestures({ children }: { children: ReactNode }) {
@@ -27,7 +27,7 @@ export function NavigationDockGestures({ children }: { children: ReactNode }) {
       {children}
       {ripple ? (
         <span
-          className="lifeos-nav-dock__ripple"
+          className="lifeos-cmd-nav__ripple"
           style={{ left: ripple.x, top: ripple.y }}
           key={ripple.id}
           aria-hidden
