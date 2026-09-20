@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { IconExplore } from "@lifeos/ui";
 
 export type DiscoveryKind = "business" | "service" | "product";
@@ -75,6 +76,7 @@ type ExpandedProps<T extends DiscoveryQuadItem> = {
 
 /**
  * Full-viewport discovery mode — 2 columns, floating viewport-centered diamond contracts.
+ * Diamond is portaled to document.body so transformed ancestors cannot break fixed positioning.
  */
 export function ExpandedDiscoveryGrid<T extends DiscoveryQuadItem>({
   title,
@@ -125,7 +127,7 @@ export function DiamondControl({
   floating?: boolean;
   attention?: boolean;
 }) {
-  return (
+  const node = (
     <button
       type="button"
       className={`discovery-diamond${floating ? " discovery-diamond--float" : ""}${
@@ -148,6 +150,11 @@ export function DiamondControl({
       </span>
     </button>
   );
+
+  if (floating && typeof document !== "undefined") {
+    return createPortal(node, document.body);
+  }
+  return node;
 }
 
 /** @deprecated Prefer DiscoveryQuad + ExpandedDiscoveryGrid */

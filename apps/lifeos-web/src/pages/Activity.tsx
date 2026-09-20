@@ -69,29 +69,55 @@ export function ActivityPage() {
       />
 
       {mode === "BUSINESS" ? (
-        <section className="activity-products" aria-label="Your products">
-          <div className="business-home__section-head">
-            <h2>Your products</h2>
-          </div>
-          <ul className="media-feed">
-            {filteredProducts.map((p) => (
-              <li key={p.id} className="media-feed__item">
-                <div className="media-feed__meta">
-                  <span className="media-feed__kind">{p.kind}</span>
-                  <span className="media-feed__badge">{p.status}</span>
-                </div>
-                <strong>{p.name}</strong>
-                <button
-                  type="button"
-                  className="los-btn los-btn--ghost los-btn--sm"
-                  onClick={() => navigate("/app/business")}
-                >
-                  Manage
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <>
+          <section className="activity-gateway" aria-label="Messaging and notifications">
+            <div className="business-home__section-head">
+              <h2>Reach</h2>
+            </div>
+            <div className="activity-gateway__row">
+              <button
+                type="button"
+                className="activity-gateway__btn"
+                data-no-nav-dock
+                onClick={() => navigate("/app/messages")}
+              >
+                Messaging
+              </button>
+              <button
+                type="button"
+                className="activity-gateway__btn"
+                data-no-nav-dock
+                onClick={() => navigate("/app/notifications")}
+              >
+                Notifications
+              </button>
+            </div>
+          </section>
+
+          <section className="activity-products" aria-label="Your products">
+            <div className="business-home__section-head">
+              <h2>Your products</h2>
+            </div>
+            <ul className="media-feed">
+              {filteredProducts.map((p) => (
+                <li key={p.id} className="media-feed__item">
+                  <div className="media-feed__meta">
+                    <span className="media-feed__kind">{p.kind}</span>
+                    <span className="media-feed__badge">{p.status}</span>
+                  </div>
+                  <strong>{p.name}</strong>
+                  <button
+                    type="button"
+                    className="los-btn los-btn--ghost los-btn--sm"
+                    onClick={() => navigate("/app/business")}
+                  >
+                    Manage
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </>
       ) : null}
 
       {error ? <StatusBanner title={error} /> : null}

@@ -7652,10 +7652,9 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
     calc(0.65rem + env(safe-area-inset-bottom, 0px));
 }
 
-/* Business side rail: Exit sits at the physical bottom */
+/* Business primary commands live in bottom dock — no side command rail */
 .lifeos-cmd-nav[data-space="BUSINESS"] {
-  justify-content: flex-end;
-  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  display: none;
 }
 
 .lifeos-cmd-nav--left {
@@ -7922,6 +7921,15 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
 
 .living-lifeos-box.is-hidden {
   visibility: hidden;
+}
+
+.living-lifeos-box--business-current {
+  justify-content: center;
+}
+
+.living-lifeos-box--right {
+  justify-content: flex-end;
+  padding-right: max(0.85rem, calc(env(safe-area-inset-right, 0px) + 0.35rem));
 }
 
 .living-lifeos-box__hit {
@@ -8374,8 +8382,13 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
   left: 50%;
   top: 50%;
   z-index: 92;
+  width: 2.75rem;
+  height: 2.75rem;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
   transform: translate(-50%, -50%);
   pointer-events: auto;
+  margin: 0;
 }
 
 /* Restrained attention pulse â premium blink, not strobe. */
@@ -8633,6 +8646,45 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
   text-underline-offset: 0.12em;
 }
 
+.lifeos-biz-dock__icon-wrap {
+  display: inline-grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  position: relative;
+}
+
+.lifeos-biz-dock__btn--space .lifeos-biz-dock__icon-wrap::before {
+  content: "";
+  position: absolute;
+  inset: -0.35rem;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, #16a34a 38%, transparent) 0%,
+    color-mix(in srgb, #16a34a 12%, transparent) 55%,
+    transparent 72%
+  );
+  animation: lifeos-space-glow 2.8s ease-in-out infinite;
+}
+
+.lifeos-biz-dock__btn--space {
+  color: #15803d;
+}
+
+@keyframes lifeos-space-glow {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.08);
+  }
+}
+
 .lifeos-biz-dock__btn:focus-visible {
   outline: 2px solid var(--los-accent, #0d7a6f);
   outline-offset: 2px;
@@ -8642,6 +8694,40 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
   .lifeos-biz-dock {
     transition: none;
   }
+  .lifeos-biz-dock__btn--space .lifeos-biz-dock__icon-wrap::before {
+    animation: none;
+    opacity: 0.72;
+    transform: none;
+    box-shadow: 0 0 0 1px color-mix(in srgb, #16a34a 55%, transparent);
+  }
+}
+
+.activity-gateway {
+  margin: 0.35rem 0 1rem;
+}
+
+.activity-gateway__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+  padding: 0 max(0.85rem, env(safe-area-inset-left, 0px));
+}
+
+.activity-gateway__btn {
+  min-height: 2.75rem;
+  border: 1px solid color-mix(in srgb, #16a34a 35%, transparent);
+  border-radius: 0.45rem;
+  background: color-mix(in srgb, #16a34a 8%, transparent);
+  color: #15803d;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.activity-gateway__btn:focus-visible {
+  outline: 2px solid var(--los-accent, #0d7a6f);
+  outline-offset: 2px;
 }
 
 /* Bottom kernel switcher — symbols + labels only, no green hood */

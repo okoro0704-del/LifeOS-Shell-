@@ -1,5 +1,6 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { IconSearch } from "@lifeos/ui";
+import { useNavigationDock } from "../context/NavigationDockContext";
 
 export type GlassTab = {
   to: string;
@@ -11,6 +12,7 @@ export type GlassTab = {
 /**
  * Home section rail: wide transparent tabs + search on the right.
  * Uses explicit navigate() so taps work above the shell dismiss hitlayer.
+ * Successful section change → confirmSelection (~1s hold), not immediate hide.
  */
 export function SegmentGlassBar({
   tabs,
@@ -30,10 +32,19 @@ export function SegmentGlassBar({
   backTo: string;
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { shellControlsVisible, confirmSelection, noteShellActivity } = useNavigationDock();
   const compact = !showBack;
 
-  function go(to: string) {
+  function goSection(to: string) {
+    const cur = location.pathname.replace(/\/+$/, "") || "/";
+    const next = to.replace(/\/+$/, "") || "/";
     navigate(to);
+    if (shellControlsVisible && cur !== next) {
+      confirmSelection();
+    } else if (shellControlsVisible) {
+      noteShellActivity();
+    }
   }
 
   return (
@@ -44,36 +55,24 @@ export function SegmentGlassBar({
       aria-label={ariaLabel}
       aria-hidden={scrolled || undefined}
       data-no-nav-dock
+      onPointerDown={() => {
+        if (shellControlsVisible) noteShellActivity();
+      }}
     >
       {showBack ? (
         <span className="segment-topbar__edge segment-topbar__edge--left">
-          {scrolled ? (
-            <button
-              type="button"
-              className="segment-topbar__icon-btn segment-topbar__icon-btn--back"
-              aria-label="Back"
-              data-no-nav-dock
-              onClick={(e) => {
-                e.stopPropagation();
-                go(backTo);
-              }}
-            >
-              ←
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="segment-topbar__icon-btn segment-topbar__icon-btn--back"
-              aria-label="Back"
-              data-no-nav-dock
-              onClick={(e) => {
-                e.stopPropagation();
-                go(backTo);
-              }}
-            >
-              ←
-            </button>
-          )}
+          <button
+            type="button"
+            className="segment-topbar__icon-btn segment-topbar__icon-btn--back"
+            aria-label="Back"
+            data-no-nav-dock
+            onClick={(e) => {
+              e.stopPropagation();
+              goSection(backTo);
+            }}
+          >
+            ←
+          </button>
         </span>
       ) : null}
 
@@ -91,7 +90,7 @@ export function SegmentGlassBar({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                go(t.to);
+                goSection(t.to);
               }}
             >
               {t.label}
@@ -111,7 +110,7 @@ export function SegmentGlassBar({
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            go(searchTo);
+            goSection(searchTo);
           }}
         >
           <IconSearch size={20} />

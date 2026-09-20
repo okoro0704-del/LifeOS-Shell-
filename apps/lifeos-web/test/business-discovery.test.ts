@@ -15,17 +15,19 @@ describe("business discovery quad grid", () => {
     expect(src).not.toContain("business-home__breath");
     expect(src).toContain("Return to Business Space Home");
     expect(src).toContain("View all businesses");
+    expect(src).toContain("buildDemoBusinesses(100)");
     expect(src).not.toContain("MOCK_BUSINESSES");
     expect(src).not.toContain("PHYSICAL_PRODUCTS");
     expect(src).not.toContain("distance.toFixed");
   });
 
-  it("DiscoveryQuad uses diamond control with attention pulse", () => {
+  it("DiscoveryQuad uses diamond control with attention pulse and portal float", () => {
     const src = readFileSync(join(root, "src/components/DiscoveryQuadGrid.tsx"), "utf8");
     expect(src).toContain("discovery-diamond");
     expect(src).toContain("DiamondControl");
     expect(src).toContain("discovery-diamond--attention");
     expect(src).toContain("discovery-diamond--float");
+    expect(src).toContain("createPortal");
     expect(src).toContain("data-no-nav-dock");
     expect(src).toContain("Return to Business Space Home");
     expect(src).not.toContain("discovery-quad__expand");
@@ -44,24 +46,20 @@ describe("business discovery quad grid", () => {
     expect(css).not.toContain("business-home__breath");
     expect(css).not.toContain("discovery-expanded__breath");
     expect(css).toContain("lifeos-biz-dock");
+    expect(css).toContain("lifeos-space-glow");
     expect(css).toContain("discovery-quad__expand");
     expect(css).toContain("display: none !important");
   });
 });
 
 describe("business command rail", () => {
-  it("Business chrome: side Messaging/Notification/Exit + floating dock commands", () => {
+  it("Business chrome: bottom dock only with exact five commands", () => {
     const src = readFileSync(join(root, "src/components/LifeOsCommandNavigation.tsx"), "utf8");
     expect(src).toContain('mode === "BUSINESS"');
     expect(src).toContain("lifeos-biz-dock");
     expect(src).toContain("BizDockBtn");
-    expect(src).toContain('label="Space"');
-    expect(src).toContain('label="Home"');
-    expect(src).toContain('label="Explore"');
-    expect(src).toContain('label="Activities"');
-    expect(src).toContain('label="Finance"');
-    expect(src).toContain('id="messaging"');
-    expect(src).toContain('label="Notification"');
+    expect(src).toContain('data-biz-dock-order="Home,Activities,Explore,Finance,Space"');
+    expect(src).toContain("SpaceSwitcherIcon");
     expect(src).toContain("goActivities");
     expect(src).toContain("goFinance");
     expect(src).toContain("goBusinessExplore");
@@ -69,11 +67,9 @@ describe("business command rail", () => {
     expect(src).toContain('navigate("/app/activity")');
     expect(src).toContain('navigate("/app/wallet")');
     expect(src).toContain('tapMode: CmdTapMode = "immediate"');
-    // Business must not mount Personal kernel bar.
     expect(src).toContain('mode === "PERSONAL" ? (');
     expect(src).toContain("lifeos-kernel-bar");
-    // Floating dock mounts only in BUSINESS mode
-    expect(src).toMatch(/mode === "BUSINESS"[\s\S]*lifeos-biz-dock/);
+    expect(src).toContain("confirmSelection");
   });
 
   it("ActiveKernelSignature is Personal-only", () => {

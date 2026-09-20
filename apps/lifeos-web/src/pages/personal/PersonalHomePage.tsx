@@ -119,7 +119,7 @@ export function PersonalKernelShell({
       }`}
     >
       {/* LAYER 1 — living LifeOS identity (independent of shell bars) */}
-      <LivingLifeOsIdentity />
+      <LivingLifeOsIdentity placement="right" />
       {/* LAYER 2 — top section bar: part of unified shellControlsVisible */}
       <SegmentGlassBar
         tabs={tabs}

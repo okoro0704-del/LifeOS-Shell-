@@ -70,9 +70,15 @@ function retainSharedCycle(onPhase: (p: LivingIdentityPhase) => void) {
 
 /**
  * Living LifeOS Box — one persistent container; LifeOS → ASK ME → TASK ME.
- * Same shell-end anchor in Personal and Business. Transparent top chrome.
+ * Placement is space-aware: Personal = right, Business = current (center).
  */
-export function LivingLifeOsIdentity({ hidden = false }: { hidden?: boolean }) {
+export function LivingLifeOsIdentity({
+  hidden = false,
+  placement = "business-current",
+}: {
+  hidden?: boolean;
+  placement?: "right" | "business-current";
+}) {
   const { openCommand } = useCommandLayer();
   const [phase, setPhase] = useState<LivingIdentityPhase>(() => sharedPhase);
 
@@ -90,7 +96,6 @@ export function LivingLifeOsIdentity({ hidden = false }: { hidden?: boolean }) {
 
   const actionable = phase === "ask" || phase === "task";
   const label = PHASE_LABEL[phase];
-  // Stable accessible name — avoid announcing every 3s phase change.
   const ariaLabel =
     phase === "ask"
       ? "ASK ME — Ask LifeOS"
@@ -100,10 +105,11 @@ export function LivingLifeOsIdentity({ hidden = false }: { hidden?: boolean }) {
 
   return (
     <header
-      className={`living-lifeos-box${hidden ? " is-hidden" : ""}`}
+      className={`living-lifeos-box living-lifeos-box--${placement}${hidden ? " is-hidden" : ""}`}
       aria-label="LifeOS"
       data-living-identity
       data-living-phase={phase}
+      data-living-placement={placement}
     >
       <button
         type="button"
@@ -126,10 +132,12 @@ export function LivingLifeOsIdentity({ hidden = false }: { hidden?: boolean }) {
 /** @deprecated Prefer LivingLifeOsIdentity — kept as alias for existing imports. */
 export function KernelBrandBar({
   hidden,
+  placement,
 }: {
   hidden?: boolean;
   align?: "center" | "end";
   kernel?: unknown;
+  placement?: "right" | "business-current";
 }) {
-  return <LivingLifeOsIdentity hidden={hidden} />;
+  return <LivingLifeOsIdentity hidden={hidden} placement={placement} />;
 }

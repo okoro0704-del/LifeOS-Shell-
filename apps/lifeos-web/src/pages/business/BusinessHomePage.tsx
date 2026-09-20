@@ -41,9 +41,9 @@ export function BusinessHomePage() {
       const liveOff = offs.offerings ?? [];
       if (isLifeOsDemoDiscoveryEnabled()) {
         // Isolated demo fixtures for experience testing — never written to production DB.
-        setBusinesses(buildDemoBusinesses(24));
-        setServices(buildDemoServices(24));
-        setProducts(buildDemoProducts(24));
+        setBusinesses(buildDemoBusinesses(100));
+        setServices(buildDemoServices(100));
+        setProducts(buildDemoProducts(100));
       } else {
         setBusinesses(liveBiz);
         setServices(liveOff.filter((o) => o.type !== "PRODUCT"));
@@ -97,7 +97,7 @@ export function BusinessHomePage() {
   if (activeDiscovery === "business") {
     return (
       <div className="page business-home business-home--discovery">
-        <KernelBrandBar hidden={false} />
+        <KernelBrandBar hidden={false} placement="business-current" />
         <ExpandedDiscoveryGrid
           title="Businesses"
           items={bizItems}
@@ -129,7 +129,7 @@ export function BusinessHomePage() {
   if (activeDiscovery === "service") {
     return (
       <div className="page business-home business-home--discovery">
-        <KernelBrandBar hidden={false} />
+        <KernelBrandBar hidden={false} placement="business-current" />
         <ExpandedDiscoveryGrid
           title="Services"
           items={svcItems}
@@ -161,7 +161,7 @@ export function BusinessHomePage() {
   if (activeDiscovery === "product") {
     return (
       <div className="page business-home business-home--discovery">
-        <KernelBrandBar hidden={false} />
+        <KernelBrandBar hidden={false} placement="business-current" />
         <ExpandedDiscoveryGrid
           title="Products"
           items={prdItems}
@@ -196,7 +196,7 @@ export function BusinessHomePage() {
 
   return (
     <div className="page business-home business-home--immersive" ref={homeScrollRef}>
-      <KernelBrandBar hidden={false} />
+      <KernelBrandBar hidden={false} placement="business-current" />
 
       <div className="business-home__body">
         <DiscoveryQuad

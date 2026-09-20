@@ -54,7 +54,7 @@ function Shell({ active, children }: { active: string; children: ReactNode }) {
         chromeHidden && !shellControlsVisible ? " is-scrolled is-chrome-hidden" : ""
       }${shellControlsVisible ? " is-shell-open" : " is-shell-clean"}`}
     >
-      <KernelBrandBar hidden={false} />
+      <KernelBrandBar hidden={false} placement="right" />
       <SegmentGlassBar
         tabs={tabs}
         activeId={active}
