@@ -63,17 +63,20 @@ function filterForKernel(kernel: PersonalKernel, items: MediaItem[]): MediaItem[
 export function KernelBrandBar({
   hidden,
   align = "center",
+  float = true,
 }: {
   kernel?: PersonalKernel;
   hidden?: boolean;
-  /** Business Space: top-right LifeOS mark. */
+  /** PERSONAL: center · BUSINESS: end (away from left edge handle). */
   align?: "center" | "end";
+  /** Overlay identity mark — does not reserve a top nav plate. */
+  float?: boolean;
 }) {
   return (
     <header
       className={`kernel-brand-bar kernel-brand-bar--clean${
         align === "end" ? " kernel-brand-bar--end" : ""
-      }${hidden ? " is-hidden" : ""}`}
+      }${float ? " kernel-brand-bar--float" : ""}${hidden ? " is-hidden" : ""}`}
       aria-label="LifeOS"
     >
       <span className="kernel-brand-bar__logo">LifeOS</span>
@@ -114,16 +117,16 @@ export function PersonalKernelShell({
 
   return (
     <div
-      className={`page personal-page personal-page--kernel personal-page--${kernel}${
+      className={`page personal-page personal-page--kernel personal-page--float-brand personal-page--${kernel}${
         immersive ? " personal-page--immersive" : ""
       }${chromeHidden ? " is-scrolled is-chrome-hidden" : ""}`}
     >
-      {/* Brand + section bar share one fixed top stack for every Home section. */}
-      <KernelBrandBar hidden={false} />
+      {/* Floating LifeOS identity — not a conventional top nav plate. */}
+      <KernelBrandBar hidden={false} align="center" float />
       <SegmentGlassBar
         tabs={tabs}
         activeId={section === "search" ? "post" : section}
-        scrolled={false}
+        scrolled={immersive ? chromeHidden : false}
         showBack={false}
         searchTo={`${base}/search`}
         backTo={`${base}/post`}

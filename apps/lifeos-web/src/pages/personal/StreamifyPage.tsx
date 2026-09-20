@@ -67,7 +67,7 @@ function Shell({
         chromeHidden ? " is-scrolled is-chrome-hidden" : ""
       }`}
     >
-      <KernelBrandBar hidden={false} />
+      <KernelBrandBar hidden={false} align="center" float />
       <SegmentGlassBar
         tabs={tabs}
         activeId={active}
