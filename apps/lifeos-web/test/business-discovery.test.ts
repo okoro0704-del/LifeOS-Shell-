@@ -12,7 +12,7 @@ describe("business discovery quad grid", () => {
     expect(src).toContain("ExpandedDiscoveryGrid");
     expect(src).toContain("activeDiscovery");
     expect(src).toContain("KernelBrandBar");
-    expect(src).toContain('align="end"');
+    expect(src).not.toContain('align="end"');
     expect(src).toContain("View all businesses");
     expect(src).toContain("Close business discovery");
     expect(src).not.toContain("MOCK_BUSINESSES");

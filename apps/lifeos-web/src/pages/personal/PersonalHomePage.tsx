@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { Link, Navigate } from "react-router-dom";
 import { ImmersiveMediaFeed } from "../../components/ImmersiveMediaFeed";
 import { SegmentGlassBar } from "../../components/SegmentGlassBar";
+import { LivingLifeOsIdentity } from "../../components/LivingLifeOsIdentity";
 import { useChromeVisibility } from "../../context/ChromeVisibilityContext";
 import { catalogByKinds, hasPremium, setPremium, type MediaItem } from "../../lib/personalCatalog";
 import type { PersonalKernel } from "../../components/shell/nav";
@@ -33,6 +34,8 @@ import { installedAppsService } from "../../lib/services";
 import type { InstalledAppManifest } from "@lifeos/shared";
 import { openCreatorApp } from "../../lib/mybrandOS";
 
+export { LivingLifeOsIdentity, KernelBrandBar } from "../../components/LivingLifeOsIdentity";
+
 export type HomeSection = "post" | "reels" | "products" | "communities" | "search";
 
 const SECTIONS: { id: Exclude<HomeSection, "search">; label: string }[] = [
@@ -60,27 +63,6 @@ function filterForKernel(kernel: PersonalKernel, items: MediaItem[]): MediaItem[
   return merged;
 }
 
-export function KernelBrandBar({
-  hidden,
-  align = "center",
-}: {
-  kernel?: PersonalKernel;
-  hidden?: boolean;
-  /** PERSONAL: center · BUSINESS: end (away from left edge handle). */
-  align?: "center" | "end";
-}) {
-  return (
-    <header
-      className={`kernel-brand-bar kernel-brand-bar--static${
-        align === "end" ? " kernel-brand-bar--end" : ""
-      }${hidden ? " is-hidden" : ""}`}
-      aria-label="LifeOS"
-    >
-      <span className="kernel-brand-bar__logo">LifeOS</span>
-    </header>
-  );
-}
-
 export function PersonalKernelShell({
   kernel,
   section,
@@ -99,8 +81,6 @@ export function PersonalKernelShell({
 
   useEffect(() => {
     applyWatchedOffline();
-    // Non-immersive listings start with section bar visible.
-    // Immersive Post/Reels also drive chrome via ImmersiveMediaFeed row index.
     if (!immersive) {
       setChromeHidden(false);
     }
@@ -131,9 +111,9 @@ export function PersonalKernelShell({
         immersive ? " personal-page--immersive" : ""
       }${chromeHidden ? " is-scrolled is-chrome-hidden" : ""}`}
     >
-      {/* LAYER 1 — static LifeOS identity */}
-      <KernelBrandBar hidden={false} align="center" />
-      {/* LAYER 2 — scroll-aware section bar beneath LifeOS */}
+      {/* LAYER 1 — living LifeOS identity (shared Personal/Business anchor) */}
+      <LivingLifeOsIdentity />
+      {/* LAYER 2 — scroll-aware section bar beneath identity */}
       <SegmentGlassBar
         tabs={tabs}
         activeId={section === "search" ? "post" : section}

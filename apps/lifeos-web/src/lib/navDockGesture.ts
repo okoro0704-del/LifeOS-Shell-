@@ -21,6 +21,8 @@ const INTERACTIVE_SELECTOR = [
   ".immersive-feed__rail-btn",
   ".segment-topbar",
   ".kernel-brand-bar",
+  ".living-lifeos__hit",
+  "[data-living-identity]",
   ".lifeos-nav-dock",
   ".lifeos-nav-dock__backdrop",
   ".lifeos-cmd-nav",
