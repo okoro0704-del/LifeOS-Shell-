@@ -58,7 +58,7 @@ export function DiscoveryQuad<T extends DiscoveryQuadItem>({
               </div>
             ))}
           </div>
-          <DiamondControl ariaLabel={expandAriaLabel} onActivate={onExpand} />
+          <DiamondControl ariaLabel={expandAriaLabel} onActivate={onExpand} attention />
         </div>
       )}
     </section>
@@ -103,27 +103,39 @@ export function ExpandedDiscoveryGrid<T extends DiscoveryQuadItem>({
           </li>
         ))}
       </ul>
-      <DiamondControl ariaLabel={contractAriaLabel} onActivate={onContract} floating />
+      <div className="discovery-expanded__breath" aria-hidden />
+      <DiamondControl
+        ariaLabel={contractAriaLabel}
+        onActivate={onContract}
+        floating
+        attention
+      />
     </div>
   );
 }
 
-function DiamondControl({
+/** Standing square / diamond — same visual identity collapsed & expanded. */
+export function DiamondControl({
   ariaLabel,
   onActivate,
   floating = false,
+  attention = false,
 }: {
   ariaLabel: string;
   onActivate: () => void;
   floating?: boolean;
+  attention?: boolean;
 }) {
   return (
     <button
       type="button"
-      className={`discovery-diamond${floating ? " discovery-diamond--float" : ""}`}
+      className={`discovery-diamond${floating ? " discovery-diamond--float" : ""}${
+        attention ? " discovery-diamond--attention" : ""
+      }`}
       aria-label={ariaLabel}
       title={ariaLabel}
       data-no-nav-dock
+      data-discovery-diamond={floating ? "float" : "inline"}
       onClick={(e) => {
         e.stopPropagation();
         onActivate();
@@ -151,7 +163,7 @@ export function DiscoveryQuadGrid<T extends DiscoveryQuadItem>(
       <ExpandedDiscoveryGrid
         title={props.title}
         items={props.items}
-        contractAriaLabel="Return to Business Space"
+        contractAriaLabel="Return to Business Space Home"
         onContract={props.onCollapse ?? (() => undefined)}
         renderItem={props.renderItem}
       />

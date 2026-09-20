@@ -10,6 +10,7 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import type { InstalledAppManifest } from "@lifeos/shared";
 import {
+  IconActivity,
   IconBell,
   IconBook,
   IconBroadcast,
@@ -35,6 +36,7 @@ import { useNavigationDock } from "../context/NavigationDockContext";
 import {
   CMD_LABEL_HOLD_MS,
   createCmdTapRecognizer,
+  type CmdTapMode,
 } from "../lib/cmdRailGesture";
 import {
   personalKernelFromPath,
@@ -52,11 +54,9 @@ type Props = {
 };
 
 /**
- * Shared LifeOS command navigation.
- * Handle side follows space; rail opens from the opposite side.
- * Offline/Main/Free live only in the bottom kernel switcher.
- * Pointer: single tap reveals name and launches.
- * Keyboard/SR: Enter/Space launches immediately.
+ * LifeOS command navigation — registry resolved by activeSpace (WorkspaceMode).
+ * PERSONAL: existing Personal command set + Offline/Main/Free kernel bar.
+ * BUSINESS: Space / Home / Explore / Activities / Finance / Messaging / Notification.
  */
 export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
   const location = useLocation();
@@ -73,6 +73,7 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
   const personalBase = personalNavBase(kernel);
   const showMessaging = hasDeployedMyBrandOS(apps) && path !== "/app/elcom";
   const messagesTo = showMessaging ? "/app/elcom" : "/app/messages";
+  const tapMode: CmdTapMode = mode === "BUSINESS" ? "arm" : "immediate";
 
   useEffect(() => {
     if (!expanded) {
@@ -101,30 +102,45 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
     labelTimer.current = setTimeout(() => setRevealedId(null), CMD_LABEL_HOLD_MS);
   }
 
-  function goHome() {
+  function goPersonalHome() {
     dismiss();
-    navigate(mode === "BUSINESS" ? workspaceHomePath("BUSINESS") : `${personalBase}/post`);
+    navigate(`${personalBase}/post`);
+  }
+
+  function goBusinessHome() {
+    dismiss();
+    const state = window.history.state as { lifeosBizDiscovery?: string } | null;
+    if (state?.lifeosBizDiscovery) {
+      window.history.back();
+      return;
+    }
+    navigate(workspaceHomePath("BUSINESS"));
   }
 
   function goExplorePlus() {
     dismiss();
-    if (mode === "BUSINESS") {
-      navigate("/app/services/explore");
+    navigate(`${personalBase}/plus`);
+  }
+
+  /** Business Explore → Business Space discovery home (one discovery system). */
+  function goBusinessExplore() {
+    dismiss();
+    const state = window.history.state as { lifeosBizDiscovery?: string } | null;
+    if (state?.lifeosBizDiscovery) {
+      window.history.back();
       return;
     }
-    navigate(`${personalBase}/plus`);
+    navigate(workspaceHomePath("BUSINESS"));
   }
 
   function goLearnVerse() {
     dismiss();
-    if (mode === "BUSINESS") setMode("PERSONAL");
-    navigate(`${personalNavBase(mode === "BUSINESS" ? "main" : kernel)}/learnverse`);
+    navigate(`${personalNavBase(kernel)}/learnverse`);
   }
 
   function goStreamify() {
     dismiss();
-    if (mode === "BUSINESS") setMode("PERSONAL");
-    navigate(`${personalNavBase(mode === "BUSINESS" ? "main" : kernel)}/streamify`);
+    navigate(`${personalNavBase(kernel)}/streamify`);
   }
 
   function goLive() {
@@ -137,9 +153,24 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
     navigate(messagesTo);
   }
 
+  function goMessaging() {
+    dismiss();
+    navigate(messagesTo);
+  }
+
   function goNotifications() {
     dismiss();
     navigate("/app/notifications");
+  }
+
+  function goActivities() {
+    dismiss();
+    navigate("/app/activity");
+  }
+
+  function goFinance() {
+    dismiss();
+    navigate("/app/wallet");
   }
 
   function selectKernel(next: PersonalKernel) {
@@ -171,13 +202,12 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
 
   const exploreActive =
     path.endsWith("/plus") || path === "/app/services/explore" || path.startsWith("/app/services/explore/");
-  const homeActive =
-    mode === "BUSINESS"
-      ? path === "/app/business" || path === "/app/business/"
-      : /^\/app\/personal(\/(free|offline))?\/(post|reels|products|communities|search)?$/.test(path) ||
-        path === "/app/personal" ||
-        path === "/app/personal/free" ||
-        path === "/app/personal/offline";
+  const personalHomeActive =
+    /^\/app\/personal(\/(free|offline))?\/(post|reels|products|communities|search)?$/.test(path) ||
+    path === "/app/personal" ||
+    path === "/app/personal/free" ||
+    path === "/app/personal/offline";
+  const businessHomeActive = path === "/app/business" || path === "/app/business/";
 
   const edgeLabel = expanded ? "Hide LifeOS controls" : "Show LifeOS controls";
 
@@ -223,103 +253,194 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
         data-nav-dock={expanded ? "expanded" : "clean"}
         data-nav-side={handleSide}
         data-rail-side={railSide}
+        data-space={mode}
         data-no-nav-dock
         aria-hidden={!expanded}
       >
         <nav
           id={panelId}
           className={`lifeos-cmd-nav__stack lifeos-cmd-nav__stack--${railSide}`}
-          aria-label="LifeOS command navigation"
+          aria-label={mode === "BUSINESS" ? "Business command navigation" : "LifeOS command navigation"}
           hidden={!expanded}
         >
-          <CmdIcon
-            id="notifications"
-            label="Notifications"
-            Icon={IconBell}
-            active={path.startsWith("/app/notifications")}
-            badge={unread}
-            revealed={revealedId === "notifications"}
-            railSide={railSide}
-            onReveal={() => revealLabel("notifications")}
-            onLaunch={goNotifications}
-          />
-          <CmdIcon
-            id="live"
-            label="Live"
-            Icon={IconBroadcast}
-            active={path.startsWith("/app/live")}
-            revealed={revealedId === "live"}
-            railSide={railSide}
-            onReveal={() => revealLabel("live")}
-            onLaunch={goLive}
-          />
-          <CmdIcon
-            id="comments"
-            label="Comments"
-            Icon={IconMessage}
-            active={path === messagesTo || path.startsWith(`${messagesTo}/`)}
-            revealed={revealedId === "comments"}
-            railSide={railSide}
-            onReveal={() => revealLabel("comments")}
-            onLaunch={goComments}
-          />
+          {mode === "BUSINESS" ? (
+            <>
+              <CmdIcon
+                id="space-switch"
+                label="Personal Space"
+                Icon={IconLink}
+                revealed={revealedId === "space-switch"}
+                railSide={railSide}
+                tapMode={tapMode}
+                onReveal={() => revealLabel("space-switch")}
+                onLaunch={flipSpace}
+              />
+              <CmdIcon
+                id="home"
+                label="Home"
+                Icon={IconHome}
+                active={businessHomeActive}
+                revealed={revealedId === "home"}
+                railSide={railSide}
+                tapMode={tapMode}
+                onReveal={() => revealLabel("home")}
+                onLaunch={goBusinessHome}
+              />
+              <CmdIcon
+                id="explore"
+                label="Explore"
+                Icon={IconExplore}
+                active={businessHomeActive}
+                revealed={revealedId === "explore"}
+                railSide={railSide}
+                tapMode={tapMode}
+                onReveal={() => revealLabel("explore")}
+                onLaunch={goBusinessExplore}
+              />
+              <CmdIcon
+                id="activities"
+                label="Activities"
+                Icon={IconActivity}
+                active={path.startsWith("/app/activity")}
+                revealed={revealedId === "activities"}
+                railSide={railSide}
+                tapMode={tapMode}
+                onReveal={() => revealLabel("activities")}
+                onLaunch={goActivities}
+              />
+              <CmdIcon
+                id="finance"
+                label="Finance"
+                Icon={IconWallet}
+                active={path.startsWith("/app/wallet")}
+                revealed={revealedId === "finance"}
+                railSide={railSide}
+                tapMode={tapMode}
+                onReveal={() => revealLabel("finance")}
+                onLaunch={goFinance}
+              />
+              <CmdIcon
+                id="messaging"
+                label="Messaging"
+                Icon={IconMessage}
+                active={path === messagesTo || path.startsWith(`${messagesTo}/`)}
+                revealed={revealedId === "messaging"}
+                railSide={railSide}
+                tapMode={tapMode}
+                onReveal={() => revealLabel("messaging")}
+                onLaunch={goMessaging}
+              />
+              <CmdIcon
+                id="notifications"
+                label="Notification"
+                Icon={IconBell}
+                active={path.startsWith("/app/notifications")}
+                badge={unread}
+                revealed={revealedId === "notifications"}
+                railSide={railSide}
+                tapMode={tapMode}
+                onReveal={() => revealLabel("notifications")}
+                onLaunch={goNotifications}
+              />
+            </>
+          ) : (
+            <>
+              <CmdIcon
+                id="notifications"
+                label="Notifications"
+                Icon={IconBell}
+                active={path.startsWith("/app/notifications")}
+                badge={unread}
+                revealed={revealedId === "notifications"}
+                railSide={railSide}
+                tapMode={tapMode}
+                onReveal={() => revealLabel("notifications")}
+                onLaunch={goNotifications}
+              />
+              <CmdIcon
+                id="live"
+                label="Live"
+                Icon={IconBroadcast}
+                active={path.startsWith("/app/live")}
+                revealed={revealedId === "live"}
+                railSide={railSide}
+                tapMode={tapMode}
+                onReveal={() => revealLabel("live")}
+                onLaunch={goLive}
+              />
+              <CmdIcon
+                id="comments"
+                label="Comments"
+                Icon={IconMessage}
+                active={path === messagesTo || path.startsWith(`${messagesTo}/`)}
+                revealed={revealedId === "comments"}
+                railSide={railSide}
+                tapMode={tapMode}
+                onReveal={() => revealLabel("comments")}
+                onLaunch={goComments}
+              />
 
-          <span className="lifeos-cmd-nav__gap" aria-hidden />
+              <span className="lifeos-cmd-nav__gap" aria-hidden />
 
-          <CmdIcon
-            id="streamify"
-            label="Streamify"
-            Icon={StreamifyIcon}
-            active={path.includes("/streamify")}
-            revealed={revealedId === "streamify"}
-            railSide={railSide}
-            onReveal={() => revealLabel("streamify")}
-            onLaunch={goStreamify}
-          />
-          <CmdIcon
-            id="learnverse"
-            label="Learnverse"
-            Icon={LearnverseIcon}
-            active={path.includes("/learnverse")}
-            revealed={revealedId === "learnverse"}
-            railSide={railSide}
-            onReveal={() => revealLabel("learnverse")}
-            onLaunch={goLearnVerse}
-          />
-          <CmdIcon
-            id="explore"
-            label="Explore+"
-            Icon={IconExplore}
-            active={exploreActive}
-            revealed={revealedId === "explore"}
-            railSide={railSide}
-            onReveal={() => revealLabel("explore")}
-            onLaunch={goExplorePlus}
-          />
-          <CmdIcon
-            id="home"
-            label="Home"
-            Icon={IconHome}
-            active={homeActive}
-            revealed={revealedId === "home"}
-            railSide={railSide}
-            onReveal={() => revealLabel("home")}
-            onLaunch={goHome}
-          />
+              <CmdIcon
+                id="streamify"
+                label="Streamify"
+                Icon={StreamifyIcon}
+                active={path.includes("/streamify")}
+                revealed={revealedId === "streamify"}
+                railSide={railSide}
+                tapMode={tapMode}
+                onReveal={() => revealLabel("streamify")}
+                onLaunch={goStreamify}
+              />
+              <CmdIcon
+                id="learnverse"
+                label="Learnverse"
+                Icon={LearnverseIcon}
+                active={path.includes("/learnverse")}
+                revealed={revealedId === "learnverse"}
+                railSide={railSide}
+                tapMode={tapMode}
+                onReveal={() => revealLabel("learnverse")}
+                onLaunch={goLearnVerse}
+              />
+              <CmdIcon
+                id="explore"
+                label="Explore+"
+                Icon={IconExplore}
+                active={exploreActive}
+                revealed={revealedId === "explore"}
+                railSide={railSide}
+                tapMode={tapMode}
+                onReveal={() => revealLabel("explore")}
+                onLaunch={goExplorePlus}
+              />
+              <CmdIcon
+                id="home"
+                label="Home"
+                Icon={IconHome}
+                active={personalHomeActive}
+                revealed={revealedId === "home"}
+                railSide={railSide}
+                tapMode={tapMode}
+                onReveal={() => revealLabel("home")}
+                onLaunch={goPersonalHome}
+              />
 
-          <span className="lifeos-cmd-nav__gap" aria-hidden />
+              <span className="lifeos-cmd-nav__gap" aria-hidden />
 
-          {/* Space switch — never reuse Home/house glyph. */}
-          <CmdIcon
-            id="space-switch"
-            label={mode === "PERSONAL" ? "Business Space" : "Personal Space"}
-            Icon={mode === "PERSONAL" ? IconWallet : IconLink}
-            active={false}
-            revealed={revealedId === "space-switch"}
-            railSide={railSide}
-            onReveal={() => revealLabel("space-switch")}
-            onLaunch={flipSpace}
-          />
+              <CmdIcon
+                id="space-switch"
+                label="Business Space"
+                Icon={IconWallet}
+                revealed={revealedId === "space-switch"}
+                railSide={railSide}
+                tapMode={tapMode}
+                onReveal={() => revealLabel("space-switch")}
+                onLaunch={flipSpace}
+              />
+            </>
+          )}
 
           <button
             ref={closeBtnRef}
@@ -401,6 +522,7 @@ function CmdIcon({
   badge,
   revealed,
   railSide,
+  tapMode,
   onReveal,
   onLaunch,
 }: {
@@ -411,6 +533,7 @@ function CmdIcon({
   badge?: number;
   revealed: boolean;
   railSide: "left" | "right";
+  tapMode: CmdTapMode;
   onReveal: () => void;
   onLaunch: () => void;
 }) {
@@ -422,14 +545,22 @@ function CmdIcon({
     createCmdTapRecognizer({
       onReveal: () => onRevealRef.current(),
       onLaunch: () => onLaunchRef.current(),
+      mode: tapMode,
     }),
   );
 
-  useEffect(() => () => recognizer.current.cancel(), []);
+  // Recreate recognizer when tap mode changes (Personal ↔ Business).
+  useEffect(() => {
+    recognizer.current = createCmdTapRecognizer({
+      onReveal: () => onRevealRef.current(),
+      onLaunch: () => onLaunchRef.current(),
+      mode: tapMode,
+    });
+    return () => recognizer.current.cancel();
+  }, [tapMode]);
 
   function onPointerUp(e: ReactPointerEvent<HTMLButtonElement>) {
     if (e.pointerType === "mouse" && e.button !== 0) return;
-    // Stop the dismiss hitlayer / gesture root from eating the command tap.
     e.stopPropagation();
     recognizer.current.onPointerUp(id, e.nativeEvent);
   }
@@ -447,7 +578,6 @@ function CmdIcon({
         onPointerUp={onPointerUp}
         onClick={(e) => {
           e.stopPropagation();
-          // Keyboard / SR activation (no prior pointer) launches immediately.
           if (e.detail === 0) onLaunch();
         }}
         onKeyDown={(e) => {
@@ -485,7 +615,6 @@ function StreamifyIcon({ size = 20 }: { size?: number }) {
   return mode === "tv" ? <IconTv size={size} /> : <IconHeadphones size={size} />;
 }
 
-/** Learnverse living icon — BOOK ↔ GRADUATION CAP (same cadence as Streamify). */
 function LearnverseIcon({ size = 20 }: { size?: number }) {
   const [mode, setMode] = useState<"book" | "cap">("book");
   useEffect(() => {
@@ -504,11 +633,10 @@ function LearnverseIcon({ size = 20 }: { size?: number }) {
   return mode === "book" ? <IconBook size={size} /> : <IconGraduationCap size={size} />;
 }
 
-/** Chevron points toward the rail that will emerge (opposite of handle). */
 function EdgeChevron({ handleSide, open }: { handleSide: "left" | "right"; open: boolean }) {
   const pointLeft = handleSide === "right" ? !open : open;
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
       {pointLeft ? (
         <path d="M14.5 5.5 8.5 12l6 6.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
       ) : (

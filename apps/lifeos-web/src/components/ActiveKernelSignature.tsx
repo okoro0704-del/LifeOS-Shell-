@@ -10,8 +10,8 @@ const LABEL = {
 } as const;
 
 /**
- * Persistent flat kernel signature — environmental context only.
- * Suppressed while the interactive kernel switcher is revealed.
+ * Persistent flat kernel signature — Personal Space only.
+ * Business Space must not show Main/Free/Offline ambient labels.
  */
 export function ActiveKernelSignature() {
   const location = useLocation();
@@ -19,9 +19,10 @@ export function ActiveKernelSignature() {
   const { shellControlsVisible } = useNavigationDock();
   const kernel = personalKernelFromPath(location.pathname) ?? "main";
 
-  // Business space has no Offline/Main/Free personal kernels — still show Main as ambient OS context.
-  const label = mode === "BUSINESS" ? "Main" : LABEL[kernel];
-  const hide = shellControlsVisible && mode === "PERSONAL";
+  if (mode === "BUSINESS") return null;
+
+  const label = LABEL[kernel];
+  const hide = shellControlsVisible;
 
   return (
     <div

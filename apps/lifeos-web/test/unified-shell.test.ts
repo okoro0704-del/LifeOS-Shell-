@@ -37,11 +37,12 @@ describe("unified 3-bar shell", () => {
     expect(src).toContain("goStreamify");
     expect(src).toContain("goComments");
     expect(src).toContain("goLive");
-    // Exactly one Home command id in the rail.
-    expect(src.match(/id="home"/g)?.length ?? 0).toBe(1);
-    // Main kernel uses distinct IconKernel (not a second Home house).
+    // One Home id per space branch (Personal + Business).
+    expect(src.match(/id="home"/g)?.length ?? 0).toBe(2);
     expect(src).toContain("IconKernel");
     expect(src).toContain("lifeos-kernel-bar__label");
+    expect(src).toContain("goBusinessHome");
+    expect(src).toContain("goActivities");
   });
 
   it("Learnverse icons are separate Book and GraduationCap (not simultaneous)", () => {

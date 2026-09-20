@@ -101,7 +101,7 @@ export function BusinessHomePage() {
         <ExpandedDiscoveryGrid
           title="Businesses"
           items={bizItems}
-          contractAriaLabel="Close business discovery"
+          contractAriaLabel="Return to Business Space Home"
           onContract={contract}
           renderItem={(b) => (
             <button
@@ -133,7 +133,7 @@ export function BusinessHomePage() {
         <ExpandedDiscoveryGrid
           title="Services"
           items={svcItems}
-          contractAriaLabel="Close service discovery"
+          contractAriaLabel="Return to Business Space Home"
           onContract={contract}
           renderItem={(o) => (
             <button
@@ -165,7 +165,7 @@ export function BusinessHomePage() {
         <ExpandedDiscoveryGrid
           title="Products"
           items={prdItems}
-          contractAriaLabel="Close product discovery"
+          contractAriaLabel="Return to Business Space Home"
           onContract={contract}
           renderItem={(o) => (
             <button
@@ -285,6 +285,7 @@ export function BusinessHomePage() {
           )}
         />
       </div>
+      <div className="business-home__breath" aria-hidden />
     </div>
   );
 }
