@@ -178,6 +178,40 @@ export function IconMessage(p: IconProps) {
   );
 }
 
+/** TV / display — Streamify visual mode. */
+export function IconTv(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <rect x="3.5" y="5" width="17" height="12" rx="1.75" />
+      <path d="M8 21h8M12 17v4" />
+    </Svg>
+  );
+}
+
+/** Headphones — Streamify audio mode. */
+export function IconHeadphones(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M4 13v3.5A2.5 2.5 0 0 0 6.5 19H8v-5H5.5A1.5 1.5 0 0 0 4 15.5" />
+      <path d="M20 13v3.5a2.5 2.5 0 0 1-2.5 2.5H16v-5h2.5A1.5 1.5 0 0 1 20 15.5" />
+      <path d="M4 14a8 8 0 0 1 16 0" />
+    </Svg>
+  );
+}
+
+/** Broadcast / live waves. */
+export function IconBroadcast(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <circle cx="12" cy="12" r="1.75" />
+      <path d="M8.2 8.2a5.5 5.5 0 0 0 0 7.6" />
+      <path d="M15.8 8.2a5.5 5.5 0 0 1 0 7.6" />
+      <path d="M5.5 5.5a9.5 9.5 0 0 0 0 13" />
+      <path d="M18.5 5.5a9.5 9.5 0 0 1 0 13" />
+    </Svg>
+  );
+}
+
 export const NAV_ICONS = {
   home: IconHome,
   explore: IconExplore,
@@ -188,6 +222,9 @@ export const NAV_ICONS = {
   bell: IconBell,
   link: IconLink,
   message: IconMessage,
+  tv: IconTv,
+  headphones: IconHeadphones,
+  broadcast: IconBroadcast,
 } as const;
 
 export type NavIconName = keyof typeof NAV_ICONS;

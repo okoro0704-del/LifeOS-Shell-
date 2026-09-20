@@ -28,13 +28,14 @@ export function ChromeVisibilityProvider({ children }: { children: ReactNode }) 
 
   const reportScroll = useCallback((scrollTop: number, prevScrollTop: number) => {
     const delta = scrollTop - prevScrollTop;
-    // Hysteresis: enter content mode past first viewport band; exit near top.
-    if (scrollTop < 64) {
+    // Near top → always show section bar.
+    if (scrollTop < 48) {
       setChromeHidden(false);
       return;
     }
-    if (delta > 12 && scrollTop > 120) setChromeHidden(true);
-    else if (delta < -14) setChromeHidden(false);
+    // Hysteresis: ignore tiny jitter.
+    if (delta > 16 && scrollTop > 96) setChromeHidden(true);
+    else if (delta < -16) setChromeHidden(false);
   }, []);
 
   useEffect(() => {

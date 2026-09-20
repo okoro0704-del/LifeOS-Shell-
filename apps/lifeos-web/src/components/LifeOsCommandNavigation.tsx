@@ -1,17 +1,27 @@
-import { useEffect, useId, useRef, type ComponentType, type SVGProps } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ComponentType,
+  type PointerEvent as ReactPointerEvent,
+  type SVGProps,
+} from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import type { InstalledAppManifest } from "@lifeos/shared";
 import {
-  Avatar,
-  IconActivity,
   IconBell,
   IconBook,
+  IconBroadcast,
   IconExplore,
+  IconHeadphones,
   IconHome,
   IconMessage,
   IconProfile,
   IconReceive,
+  IconStay,
   IconTicket,
+  IconTv,
 } from "@lifeos/ui";
 import { hasDeployedMyBrandOS } from "../lib/mybrandOS";
 import { useAuth } from "../hooks/useAuth";
@@ -20,6 +30,10 @@ import { setLastSelectedKernel } from "../lib/kernelNavigation";
 import { personalLandingPath } from "../lib/personalConnectivity";
 import { useWorkspace, type WorkspaceMode } from "../context/WorkspaceContext";
 import { useNavigationDock } from "../context/NavigationDockContext";
+import {
+  CMD_LABEL_HOLD_MS,
+  createCmdTapRecognizer,
+} from "../lib/cmdRailGesture";
 import {
   personalKernelFromPath,
   personalKernelPath,
@@ -36,18 +50,22 @@ type Props = {
 };
 
 /**
- * Shared LifeOS command navigation — icons only, transparent green glass.
- * PERSONAL → RIGHT · BUSINESS → LEFT (from activeSpace/mode).
- * Offline/Main/Free kernel bar is Personal-only.
+ * Shared LifeOS command navigation.
+ * Handle side follows space; rail opens from the opposite side.
+ * Offline/Main/Free live only in the bottom kernel switcher.
+ * Pointer: single tap reveals name · double tap launches.
+ * Keyboard/SR: Enter/Space launches immediately.
  */
 export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { mode, setMode, activeBusinessId } = useWorkspace();
-  const { expanded, side, close, toggle } = useNavigationDock();
+  const { mode, setMode } = useWorkspace();
+  const { expanded, handleSide, railSide, close, toggle } = useNavigationDock();
   const panelId = useId();
   const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const [revealedId, setRevealedId] = useState<string | null>(null);
+  const labelTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const path = location.pathname.replace(/\/+$/, "") || "/";
   const kernel = personalKernelFromPath(path) ?? "main";
   const personalBase = personalNavBase(kernel);
@@ -55,7 +73,11 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
   const messagesTo = showMessaging ? "/app/elcom" : "/app/messages";
 
   useEffect(() => {
-    if (!expanded) return;
+    if (!expanded) {
+      setRevealedId(null);
+      if (labelTimer.current) clearTimeout(labelTimer.current);
+      return;
+    }
     closeBtnRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -68,7 +90,14 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
   }, [expanded, close]);
 
   function dismiss() {
+    setRevealedId(null);
     close();
+  }
+
+  function revealLabel(id: string) {
+    setRevealedId(id);
+    if (labelTimer.current) clearTimeout(labelTimer.current);
+    labelTimer.current = setTimeout(() => setRevealedId(null), CMD_LABEL_HOLD_MS);
   }
 
   function goHome() {
@@ -97,7 +126,21 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
     navigate(`${personalNavBase(mode === "BUSINESS" ? "main" : kernel)}/streamify`);
   }
 
-  /** Offline | Main | Free — Personal kernels only; close shell; skip remount when current. */
+  function goLive() {
+    dismiss();
+    navigate("/app/live");
+  }
+
+  function goComments() {
+    dismiss();
+    navigate(messagesTo);
+  }
+
+  function goNotifications() {
+    dismiss();
+    navigate("/app/notifications");
+  }
+
   function selectKernel(next: PersonalKernel) {
     if (next === kernel && mode === "PERSONAL") {
       dismiss();
@@ -121,15 +164,6 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
     navigate(next === "PERSONAL" ? personalLandingPath(user?.trustId) : workspaceHomePath("BUSINESS"));
   }
 
-  function openWho() {
-    dismiss();
-    if (mode === "BUSINESS") {
-      navigate(activeBusinessId ? `/app/business/${activeBusinessId}` : workspaceHomePath("BUSINESS"));
-      return;
-    }
-    navigate("/app/profile");
-  }
-
   const exploreActive =
     path.endsWith("/plus") || path === "/app/services/explore" || path.startsWith("/app/services/explore/");
   const homeActive =
@@ -141,13 +175,6 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
         path === "/app/personal/offline";
 
   const edgeLabel = expanded ? "Close LifeOS controls" : "Open LifeOS controls";
-  const whoTitle = mode === "BUSINESS" ? "Business Space" : user?.displayName || "You";
-  const whoSub =
-    mode === "BUSINESS"
-      ? activeBusinessId
-        ? `Business ${activeBusinessId}`
-        : "Discover & manage"
-      : user?.trustId || "Personal identity";
 
   return (
     <>
@@ -161,10 +188,9 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
         {edgeLabel}
       </button>
 
-      {/* Edge reveal — discoverable without forcing a menu on first visit */}
       <button
         type="button"
-        className={`lifeos-cmd-nav__edge lifeos-cmd-nav__edge--${side}${expanded ? " is-open" : ""}`}
+        className={`lifeos-cmd-nav__edge lifeos-cmd-nav__edge--${handleSide}${expanded ? " is-open" : ""}`}
         aria-label={edgeLabel}
         aria-expanded={expanded}
         aria-controls={panelId}
@@ -173,7 +199,7 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
         onClick={() => toggle()}
       >
         <span className="lifeos-cmd-nav__edge-hit" aria-hidden>
-          <EdgeChevron side={side} open={expanded} />
+          <EdgeChevron handleSide={handleSide} open={expanded} />
         </span>
       </button>
 
@@ -188,93 +214,116 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
       ) : null}
 
       <div
-        className={`lifeos-cmd-nav lifeos-cmd-nav--${side}${expanded ? " is-open" : ""}`}
+        className={`lifeos-cmd-nav lifeos-cmd-nav--${railSide}${expanded ? " is-open" : ""}`}
         data-nav-dock={expanded ? "expanded" : "clean"}
-        data-nav-side={side}
+        data-nav-side={handleSide}
+        data-rail-side={railSide}
         data-no-nav-dock
         aria-hidden={!expanded}
       >
         <nav
           id={panelId}
-          className="lifeos-cmd-nav__stack"
+          className={`lifeos-cmd-nav__stack lifeos-cmd-nav__stack--${railSide}`}
           aria-label="LifeOS command navigation"
           hidden={!expanded}
         >
-          {/* Adaptive WHO panel — Personal identity vs Business context */}
-          <button
-            type="button"
-            className={`lifeos-cmd-nav__who lifeos-cmd-nav__who--${mode.toLowerCase()}`}
-            aria-label={mode === "BUSINESS" ? "Business identity" : "Personal identity"}
-            title={whoTitle}
-            onClick={openWho}
-          >
-            {mode === "PERSONAL" && user ? (
-              <Avatar name={user.displayName} size="sm" />
-            ) : (
-              <span className="lifeos-cmd-nav__who-glyph" aria-hidden>
-                <IconProfile size={18} />
-              </span>
-            )}
-            <span className="lifeos-cmd-nav__who-text">
-              <span className="lifeos-cmd-nav__who-title">{whoTitle}</span>
-              <span className="lifeos-cmd-nav__who-sub">{whoSub}</span>
-            </span>
-          </button>
-
-          <span className="lifeos-cmd-nav__gap" aria-hidden />
-
-          <IconLinkBtn
-            to="/app/notifications"
+          <CmdIcon
+            id="notifications"
             label="Notifications"
             Icon={IconBell}
             active={path.startsWith("/app/notifications")}
-            onNavigate={dismiss}
             badge={unread}
+            revealed={revealedId === "notifications"}
+            railSide={railSide}
+            onReveal={() => revealLabel("notifications")}
+            onLaunch={goNotifications}
           />
-          <IconLinkBtn
-            to="/app/live"
+          <CmdIcon
+            id="live"
             label="Live"
-            Icon={IconActivity}
+            Icon={IconBroadcast}
             active={path.startsWith("/app/live")}
-            onNavigate={dismiss}
-            tone="live"
+            revealed={revealedId === "live"}
+            railSide={railSide}
+            onReveal={() => revealLabel("live")}
+            onLaunch={goLive}
           />
-          <IconLinkBtn
-            to={messagesTo}
-            label="Messaging"
+          <CmdIcon
+            id="comments"
+            label="Comments"
             Icon={IconMessage}
             active={path === messagesTo || path.startsWith(`${messagesTo}/`)}
-            onNavigate={dismiss}
+            revealed={revealedId === "comments"}
+            railSide={railSide}
+            onReveal={() => revealLabel("comments")}
+            onLaunch={goComments}
           />
 
           <span className="lifeos-cmd-nav__gap" aria-hidden />
 
-          {mode === "PERSONAL" ? (
-            <>
-              <IconBtn label="Streamify" Icon={StreamGlyph} active={path.includes("/streamify")} onClick={goStreamify} />
-              <IconBtn label="LearnVerse" Icon={IconBook} active={path.includes("/learnverse")} onClick={goLearnVerse} />
-              <IconBtn label="Explore+" Icon={IconExplore} active={exploreActive} onClick={goExplorePlus} />
-            </>
-          ) : (
-            <IconBtn label="Explore+" Icon={IconExplore} active={exploreActive} onClick={goExplorePlus} />
-          )}
-          <IconBtn label="Home" Icon={IconHome} active={homeActive} onClick={goHome} />
+          <CmdIcon
+            id="streamify"
+            label="Streamify"
+            Icon={StreamifyIcon}
+            active={path.includes("/streamify")}
+            revealed={revealedId === "streamify"}
+            railSide={railSide}
+            onReveal={() => revealLabel("streamify")}
+            onLaunch={goStreamify}
+          />
+          <CmdIcon
+            id="learnverse"
+            label="Learnverse"
+            Icon={IconBook}
+            active={path.includes("/learnverse")}
+            revealed={revealedId === "learnverse"}
+            railSide={railSide}
+            onReveal={() => revealLabel("learnverse")}
+            onLaunch={goLearnVerse}
+          />
+          <CmdIcon
+            id="explore"
+            label="Explore+"
+            Icon={IconExplore}
+            active={exploreActive}
+            revealed={revealedId === "explore"}
+            railSide={railSide}
+            onReveal={() => revealLabel("explore")}
+            onLaunch={goExplorePlus}
+          />
+          <CmdIcon
+            id="home"
+            label="Home"
+            Icon={IconHome}
+            active={homeActive}
+            revealed={revealedId === "home"}
+            railSide={railSide}
+            onReveal={() => revealLabel("home")}
+            onLaunch={goHome}
+          />
 
           <span className="lifeos-cmd-nav__gap" aria-hidden />
 
-          {/* Direct space switching — no nested submenu */}
           <div className="lifeos-cmd-nav__spaces" role="group" aria-label="Spaces">
-            <IconBtn
+            <CmdIcon
+              id="space-personal"
               label="Personal Space"
-              Icon={IconHome}
+              Icon={IconProfile}
               active={mode === "PERSONAL"}
-              onClick={() => switchSpace("PERSONAL")}
+              revealed={revealedId === "space-personal"}
+              railSide={railSide}
+              onReveal={() => revealLabel("space-personal")}
+              onLaunch={() => switchSpace("PERSONAL")}
             />
-            <IconBtn
+            <CmdIcon
+              id="space-business"
               label="Business Space"
-              Icon={IconExplore}
+              Icon={IconStay}
               active={mode === "BUSINESS"}
-              onClick={() => switchSpace("BUSINESS")}
+              revealed={revealedId === "space-business"}
+              railSide={railSide}
+              onReveal={() => revealLabel("space-business")}
+              onLaunch={() => switchSpace("BUSINESS")}
             />
           </div>
 
@@ -291,7 +340,6 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
         </nav>
       </div>
 
-      {/* Personal kernels only — Business space has no Offline/Main/Free bar */}
       {mode === "PERSONAL" ? (
         <nav
           className={`lifeos-kernel-bar${expanded ? " is-open" : ""}`}
@@ -336,88 +384,106 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
   );
 }
 
-function IconLinkBtn({
-  to,
+function CmdIcon({
+  id,
   label,
   Icon,
   active,
-  onNavigate,
   badge,
-  tone,
+  revealed,
+  railSide,
+  onReveal,
+  onLaunch,
 }: {
-  to: string;
+  id: string;
   label: string;
   Icon: IconComp;
   active?: boolean;
-  onNavigate: () => void;
   badge?: number;
-  tone?: "live";
+  revealed: boolean;
+  railSide: "left" | "right";
+  onReveal: () => void;
+  onLaunch: () => void;
 }) {
+  const onRevealRef = useRef(onReveal);
+  const onLaunchRef = useRef(onLaunch);
+  onRevealRef.current = onReveal;
+  onLaunchRef.current = onLaunch;
+  const recognizer = useRef(
+    createCmdTapRecognizer({
+      onReveal: () => onRevealRef.current(),
+      onLaunch: () => onLaunchRef.current(),
+    }),
+  );
+
+  useEffect(() => () => recognizer.current.cancel(), []);
+
+  function onPointerUp(e: ReactPointerEvent<HTMLButtonElement>) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    e.preventDefault();
+    recognizer.current.onPointerUp(id, e.nativeEvent);
+  }
+
   return (
-    <Link
-      to={to}
-      className={`lifeos-cmd-nav__icon${active ? " is-active" : ""}${tone === "live" ? " lifeos-cmd-nav__icon--live" : ""}`}
-      aria-label={badge && badge > 0 ? `${label}, ${badge} unread` : label}
-      aria-current={active ? "page" : undefined}
-      title={label}
-      onClick={onNavigate}
-    >
-      <Icon size={20} />
-      {badge && badge > 0 ? <span className="lifeos-cmd-nav__badge" aria-hidden /> : null}
-    </Link>
+    <span className={`lifeos-cmd-nav__cmd lifeos-cmd-nav__cmd--${railSide}${revealed ? " is-labeled" : ""}`}>
+      <button
+        type="button"
+        className={`lifeos-cmd-nav__icon${active ? " is-active" : ""}`}
+        aria-label={badge && badge > 0 ? `${label}, ${badge} unread` : label}
+        aria-pressed={active || undefined}
+        title={label}
+        data-no-nav-dock
+        onPointerUp={onPointerUp}
+        onClick={(e) => {
+          // Keyboard / SR activation (no prior pointer) launches immediately.
+          if (e.detail === 0) onLaunch();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onLaunch();
+          }
+        }}
+      >
+        <Icon size={20} />
+        {badge && badge > 0 ? <span className="lifeos-cmd-nav__badge" aria-hidden /> : null}
+      </button>
+      <span className="lifeos-cmd-nav__cmd-label" aria-hidden={!revealed}>
+        {label}
+      </span>
+    </span>
   );
 }
 
-function IconBtn({
-  label,
-  Icon,
-  active,
-  pressed,
-  onClick,
-}: {
-  label: string;
-  Icon: IconComp;
-  active?: boolean;
-  pressed?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      className={`lifeos-cmd-nav__icon${active ? " is-active" : ""}`}
-      aria-label={label}
-      aria-pressed={pressed}
-      title={label}
-      onClick={onClick}
-    >
-      <Icon size={20} />
-    </button>
-  );
+function StreamifyIcon({ size = 20 }: { size?: number }) {
+  const [mode, setMode] = useState<"tv" | "headphones">("tv");
+  useEffect(() => {
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) {
+      setMode("tv");
+      return;
+    }
+    const id = window.setInterval(() => {
+      setMode((m) => (m === "tv" ? "headphones" : "tv"));
+    }, 4200);
+    return () => window.clearInterval(id);
+  }, []);
+  return mode === "tv" ? <IconTv size={size} /> : <IconHeadphones size={size} />;
 }
 
-function StreamGlyph({ size = 20 }: { size?: number }) {
+/** Chevron points toward the rail that will emerge (opposite of handle). */
+function EdgeChevron({ handleSide, open }: { handleSide: "left" | "right"; open: boolean }) {
+  // Closed: point inward toward content (toward where rail will appear).
+  // Open: invert to suggest collapse.
+  const pointLeft = handleSide === "right" ? !open : open;
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M8 6.5v11l9-5.5-9-5.5z"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinejoin="round"
-      />
-      <path d="M4 8.5c2-1 4-1 6 0M4 15.5c2 1 4 1 6 0" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-/** PERSONAL right: chevron points left (◀). BUSINESS left: points right (▶). Flips when open. */
-function EdgeChevron({ side, open }: { side: "left" | "right"; open: boolean }) {
-  const pointLeft = side === "right" ? !open : open;
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
       {pointLeft ? (
-        <path d="M14.5 6 9 12l5.5 6" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M14.5 6 9 12l5.5 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
       ) : (
-        <path d="M9.5 6 15 12l-5.5 6" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M9.5 6 15 12l-5.5 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
       )}
     </svg>
   );

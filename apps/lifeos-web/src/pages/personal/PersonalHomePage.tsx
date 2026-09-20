@@ -63,20 +63,17 @@ function filterForKernel(kernel: PersonalKernel, items: MediaItem[]): MediaItem[
 export function KernelBrandBar({
   hidden,
   align = "center",
-  float = true,
 }: {
   kernel?: PersonalKernel;
   hidden?: boolean;
   /** PERSONAL: center · BUSINESS: end (away from left edge handle). */
   align?: "center" | "end";
-  /** Overlay identity mark — does not reserve a top nav plate. */
-  float?: boolean;
 }) {
   return (
     <header
-      className={`kernel-brand-bar kernel-brand-bar--clean${
+      className={`kernel-brand-bar kernel-brand-bar--static${
         align === "end" ? " kernel-brand-bar--end" : ""
-      }${float ? " kernel-brand-bar--float" : ""}${hidden ? " is-hidden" : ""}`}
+      }${hidden ? " is-hidden" : ""}`}
       aria-label="LifeOS"
     >
       <span className="kernel-brand-bar__logo">LifeOS</span>
@@ -95,18 +92,31 @@ export function PersonalKernelShell({
   children: ReactNode;
   immersive?: boolean;
 }) {
-  const { chromeHidden, setChromeHidden } = useChromeVisibility();
+  const { chromeHidden, setChromeHidden, reportScroll } = useChromeVisibility();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const prevScroll = useRef(0);
   const base = basePath(kernel);
 
   useEffect(() => {
     applyWatchedOffline();
-    // Non-immersive listings (Products / Communities) must not enter content-nav mode.
-    // Immersive Post/Reels drive chrome via ImmersiveMediaFeed activeRowIndex.
+    // Non-immersive listings start with section bar visible.
+    // Immersive Post/Reels also drive chrome via ImmersiveMediaFeed row index.
     if (!immersive) {
       setChromeHidden(false);
     }
   }, [section, kernel, immersive, setChromeHidden]);
+
+  useEffect(() => {
+    const root = scrollRef.current;
+    if (!root || immersive) return;
+    const onScroll = () => {
+      const y = root.scrollTop;
+      reportScroll(y, prevScroll.current);
+      prevScroll.current = y;
+    };
+    root.addEventListener("scroll", onScroll, { passive: true });
+    return () => root.removeEventListener("scroll", onScroll);
+  }, [immersive, reportScroll, section]);
 
   const tabs = SECTIONS.map((s) => ({
     id: s.id,
@@ -117,21 +127,23 @@ export function PersonalKernelShell({
 
   return (
     <div
-      className={`page personal-page personal-page--kernel personal-page--float-brand personal-page--${kernel}${
+      className={`page personal-page personal-page--kernel personal-page--layered personal-page--${kernel}${
         immersive ? " personal-page--immersive" : ""
       }${chromeHidden ? " is-scrolled is-chrome-hidden" : ""}`}
     >
-      {/* Floating LifeOS identity — not a conventional top nav plate. */}
-      <KernelBrandBar hidden={false} align="center" float />
+      {/* LAYER 1 — static LifeOS identity */}
+      <KernelBrandBar hidden={false} align="center" />
+      {/* LAYER 2 — scroll-aware section bar beneath LifeOS */}
       <SegmentGlassBar
         tabs={tabs}
         activeId={section === "search" ? "post" : section}
-        scrolled={immersive ? chromeHidden : false}
+        scrolled={chromeHidden}
         showBack={false}
         searchTo={`${base}/search`}
         backTo={`${base}/post`}
         ariaLabel="Home sections"
       />
+      {/* LAYER 3 — experience content */}
       <div className="kernel-scroll" ref={scrollRef}>
         {children}
       </div>

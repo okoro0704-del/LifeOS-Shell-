@@ -97,7 +97,7 @@ export function BusinessHomePage() {
   if (activeDiscovery === "business") {
     return (
       <div className="page business-home business-home--discovery">
-        <KernelBrandBar hidden={false} align="end" float />
+        <KernelBrandBar hidden={false} align="end" />
         <ExpandedDiscoveryGrid
           title="Businesses"
           items={bizItems}
@@ -129,7 +129,7 @@ export function BusinessHomePage() {
   if (activeDiscovery === "service") {
     return (
       <div className="page business-home business-home--discovery">
-        <KernelBrandBar hidden={false} align="end" float />
+        <KernelBrandBar hidden={false} align="end" />
         <ExpandedDiscoveryGrid
           title="Services"
           items={svcItems}
@@ -161,7 +161,7 @@ export function BusinessHomePage() {
   if (activeDiscovery === "product") {
     return (
       <div className="page business-home business-home--discovery">
-        <KernelBrandBar hidden={false} align="end" float />
+        <KernelBrandBar hidden={false} align="end" />
         <ExpandedDiscoveryGrid
           title="Products"
           items={prdItems}
@@ -196,7 +196,7 @@ export function BusinessHomePage() {
 
   return (
     <div className="page business-home business-home--immersive" ref={homeScrollRef}>
-      <KernelBrandBar hidden={false} align="end" float />
+      <KernelBrandBar hidden={false} align="end" />
 
       <div className="business-home__body">
         <DiscoveryQuad

@@ -17,7 +17,18 @@ type NavDockCtx = {
   shellControlsVisible: boolean;
   /** @deprecated alias of shellControlsVisible */
   expanded: boolean;
-  /** PERSONAL → right, BUSINESS → left (from activeSpace/mode). */
+  /**
+   * Edge handle side (preserved space rule):
+   * PERSONAL → right · BUSINESS → left
+   */
+  handleSide: NavSide;
+  /**
+   * Command rail pops from the OPPOSITE side of the handle.
+   * PERSONAL: handle right → rail left
+   * BUSINESS: handle left → rail right
+   */
+  railSide: NavSide;
+  /** @deprecated use handleSide — kept for transitional callers */
   side: NavSide;
   open: () => void;
   close: () => void;
@@ -48,7 +59,8 @@ export function NavigationDockProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
   const { mode } = useWorkspace();
   const [shellControlsVisible, setVisible] = useState(false);
-  const side: NavSide = mode === "BUSINESS" ? "left" : "right";
+  const handleSide: NavSide = mode === "BUSINESS" ? "left" : "right";
+  const railSide: NavSide = handleSide === "right" ? "left" : "right";
 
   useEffect(() => {
     setVisible(false);
@@ -56,7 +68,8 @@ export function NavigationDockProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.classList.toggle("lifeos-nav-dock-open", shellControlsVisible);
-    document.documentElement.dataset.navSide = side;
+    document.documentElement.dataset.navSide = handleSide;
+    document.documentElement.dataset.railSide = railSide;
     if (shellControlsVisible) {
       const prev = document.body.style.overflow;
       document.body.style.overflow = "hidden";
@@ -66,7 +79,7 @@ export function NavigationDockProvider({ children }: { children: ReactNode }) {
       };
     }
     return () => document.documentElement.classList.remove("lifeos-nav-dock-open");
-  }, [shellControlsVisible, side]);
+  }, [shellControlsVisible, handleSide, railSide]);
 
   const open = useCallback(() => {
     setVisible(true);
@@ -86,12 +99,14 @@ export function NavigationDockProvider({ children }: { children: ReactNode }) {
     () => ({
       shellControlsVisible,
       expanded: shellControlsVisible,
-      side,
+      handleSide,
+      railSide,
+      side: handleSide,
       open,
       close,
       toggle,
     }),
-    [shellControlsVisible, side, open, close, toggle],
+    [shellControlsVisible, handleSide, railSide, open, close, toggle],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
@@ -103,6 +118,8 @@ export function useNavigationDock() {
     return {
       shellControlsVisible: false,
       expanded: false,
+      handleSide: "right" as NavSide,
+      railSide: "left" as NavSide,
       side: "right" as NavSide,
       open: () => undefined,
       close: () => undefined,
