@@ -242,7 +242,6 @@ function ContentSlide({
   const [draft, setDraft] = useState("");
   const [toast, setToast] = useState<string | null>(null);
   const [readOpen, setReadOpen] = useState(false);
-  const lastTap = useRef(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { expanded: dockExpanded } = useNavigationDock();
 
@@ -287,16 +286,6 @@ function ContentSlide({
 
   function love() {
     setLoved(toggleLove(item.id));
-  }
-
-  function onMediaActivate() {
-    const now = Date.now();
-    if (now - lastTap.current < 320) {
-      love();
-      lastTap.current = 0;
-      return;
-    }
-    lastTap.current = now;
   }
 
   const caption = (
@@ -375,11 +364,6 @@ function ContentSlide({
       <div
         className="immersive-feed__media"
         style={{ background: mediaTone(item.id) }}
-        onClick={onMediaActivate}
-        onDoubleClick={(e) => {
-          e.preventDefault();
-          love();
-        }}
         role="presentation"
       >
         {writing && !item.posterUrl && !item.mediaUrl ? (

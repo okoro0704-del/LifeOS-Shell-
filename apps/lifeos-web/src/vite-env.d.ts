@@ -15,6 +15,8 @@ interface ImportMetaEnv {
   readonly VITE_AUTH_BYPASS?: string;
   /** Enable isolated Business discovery demo fixtures (never production DB). */
   readonly VITE_LIFEOS_DEMO_DISCOVERY?: string;
+  /** Enable isolated Personal Space demo activity (never production DB). */
+  readonly VITE_LIFEOS_PERSONAL_DEMO?: string;
 }
 
 interface ImportMeta {

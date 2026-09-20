@@ -16,6 +16,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useCommandLayer } from "../hooks/useCommandLayer";
 import { useWorkspace, type WorkspaceMode } from "../context/WorkspaceContext";
 import { installedAppsService, notificationService } from "../lib/services";
+import { isLifeOsPersonalDemoEnabled, personalDemoSequence } from "../lib/personalDemoActivity";
 import { markNeedsFaceOnKernelSwitch } from "../lib/personalConnectivity";
 import { setLastSelectedKernel } from "../lib/kernelNavigation";
 import { CommandOverlay } from "./CommandOverlay";
@@ -80,6 +81,7 @@ export function AppShell() {
   const navigate = useNavigate();
   const { openCommand } = useCommandLayer();
   const [unread, setUnread] = useState(0);
+  const [demoUnread, setDemoUnread] = useState(0);
   const [offline, setOffline] = useState(!navigator.onLine);
   const [offlinePrompt, setOfflinePrompt] = useState(false);
   /** Back online while inhabiting Offline kernel — choose Free / Main / Stay. */
@@ -150,6 +152,26 @@ export function AppShell() {
       .then((d) => setInstalledApps(d.apps ?? []))
       .catch(() => setInstalledApps([]))
       .finally(() => setAppsLoading(false));
+  }, []);
+
+  // Demo-only badge contribution — never mutates production unread.
+  useEffect(() => {
+    if (mode !== "PERSONAL" || !isLifeOsPersonalDemoEnabled()) {
+      setDemoUnread(0);
+      return;
+    }
+    const seen = new Set<string>();
+    setDemoUnread(personalDemoSequence().filter((e) => e.kind !== "live").length);
+    const onDemo = (ev: Event) => {
+      const detail = (ev as CustomEvent<{ id?: string; kind?: string }>).detail;
+      if (detail?.id) seen.add(detail.id);
+      setDemoUnread(personalDemoSequence().filter((e) => e.kind !== "live" && !seen.has(e.id)).length);
+    };
+    window.addEventListener("lifeos:personal-demo-event", onDemo);
+    return () => window.removeEventListener("lifeos:personal-demo-event", onDemo);
+  }, [mode]);
+
+  useEffect(() => {
     const on = () => {
       setOffline(false);
       setOfflinePrompt(false);
@@ -191,6 +213,8 @@ export function AppShell() {
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
+
+  const shellUnread = unread + (mode === "PERSONAL" ? demoUnread : 0);
 
   return (
     <NavigationDockGestures>
@@ -484,7 +508,7 @@ export function AppShell() {
         <LifeOSWakeListener />
         {!isImmersive ? (
           <>
-            <LifeOsCommandNavigation apps={installedApps} unread={unread} />
+            <LifeOsCommandNavigation apps={installedApps} unread={shellUnread} />
             <ActiveKernelSignature />
             <TransientAlertSurface />
           </>

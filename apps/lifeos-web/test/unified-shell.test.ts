@@ -11,7 +11,7 @@ describe("unified 3-bar shell", () => {
     const src = readFileSync(join(root, "src/context/NavigationDockContext.tsx"), "utf8");
     expect(src).toContain("shellControlsVisible");
     expect(src).toContain("SHELL_INTRO_MS");
-    expect(SHELL_INTRO_MS).toBe(2800);
+    expect(SHELL_INTRO_MS).toBe(3000);
     expect(src).toContain("markShellIntroSeen");
   });
 
@@ -25,7 +25,7 @@ describe("unified 3-bar shell", () => {
   it("command rail removes Contact/Profile; Learnverse uses living book↔cap", () => {
     const src = readFileSync(join(root, "src/components/LifeOsCommandNavigation.tsx"), "utf8");
     expect(src).toContain("LearnverseIcon");
-    expect(src).toContain("IconBook");
+    expect(src).toContain("IconBookOpen");
     expect(src).toContain("IconGraduationCap");
     expect(src).not.toContain("IconLearnverse");
     expect(src).not.toContain("IconProfile");
@@ -37,8 +37,8 @@ describe("unified 3-bar shell", () => {
     expect(src).toContain("goStreamify");
     expect(src).toContain("goComments");
     expect(src).toContain("goLive");
-    // One Home id per space branch (Personal + Business).
-    expect(src.match(/id="home"/g)?.length ?? 0).toBe(2);
+    // One Home id in Personal side rail (Business Home is bottom dock label).
+    expect(src.match(/id="home"/g)?.length ?? 0).toBe(1);
     expect(src).toContain("IconKernel");
     expect(src).toContain("lifeos-kernel-bar__label");
     expect(src).toContain("goBusinessHome");
@@ -47,7 +47,7 @@ describe("unified 3-bar shell", () => {
 
   it("Learnverse icons are separate Book and GraduationCap (not simultaneous)", () => {
     const src = readFileSync(join(root, "../../packages/ui/src/icons.tsx"), "utf8");
-    expect(src).toContain("export function IconBook");
+    expect(src).toContain("export function IconBookOpen");
     expect(src).toContain("export function IconGraduationCap");
     expect(src).toContain("export function IconKernel");
     expect(src).not.toContain("export function IconLearnverse");

@@ -131,6 +131,18 @@ export function IconBook(p: IconProps) {
   );
 }
 
+/** Open book — Learnverse reading state (facing pages). */
+export function IconBookOpen(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M2 4.5h7.2A3.3 3.3 0 0 1 12 6.2 3.3 3.3 0 0 1 14.8 4.5H22" />
+      <path d="M12 6.2V20" />
+      <path d="M2 4.5V18a2 2 0 0 0 1.4.9l8 1.6" />
+      <path d="M22 4.5V18a2 2 0 0 1-1.4.9l-8 1.6" />
+    </Svg>
+  );
+}
+
 /** Graduation / matriculation cap — Learnverse education state. */
 export function IconGraduationCap(p: IconProps) {
   return (

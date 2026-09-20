@@ -15,7 +15,7 @@ export type NavSide = "left" | "right";
 /** First-visit shell peek (aligned with idle dismiss). */
 export const SHELL_INTRO_MS = 3000;
 /** Summoned shell with no meaningful action → auto-hide. */
-export const SHELL_IDLE_MS = 3000;
+export const SHELL_IDLE_MS = 10000;
 /** After successful section/command selection → confirmation hold then hide. */
 export const SHELL_CONFIRM_MS = 1000;
 
@@ -37,7 +37,7 @@ type NavDockCtx = {
   open: () => void;
   close: () => void;
   toggle: () => void;
-  /** Reset 3s idle while shell is visible (ignored during confirm hold). */
+  /** Reset 10s idle while shell is visible (ignored during confirm hold). */
   noteShellActivity: () => void;
   /**
    * Successful section/command selection: navigate already happened —

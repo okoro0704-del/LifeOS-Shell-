@@ -13,7 +13,7 @@ import {
 } from "../src/lib/demoDiscoveryFixtures";
 
 describe("nav dock gesture arbitration", () => {
-  it("blocks buttons, media, diamonds, and edge handle", () => {
+  it("blocks buttons, rail controls, diamonds, and edge handle — not feed canvas", () => {
     const btn = document.createElement("button");
     document.body.appendChild(btn);
     expect(isNavDockGestureBlocked(btn)).toBe(true);
@@ -21,7 +21,7 @@ describe("nav dock gesture arbitration", () => {
     const media = document.createElement("div");
     media.className = "immersive-feed__media";
     document.body.appendChild(media);
-    expect(isNavDockGestureBlocked(media)).toBe(true);
+    expect(isNavDockGestureBlocked(media)).toBe(false);
 
     const diamond = document.createElement("button");
     diamond.className = "discovery-diamond";

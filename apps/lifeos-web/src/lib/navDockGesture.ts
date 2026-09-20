@@ -16,7 +16,8 @@ const INTERACTIVE_SELECTOR = [
   "[role='switch']",
   "[contenteditable='true']",
   "[data-no-nav-dock]",
-  ".immersive-feed__media",
+  // Immersive feed canvas is eligible for shell double-tap (neutral LifeOS surface).
+  // Like stays on the heart control — not double-tap on media.
   ".immersive-feed__rail",
   ".immersive-feed__rail-btn",
   ".segment-topbar",
@@ -38,7 +39,6 @@ const INTERACTIVE_SELECTOR = [
   ".discovery-quad__card",
   ".discovery-diamond",
   ".discovery-expanded",
-  "video",
 ].join(",");
 
 export function isNavDockGestureBlocked(target: EventTarget | null): boolean {

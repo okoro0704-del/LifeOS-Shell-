@@ -49,7 +49,8 @@ describe("personal consumer space wiring", () => {
     expect(src).toContain('aria-label="Offline"');
     expect(src).toContain('aria-label="Main"');
     expect(src).toContain('aria-label="Free"');
-    expect(src).not.toContain(">{label}</span>");
+    expect(src).toContain("lifeos-cmd-nav__cmd-label");
+    expect(src).toContain("aria-hidden={!revealed}");
   });
 
   it("nav side is PERSONAL right / BUSINESS left", () => {
@@ -64,9 +65,11 @@ describe("personal consumer space wiring", () => {
     expect(src).toContain("PersonalRoutes");
   });
 
-  it("nav dock gesture blocks immersive media double-tap-to-like", () => {
+  it("nav dock gesture leaves immersive media eligible for shell double-tap", () => {
     const src = readFileSync(join(root, "src/lib/navDockGesture.ts"), "utf8");
-    expect(src).toContain(".immersive-feed__media");
+    expect(src).toContain(".immersive-feed__rail");
     expect(src).toContain("isNavDockGestureBlocked");
+    expect(src).toContain("eligible for shell double-tap");
+    expect(src).not.toMatch(/INTERACTIVE_SELECTOR[\s\S]*"\.immersive-feed__media"/);
   });
 });

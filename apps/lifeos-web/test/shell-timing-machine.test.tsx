@@ -54,7 +54,7 @@ describe("shell timing state machine (fake timers)", () => {
     return { ui, get: () => latest };
   }
 
-  it("dismisses ~3000ms after summon with no interaction", () => {
+  it("dismisses ~10000ms after summon with no interaction", () => {
     const { get, ui } = mount();
     act(() => get().open());
     expect(ui.getByTestId("probe").dataset.visible).toBe("1");
@@ -108,15 +108,15 @@ describe("shell timing state machine (fake timers)", () => {
     const { get, ui } = mount();
     act(() => get().open());
     act(() => {
-      vi.advanceTimersByTime(2500);
+      vi.advanceTimersByTime(SHELL_IDLE_MS - 1500);
     });
     act(() => get().noteShellActivity());
     act(() => {
-      vi.advanceTimersByTime(2500);
+      vi.advanceTimersByTime(SHELL_IDLE_MS - 1500);
     });
     expect(ui.getByTestId("probe").dataset.visible).toBe("1");
     act(() => {
-      vi.advanceTimersByTime(500);
+      vi.advanceTimersByTime(1500);
     });
     expect(ui.getByTestId("probe").dataset.visible).toBe("0");
   });

@@ -12,7 +12,7 @@ import type { InstalledAppManifest } from "@lifeos/shared";
 import {
   IconActivity,
   IconBell,
-  IconBook,
+  IconBookOpen,
   IconBroadcast,
   IconExplore,
   IconGraduationCap,
@@ -287,6 +287,7 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
               label="Live"
               Icon={IconBroadcast}
               active={path.startsWith("/app/live")}
+              live
               revealed={revealedId === "live"}
               railSide={railSide}
               tapMode={tapMode}
@@ -524,6 +525,7 @@ function CmdIcon({
   Icon,
   active,
   badge,
+  live,
   revealed,
   railSide,
   tapMode,
@@ -535,6 +537,7 @@ function CmdIcon({
   Icon: IconComp;
   active?: boolean;
   badge?: number;
+  live?: boolean;
   revealed: boolean;
   railSide: "left" | "right";
   tapMode: CmdTapMode;
@@ -573,7 +576,7 @@ function CmdIcon({
     <span className={`lifeos-cmd-nav__cmd lifeos-cmd-nav__cmd--${railSide}${revealed ? " is-labeled" : ""}`}>
       <button
         type="button"
-        className={`lifeos-cmd-nav__icon${active ? " is-active" : ""}`}
+        className={`lifeos-cmd-nav__icon${active ? " is-active" : ""}${live ? " lifeos-cmd-nav__icon--live" : ""}`}
         aria-label={badge && badge > 0 ? `${label}, ${badge} unread` : label}
         aria-pressed={active || undefined}
         title={label}
@@ -594,7 +597,7 @@ function CmdIcon({
           }
         }}
       >
-        <Icon size={20} />
+        <Icon size={26} />
         {badge && badge > 0 ? <span className="lifeos-cmd-nav__badge" aria-hidden /> : null}
       </button>
       <span className="lifeos-cmd-nav__cmd-label" aria-hidden={!revealed}>
@@ -604,7 +607,7 @@ function CmdIcon({
   );
 }
 
-function StreamifyIcon({ size = 20 }: { size?: number }) {
+function StreamifyIcon({ size = 26 }: { size?: number }) {
   const [mode, setMode] = useState<"tv" | "headphones">("tv");
   useEffect(() => {
     const reduce =
@@ -622,7 +625,7 @@ function StreamifyIcon({ size = 20 }: { size?: number }) {
   return mode === "tv" ? <IconTv size={size} /> : <IconHeadphones size={size} />;
 }
 
-function LearnverseIcon({ size = 20 }: { size?: number }) {
+function LearnverseIcon({ size = 26 }: { size?: number }) {
   const [mode, setMode] = useState<"book" | "cap">("book");
   useEffect(() => {
     const reduce =
@@ -637,7 +640,7 @@ function LearnverseIcon({ size = 20 }: { size?: number }) {
     }, 4200);
     return () => window.clearInterval(id);
   }, []);
-  return mode === "book" ? <IconBook size={size} /> : <IconGraduationCap size={size} />;
+  return mode === "book" ? <IconBookOpen size={size} /> : <IconGraduationCap size={size} />;
 }
 
 function EdgeChevron({ handleSide, open }: { handleSide: "left" | "right"; open: boolean }) {

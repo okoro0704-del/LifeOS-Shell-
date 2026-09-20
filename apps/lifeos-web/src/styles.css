@@ -7858,6 +7858,19 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
   font-size: 0.82rem;
 }
 
+.lifeos-transient-alert__demo-tag {
+  margin-left: 0.25rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #b45309;
+  vertical-align: middle;
+}
+
+.lifeos-transient-alert--demo {
+  outline: 1px dashed color-mix(in srgb, #b45309 45%, transparent);
+}
+
 .lifeos-transient-alert__copy span {
   font-size: 0.75rem;
   opacity: 0.88;
@@ -8161,7 +8174,7 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
 .lifeos-cmd-nav__stack {
   width: auto;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.55rem;
   padding: 0;
   background: transparent;
   border: 0;
@@ -8172,10 +8185,10 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
 
 .lifeos-cmd-nav__icon {
   position: relative;
-  width: 2.75rem;
-  height: 2.75rem;
-  min-width: 2.75rem;
-  min-height: 2.75rem;
+  width: 3.15rem;
+  height: 3.15rem;
+  min-width: 3.15rem;
+  min-height: 3.15rem;
   display: inline-grid;
   place-items: center;
   border-radius: 0.45rem;
@@ -8199,9 +8212,46 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
 }
 
 .lifeos-cmd-nav__icon--live {
+  position: relative;
   background: transparent;
   border-color: transparent;
   color: #dc2626;
+}
+
+.lifeos-cmd-nav__icon--live::before {
+  content: "";
+  position: absolute;
+  inset: 0.15rem;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, #dc2626 42%, transparent) 0%,
+    color-mix(in srgb, #dc2626 14%, transparent) 55%,
+    transparent 72%
+  );
+  animation: lifeos-live-glow 2.6s ease-in-out infinite;
+}
+
+@keyframes lifeos-live-glow {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lifeos-cmd-nav__icon--live::before {
+    animation: none;
+    opacity: 0.78;
+    transform: none;
+    box-shadow: 0 0 0 1px color-mix(in srgb, #dc2626 55%, transparent);
+  }
 }
 
 .lifeos-cmd-nav__badge {
