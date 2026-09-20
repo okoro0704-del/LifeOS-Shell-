@@ -131,19 +131,23 @@ export function IconBook(p: IconProps) {
   );
 }
 
-/** Open book + graduation cap — Learnverse education identity. */
-export function IconLearnverse(p: IconProps) {
+/** Graduation / matriculation cap — Learnverse education state. */
+export function IconGraduationCap(p: IconProps) {
   return (
     <Svg {...p}>
-      {/* open book */}
-      <path d="M3.5 18.5V7.2c0-.6.4-1.1 1-1.2 2.2-.4 4.3.3 5.5 1.5" />
-      <path d="M20.5 18.5V7.2c0-.6-.4-1.1-1-1.2-2.2-.4-4.3.3-5.5 1.5" />
-      <path d="M12 7.5v11" />
-      <path d="M3.5 18.5c2.3-.8 4.6-.8 8.5.2 3.9-1 6.2-1 8.5-.2" />
-      {/* graduation cap */}
-      <path d="M8.2 4.2 12 2.6l3.8 1.6-3.8 1.6-3.8-1.6z" />
-      <path d="M15.8 4.4v2.1c0 .9-1.7 1.6-3.8 1.6S8.2 7.4 8.2 6.5" />
-      <path d="M15.8 5.2v2.4" />
+      <path d="M3.5 9.2 12 5.5l8.5 3.7-8.5 3.7-8.5-3.7z" />
+      <path d="M7 11.2v4.2c0 1.35 2.25 2.45 5 2.45s5-1.1 5-2.45v-4.2" />
+      <path d="M20.5 9.5v5.2" />
+    </Svg>
+  );
+}
+
+/** Canonical Main kernel mark — distinct from Home (house). */
+export function IconKernel(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M12 3.5 19 8v8l-7 4.5L5 16V8l7-4.5z" />
+      <circle cx="12" cy="12" r="2.1" />
     </Svg>
   );
 }
@@ -242,7 +246,8 @@ export const NAV_ICONS = {
   tv: IconTv,
   headphones: IconHeadphones,
   broadcast: IconBroadcast,
-  learnverse: IconLearnverse,
+  graduation: IconGraduationCap,
+  kernel: IconKernel,
 } as const;
 
 export type NavIconName = keyof typeof NAV_ICONS;

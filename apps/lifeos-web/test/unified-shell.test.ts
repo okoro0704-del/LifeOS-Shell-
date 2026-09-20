@@ -22,9 +22,12 @@ describe("unified 3-bar shell", () => {
     expect(src).toContain("scrolled={sectionHidden}");
   });
 
-  it("command rail removes Contact/Profile and uses Learnverse education icon", () => {
+  it("command rail removes Contact/Profile; Learnverse uses living book↔cap", () => {
     const src = readFileSync(join(root, "src/components/LifeOsCommandNavigation.tsx"), "utf8");
-    expect(src).toContain("IconLearnverse");
+    expect(src).toContain("LearnverseIcon");
+    expect(src).toContain("IconBook");
+    expect(src).toContain("IconGraduationCap");
+    expect(src).not.toContain("IconLearnverse");
     expect(src).not.toContain("IconProfile");
     expect(src).not.toMatch(/label=["']Contact["']/);
     expect(src).not.toContain("space-personal");
@@ -33,12 +36,36 @@ describe("unified 3-bar shell", () => {
     expect(src).toContain("goStreamify");
     expect(src).toContain("goComments");
     expect(src).toContain("goLive");
+    // Exactly one Home command id in the rail.
+    expect(src.match(/id="home"/g)?.length ?? 0).toBe(1);
+    // Main kernel uses distinct IconKernel (not a second Home house).
+    expect(src).toContain("IconKernel");
   });
 
-  it("Learnverse icon composes book + graduation cap", () => {
+  it("Learnverse icons are separate Book and GraduationCap (not simultaneous)", () => {
     const src = readFileSync(join(root, "../../packages/ui/src/icons.tsx"), "utf8");
-    expect(src).toContain("export function IconLearnverse");
-    expect(src).toContain("open book");
-    expect(src).toContain("graduation cap");
+    expect(src).toContain("export function IconBook");
+    expect(src).toContain("export function IconGraduationCap");
+    expect(src).toContain("export function IconKernel");
+    expect(src).not.toContain("export function IconLearnverse");
+  });
+
+  it("Living LifeOS Box + transparent chrome + kernel signature", () => {
+    const identity = readFileSync(join(root, "src/components/LivingLifeOsIdentity.tsx"), "utf8");
+    const css = readFileSync(join(root, "src/styles.css"), "utf8");
+    const shell = readFileSync(join(root, "src/components/AppShell.tsx"), "utf8");
+    const sig = readFileSync(join(root, "src/components/ActiveKernelSignature.tsx"), "utf8");
+    expect(identity).toContain("living-lifeos-box");
+    expect(identity).toContain("LIVING_IDENTITY_INTERVAL_MS = 3000");
+    expect(css).toContain(".living-lifeos-box");
+    expect(css).toMatch(/\.living-lifeos-box[\s\S]*background:\s*transparent/);
+    expect(css).not.toMatch(
+      /\.kernel-brand-bar--static\s*\{[^}]*background:\s*color-mix\(in srgb,\s*var\(--los-bg/,
+    );
+    expect(css).toContain(".lifeos-kernel-sig");
+    expect(shell).toContain("ActiveKernelSignature");
+    expect(sig).toContain("pointerEvents");
+    expect(sig).toContain("is-suppressed");
+    expect(sig).toContain("LABEL");
   });
 });

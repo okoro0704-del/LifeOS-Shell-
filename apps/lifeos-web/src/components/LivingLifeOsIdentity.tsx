@@ -14,9 +14,8 @@ const PHASE_LABEL: Record<LivingIdentityPhase, string> = {
 };
 
 /**
- * Living LifeOS identity — LifeOS → ASK ME → TASK ME.
- * ONE shared component for Personal / Business / all kernels.
- * Position is always the same shell-end anchor (no space mirroring).
+ * Living LifeOS Box — one persistent container; LifeOS → ASK ME → TASK ME.
+ * Same shell-end anchor in Personal and Business. Transparent top chrome.
  */
 export function LivingLifeOsIdentity({ hidden = false }: { hidden?: boolean }) {
   const { openCommand } = useCommandLayer();
@@ -32,7 +31,6 @@ export function LivingLifeOsIdentity({ hidden = false }: { hidden?: boolean }) {
   }, []);
 
   useEffect(() => {
-    // Fresh mount always starts on LifeOS — do not resume mid-cycle from elsewhere.
     phaseRef.current = "lifeos";
     setPhase("lifeos");
 
@@ -72,34 +70,33 @@ export function LivingLifeOsIdentity({ hidden = false }: { hidden?: boolean }) {
 
   const actionable = phase === "ask" || phase === "task";
   const label = PHASE_LABEL[phase];
+  // Stable accessible name — avoid announcing every 3s phase change.
   const ariaLabel =
     phase === "ask"
       ? "ASK ME — Ask LifeOS"
       : phase === "task"
         ? "TASK ME — Tell LifeOS a task"
-        : "LifeOS";
+        : "LifeOS living identity";
 
   return (
     <header
-      className={`kernel-brand-bar kernel-brand-bar--static kernel-brand-bar--living${
-        hidden ? " is-hidden" : ""
-      }`}
-      aria-label="LifeOS identity"
+      className={`living-lifeos-box${hidden ? " is-hidden" : ""}`}
+      aria-label="LifeOS"
       data-living-identity
       data-living-phase={phase}
     >
       <button
         type="button"
-        className={`living-lifeos__hit${actionable ? " is-actionable" : ""}`}
+        className={`living-lifeos-box__hit${actionable ? " is-actionable" : ""}`}
         aria-label={ariaLabel}
+        aria-live="off"
         disabled={!actionable}
         onClick={onActivate}
         data-no-nav-dock
       >
-        <span className="living-lifeos__slot" aria-hidden>
-          {/* Ghost widest label — locks width so CLS stays ~0 */}
-          <span className="living-lifeos__ghost">TASK ME</span>
-          <span className={`living-lifeos__text living-lifeos__text--${phase}`}>{label}</span>
+        <span className="living-lifeos-box__frame" aria-hidden>
+          <span className="living-lifeos-box__ghost">TASK ME</span>
+          <span className={`living-lifeos-box__text living-lifeos-box__text--${phase}`}>{label}</span>
         </span>
       </button>
     </header>

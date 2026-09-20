@@ -11,11 +11,13 @@ import { useLocation, useNavigate } from "react-router-dom";
 import type { InstalledAppManifest } from "@lifeos/shared";
 import {
   IconBell,
+  IconBook,
   IconBroadcast,
   IconExplore,
+  IconGraduationCap,
   IconHeadphones,
   IconHome,
-  IconLearnverse,
+  IconKernel,
   IconLink,
   IconMessage,
   IconReceive,
@@ -278,7 +280,7 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
           <CmdIcon
             id="learnverse"
             label="Learnverse"
-            Icon={IconLearnverse}
+            Icon={LearnverseIcon}
             active={path.includes("/learnverse")}
             revealed={revealedId === "learnverse"}
             railSide={railSide}
@@ -359,7 +361,7 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
             title="Main"
             onClick={() => selectKernel("main")}
           >
-            <IconHome size={22} />
+            <IconKernel size={22} />
           </button>
           <button
             type="button"
@@ -464,6 +466,25 @@ function StreamifyIcon({ size = 20 }: { size?: number }) {
     return () => window.clearInterval(id);
   }, []);
   return mode === "tv" ? <IconTv size={size} /> : <IconHeadphones size={size} />;
+}
+
+/** Learnverse living icon — BOOK ↔ GRADUATION CAP (same cadence as Streamify). */
+function LearnverseIcon({ size = 20 }: { size?: number }) {
+  const [mode, setMode] = useState<"book" | "cap">("book");
+  useEffect(() => {
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) {
+      setMode("book");
+      return;
+    }
+    const id = window.setInterval(() => {
+      setMode((m) => (m === "book" ? "cap" : "book"));
+    }, 4200);
+    return () => window.clearInterval(id);
+  }, []);
+  return mode === "book" ? <IconBook size={size} /> : <IconGraduationCap size={size} />;
 }
 
 /** Chevron points toward the rail that will emerge (opposite of handle). */

@@ -21,6 +21,7 @@ import { setLastSelectedKernel } from "../lib/kernelNavigation";
 import { CommandOverlay } from "./CommandOverlay";
 import { LifeOsCommandNavigation } from "./LifeOsCommandNavigation";
 import { NavigationDockGestures } from "./NavigationDockGestures";
+import { ActiveKernelSignature } from "./ActiveKernelSignature";
 import { TransientAlertSurface } from "./TransientAlertSurface";
 import { LifeOSWakeListener } from "./LifeOSWakeListener";
 import { PageTopBar } from "./PageTopBar";
@@ -429,6 +430,7 @@ export function AppShell() {
         {!isImmersive ? (
           <>
             <LifeOsCommandNavigation apps={installedApps} unread={unread} />
+            <ActiveKernelSignature />
             <TransientAlertSurface />
           </>
         ) : null}

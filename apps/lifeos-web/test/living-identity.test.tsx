@@ -57,9 +57,11 @@ describe("LivingLifeOsIdentity", () => {
     expect(root.getAttribute("data-living-phase")).toBe("lifeos");
   });
 
-  it("uses a fixed-width ghost so TASK ME does not shift layout", () => {
+  it("uses one persistent box with fixed-width ghost so TASK ME does not shift layout", () => {
     const { container } = render(<LivingLifeOsIdentity />);
-    expect(container.querySelector(".living-lifeos__ghost")?.textContent).toBe("TASK ME");
-    expect(container.querySelector(".living-lifeos__slot")).toBeTruthy();
+    expect(container.querySelector(".living-lifeos-box")).toBeTruthy();
+    expect(container.querySelector(".living-lifeos-box__ghost")?.textContent).toBe("TASK ME");
+    expect(container.querySelector(".living-lifeos-box__frame")).toBeTruthy();
+    expect(container.querySelectorAll(".living-lifeos-box").length).toBe(1);
   });
 });
