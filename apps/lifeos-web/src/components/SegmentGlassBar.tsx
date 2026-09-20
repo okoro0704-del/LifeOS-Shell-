@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { IconSearch } from "@lifeos/ui";
 
 export type GlassTab = {
@@ -10,7 +10,7 @@ export type GlassTab = {
 
 /**
  * Home section rail: wide transparent tabs + search on the right.
- * Selected tab keeps its accent wash; no full-header pill/plate.
+ * Uses explicit navigate() so taps work above the shell dismiss hitlayer.
  */
 export function SegmentGlassBar({
   tabs,
@@ -32,13 +32,18 @@ export function SegmentGlassBar({
   const navigate = useNavigate();
   const compact = !showBack;
 
+  function go(to: string) {
+    navigate(to);
+  }
+
   return (
     <nav
       className={`segment-topbar segment-topbar--glass${compact ? " segment-topbar--wide" : ""}${
         scrolled ? " is-pinned is-chrome-hidden" : ""
       }`}
       aria-label={ariaLabel}
-      aria-hidden={scrolled}
+      aria-hidden={scrolled || undefined}
+      data-no-nav-dock
     >
       {showBack ? (
         <span className="segment-topbar__edge segment-topbar__edge--left">
@@ -47,46 +52,70 @@ export function SegmentGlassBar({
               type="button"
               className="segment-topbar__icon-btn segment-topbar__icon-btn--back"
               aria-label="Back"
-              onClick={() => navigate(backTo)}
+              data-no-nav-dock
+              onClick={(e) => {
+                e.stopPropagation();
+                go(backTo);
+              }}
             >
               ←
             </button>
           ) : (
-            <span className="segment-topbar__spacer" aria-hidden />
+            <button
+              type="button"
+              className="segment-topbar__icon-btn segment-topbar__icon-btn--back"
+              aria-label="Back"
+              data-no-nav-dock
+              onClick={(e) => {
+                e.stopPropagation();
+                go(backTo);
+              }}
+            >
+              ←
+            </button>
           )}
         </span>
       ) : null}
 
-      <div className="segment-topbar__cluster" role="presentation" data-no-nav-dock>
-        {tabs.map((t) => (
-          <NavLink
-            key={t.id}
-            to={t.to}
-            end={t.end}
-            data-no-nav-dock
-            className={({ isActive }) =>
-              `segment-topbar__tab${isActive || activeId === t.id ? " is-active" : ""}`
-            }
-            onClick={(e) => {
-              // Keep shell chrome usable — do not let the transparent hitlayer steal the tap.
-              e.stopPropagation();
-            }}
-          >
-            {t.label}
-          </NavLink>
-        ))}
+      <div className="segment-topbar__cluster" role="tablist" data-no-nav-dock>
+        {tabs.map((t) => {
+          const active = activeId === t.id;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              data-no-nav-dock
+              className={`segment-topbar__tab${active ? " is-active" : ""}`}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                go(t.to);
+              }}
+            >
+              {t.label}
+            </button>
+          );
+        })}
       </div>
 
       <span className="segment-topbar__edge segment-topbar__edge--right">
-        <NavLink
-          to={searchTo}
+        <button
+          type="button"
           data-no-nav-dock
-          className="segment-topbar__icon-btn segment-topbar__icon-btn--search"
+          className={`segment-topbar__icon-btn segment-topbar__icon-btn--search${
+            activeId === "search" ? " is-active" : ""
+          }`}
           aria-label="Search"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            go(searchTo);
+          }}
         >
           <IconSearch size={20} />
-        </NavLink>
+        </button>
       </span>
     </nav>
   );

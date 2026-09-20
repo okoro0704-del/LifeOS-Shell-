@@ -49,7 +49,11 @@ function Shell({ active, children }: { active: string; children: ReactNode }) {
   }, [active, reportScroll]);
 
   return (
-    <div className={`page personal-page personal-page--surface${chromeHidden && !shellControlsVisible ? " is-scrolled is-chrome-hidden" : ""}`}>
+    <div
+      className={`page personal-page personal-page--surface${
+        chromeHidden && !shellControlsVisible ? " is-scrolled is-chrome-hidden" : ""
+      }${shellControlsVisible ? " is-shell-open" : " is-shell-clean"}`}
+    >
       <KernelBrandBar hidden={false} />
       <SegmentGlassBar
         tabs={tabs}

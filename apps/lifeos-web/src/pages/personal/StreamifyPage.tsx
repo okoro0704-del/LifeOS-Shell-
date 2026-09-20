@@ -67,7 +67,7 @@ function Shell({
     <div
       className={`page personal-page personal-page--surface${immersive ? " personal-page--immersive" : ""}${
         chromeHidden && !shellControlsVisible ? " is-scrolled is-chrome-hidden" : ""
-      }`}
+      }${shellControlsVisible ? " is-shell-open" : " is-shell-clean"}`}
     >
       <KernelBrandBar hidden={false} />
       <SegmentGlassBar

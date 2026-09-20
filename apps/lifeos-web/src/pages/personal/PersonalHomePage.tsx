@@ -123,7 +123,7 @@ export function PersonalKernelShell({
       {/* LAYER 2 — top section bar: part of unified shellControlsVisible */}
       <SegmentGlassBar
         tabs={tabs}
-        activeId={section === "search" ? "post" : section}
+        activeId={section}
         scrolled={sectionHidden}
         showBack={false}
         searchTo={`${base}/search`}

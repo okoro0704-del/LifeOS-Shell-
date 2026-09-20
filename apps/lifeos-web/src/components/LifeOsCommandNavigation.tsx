@@ -55,7 +55,7 @@ type Props = {
  * Shared LifeOS command navigation.
  * Handle side follows space; rail opens from the opposite side.
  * Offline/Main/Free live only in the bottom kernel switcher.
- * Pointer: single tap reveals name · double tap launches.
+ * Pointer: single tap reveals name and launches.
  * Keyboard/SR: Enter/Space launches immediately.
  */
 export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
@@ -80,7 +80,6 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
       if (labelTimer.current) clearTimeout(labelTimer.current);
       return;
     }
-    closeBtnRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -349,7 +348,11 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
             aria-label="Offline"
             aria-pressed={kernel === "offline"}
             title="Offline"
-            onClick={() => selectKernel("offline")}
+            data-no-nav-dock
+            onClick={(e) => {
+              e.stopPropagation();
+              selectKernel("offline");
+            }}
           >
             <IconReceive size={22} />
             <span className="lifeos-kernel-bar__label">Offline</span>
@@ -360,7 +363,11 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
             aria-label="Main"
             aria-pressed={kernel === "main"}
             title="Main"
-            onClick={() => selectKernel("main")}
+            data-no-nav-dock
+            onClick={(e) => {
+              e.stopPropagation();
+              selectKernel("main");
+            }}
           >
             <IconKernel size={22} />
             <span className="lifeos-kernel-bar__label">Main</span>
@@ -371,7 +378,11 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
             aria-label="Free"
             aria-pressed={kernel === "free"}
             title="Free"
-            onClick={() => selectKernel("free")}
+            data-no-nav-dock
+            onClick={(e) => {
+              e.stopPropagation();
+              selectKernel("free");
+            }}
           >
             <IconTicket size={22} />
             <span className="lifeos-kernel-bar__label">Free</span>
@@ -418,7 +429,8 @@ function CmdIcon({
 
   function onPointerUp(e: ReactPointerEvent<HTMLButtonElement>) {
     if (e.pointerType === "mouse" && e.button !== 0) return;
-    e.preventDefault();
+    // Stop the dismiss hitlayer / gesture root from eating the command tap.
+    e.stopPropagation();
     recognizer.current.onPointerUp(id, e.nativeEvent);
   }
 
@@ -431,8 +443,10 @@ function CmdIcon({
         aria-pressed={active || undefined}
         title={label}
         data-no-nav-dock
+        onPointerDown={(e) => e.stopPropagation()}
         onPointerUp={onPointerUp}
         onClick={(e) => {
+          e.stopPropagation();
           // Keyboard / SR activation (no prior pointer) launches immediately.
           if (e.detail === 0) onLaunch();
         }}
