@@ -29,6 +29,7 @@ describe("unified 3-bar shell", () => {
     expect(src).toContain("IconGraduationCap");
     expect(src).not.toContain("IconLearnverse");
     expect(src).not.toContain("IconProfile");
+    expect(src).not.toContain("IconStay");
     expect(src).not.toMatch(/label=["']Contact["']/);
     expect(src).not.toContain("space-personal");
     expect(src).toContain('label="Home"');
@@ -40,6 +41,7 @@ describe("unified 3-bar shell", () => {
     expect(src.match(/id="home"/g)?.length ?? 0).toBe(1);
     // Main kernel uses distinct IconKernel (not a second Home house).
     expect(src).toContain("IconKernel");
+    expect(src).toContain("lifeos-kernel-bar__label");
   });
 
   it("Learnverse icons are separate Book and GraduationCap (not simultaneous)", () => {
@@ -63,7 +65,10 @@ describe("unified 3-bar shell", () => {
       /\.kernel-brand-bar--static\s*\{[^}]*background:\s*color-mix\(in srgb,\s*var\(--los-bg/,
     );
     expect(css).toContain(".lifeos-kernel-sig");
+    expect(css).toContain("is-shell-open > .segment-topbar--glass");
     expect(shell).toContain("ActiveKernelSignature");
+    expect(shell).toContain("onlineKernelPrompt");
+    expect(shell).toContain("You have internet again");
     expect(sig).toContain("pointerEvents");
     expect(sig).toContain("is-suppressed");
     expect(sig).toContain("LABEL");

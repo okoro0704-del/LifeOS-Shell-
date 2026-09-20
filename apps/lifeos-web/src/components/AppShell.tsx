@@ -82,6 +82,8 @@ export function AppShell() {
   const [unread, setUnread] = useState(0);
   const [offline, setOffline] = useState(!navigator.onLine);
   const [offlinePrompt, setOfflinePrompt] = useState(false);
+  /** Back online while inhabiting Offline kernel — choose Free / Main / Stay. */
+  const [onlineKernelPrompt, setOnlineKernelPrompt] = useState(false);
   const [backOnlineNotice, setBackOnlineNotice] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<{
     prompt: () => Promise<void>;
@@ -151,12 +153,20 @@ export function AppShell() {
     const on = () => {
       setOffline(false);
       setOfflinePrompt(false);
-      setBackOnlineNotice(true);
       markNeedsFaceOnKernelSwitch(true);
+      // In Offline kernel with connectivity restored → offer Free / Main / Stay.
+      if (mode === "PERSONAL" && personalKernel === "offline") {
+        setBackOnlineNotice(false);
+        setOnlineKernelPrompt(true);
+      } else {
+        setOnlineKernelPrompt(false);
+        setBackOnlineNotice(true);
+      }
     };
     const off = () => {
       setOffline(true);
       setBackOnlineNotice(false);
+      setOnlineKernelPrompt(false);
       // Never auto-switch kernels — ask the user.
       if (mode === "PERSONAL" && personalKernel !== "offline") {
         setOfflinePrompt(true);
@@ -369,7 +379,52 @@ export function AppShell() {
           </div>
         ) : null}
 
-        {backOnlineNotice && !offline ? (
+        {onlineKernelPrompt ? (
+          <div
+            className="offline-kernel-prompt"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Internet restored"
+          >
+            <div className="offline-kernel-prompt__sheet">
+              <h2>You have internet again</h2>
+              <p>Would you like to leave the Offline kernel? Choose where to go, or stay Offline.</p>
+              <div className="offline-kernel-prompt__actions offline-kernel-prompt__actions--triple">
+                <button
+                  type="button"
+                  className="los-btn los-btn--primary"
+                  onClick={() => {
+                    setOnlineKernelPrompt(false);
+                    setLastSelectedKernel("free", user?.trustId);
+                    navigate("/app/personal/free/post");
+                  }}
+                >
+                  Free
+                </button>
+                <button
+                  type="button"
+                  className="los-btn los-btn--primary"
+                  onClick={() => {
+                    setOnlineKernelPrompt(false);
+                    setLastSelectedKernel("main", user?.trustId);
+                    navigate("/app/personal/post");
+                  }}
+                >
+                  Main
+                </button>
+                <button
+                  type="button"
+                  className="los-btn"
+                  onClick={() => setOnlineKernelPrompt(false)}
+                >
+                  Stay
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {backOnlineNotice && !offline && !onlineKernelPrompt ? (
           <div className="online-banner" role="status">
             <strong>You&apos;re back online</strong>
             <button

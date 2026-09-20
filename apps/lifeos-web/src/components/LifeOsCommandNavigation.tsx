@@ -21,9 +21,9 @@ import {
   IconLink,
   IconMessage,
   IconReceive,
-  IconStay,
   IconTicket,
   IconTv,
+  IconWallet,
 } from "@lifeos/ui";
 import { hasDeployedMyBrandOS } from "../lib/mybrandOS";
 import { useAuth } from "../hooks/useAuth";
@@ -310,11 +310,11 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
 
           <span className="lifeos-cmd-nav__gap" aria-hidden />
 
-          {/* Space switch — flip Personal ↔ Business without a person glyph. */}
+          {/* Space switch — never reuse Home/house glyph. */}
           <CmdIcon
             id="space-switch"
             label={mode === "PERSONAL" ? "Business Space" : "Personal Space"}
-            Icon={mode === "PERSONAL" ? IconStay : IconLink}
+            Icon={mode === "PERSONAL" ? IconWallet : IconLink}
             active={false}
             revealed={revealedId === "space-switch"}
             railSide={railSide}
@@ -352,6 +352,7 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
             onClick={() => selectKernel("offline")}
           >
             <IconReceive size={22} />
+            <span className="lifeos-kernel-bar__label">Offline</span>
           </button>
           <button
             type="button"
@@ -362,6 +363,7 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
             onClick={() => selectKernel("main")}
           >
             <IconKernel size={22} />
+            <span className="lifeos-kernel-bar__label">Main</span>
           </button>
           <button
             type="button"
@@ -372,6 +374,7 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
             onClick={() => selectKernel("free")}
           >
             <IconTicket size={22} />
+            <span className="lifeos-kernel-bar__label">Free</span>
           </button>
         </nav>
       ) : null}

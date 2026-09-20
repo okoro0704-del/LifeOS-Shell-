@@ -57,15 +57,20 @@ export function SegmentGlassBar({
         </span>
       ) : null}
 
-      <div className="segment-topbar__cluster" role="presentation">
+      <div className="segment-topbar__cluster" role="presentation" data-no-nav-dock>
         {tabs.map((t) => (
           <NavLink
             key={t.id}
             to={t.to}
             end={t.end}
+            data-no-nav-dock
             className={({ isActive }) =>
               `segment-topbar__tab${isActive || activeId === t.id ? " is-active" : ""}`
             }
+            onClick={(e) => {
+              // Keep shell chrome usable — do not let the transparent hitlayer steal the tap.
+              e.stopPropagation();
+            }}
           >
             {t.label}
           </NavLink>
@@ -75,8 +80,10 @@ export function SegmentGlassBar({
       <span className="segment-topbar__edge segment-topbar__edge--right">
         <NavLink
           to={searchTo}
+          data-no-nav-dock
           className="segment-topbar__icon-btn segment-topbar__icon-btn--search"
           aria-label="Search"
+          onClick={(e) => e.stopPropagation()}
         >
           <IconSearch size={20} />
         </NavLink>
