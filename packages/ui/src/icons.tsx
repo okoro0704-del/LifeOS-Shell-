@@ -131,6 +131,23 @@ export function IconBook(p: IconProps) {
   );
 }
 
+/** Open book + graduation cap — Learnverse education identity. */
+export function IconLearnverse(p: IconProps) {
+  return (
+    <Svg {...p}>
+      {/* open book */}
+      <path d="M3.5 18.5V7.2c0-.6.4-1.1 1-1.2 2.2-.4 4.3.3 5.5 1.5" />
+      <path d="M20.5 18.5V7.2c0-.6-.4-1.1-1-1.2-2.2-.4-4.3.3-5.5 1.5" />
+      <path d="M12 7.5v11" />
+      <path d="M3.5 18.5c2.3-.8 4.6-.8 8.5.2 3.9-1 6.2-1 8.5-.2" />
+      {/* graduation cap */}
+      <path d="M8.2 4.2 12 2.6l3.8 1.6-3.8 1.6-3.8-1.6z" />
+      <path d="M15.8 4.4v2.1c0 .9-1.7 1.6-3.8 1.6S8.2 7.4 8.2 6.5" />
+      <path d="M15.8 5.2v2.4" />
+    </Svg>
+  );
+}
+
 export function IconTicket(p: IconProps) {
   return (
     <Svg {...p}>
@@ -225,6 +242,7 @@ export const NAV_ICONS = {
   tv: IconTv,
   headphones: IconHeadphones,
   broadcast: IconBroadcast,
+  learnverse: IconLearnverse,
 } as const;
 
 export type NavIconName = keyof typeof NAV_ICONS;

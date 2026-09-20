@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { MediaFeed } from "../../components/MediaFeed";
 import { SegmentGlassBar } from "../../components/SegmentGlassBar";
 import { useChromeVisibility } from "../../context/ChromeVisibilityContext";
+import { useNavigationDock } from "../../context/NavigationDockContext";
 import { KernelBrandBar } from "./PersonalHomePage";
 import { catalogByKinds, type MediaItem } from "../../lib/personalCatalog";
 import { personalKernelFromPath, personalNavBase, type PersonalKernel } from "../../components/shell/nav";
@@ -24,6 +25,7 @@ function Shell({ active, children }: { active: string; children: ReactNode }) {
   const base = `${personalNavBase(kernel)}/learnverse`;
   const home = `${personalNavBase(kernel)}/post`;
   const { chromeHidden, reportScroll } = useChromeVisibility();
+  const { shellControlsVisible } = useNavigationDock();
   const bodyRef = useRef<HTMLDivElement>(null);
   const prevY = useRef(0);
 
@@ -47,12 +49,12 @@ function Shell({ active, children }: { active: string; children: ReactNode }) {
   }, [active, reportScroll]);
 
   return (
-    <div className={`page personal-page personal-page--surface${chromeHidden ? " is-scrolled is-chrome-hidden" : ""}`}>
+    <div className={`page personal-page personal-page--surface${chromeHidden && !shellControlsVisible ? " is-scrolled is-chrome-hidden" : ""}`}>
       <KernelBrandBar hidden={false} />
       <SegmentGlassBar
         tabs={tabs}
         activeId={active}
-        scrolled={chromeHidden}
+        scrolled={!shellControlsVisible}
         showBack
         searchTo={`${base}/search`}
         backTo={home}

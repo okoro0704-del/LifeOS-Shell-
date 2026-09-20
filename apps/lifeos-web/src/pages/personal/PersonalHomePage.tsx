@@ -4,6 +4,7 @@ import { ImmersiveMediaFeed } from "../../components/ImmersiveMediaFeed";
 import { SegmentGlassBar } from "../../components/SegmentGlassBar";
 import { LivingLifeOsIdentity } from "../../components/LivingLifeOsIdentity";
 import { useChromeVisibility } from "../../context/ChromeVisibilityContext";
+import { useNavigationDock } from "../../context/NavigationDockContext";
 import { catalogByKinds, hasPremium, setPremium, type MediaItem } from "../../lib/personalCatalog";
 import type { PersonalKernel } from "../../components/shell/nav";
 import {
@@ -75,6 +76,7 @@ export function PersonalKernelShell({
   immersive?: boolean;
 }) {
   const { chromeHidden, setChromeHidden, reportScroll } = useChromeVisibility();
+  const { shellControlsVisible } = useNavigationDock();
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevScroll = useRef(0);
   const base = basePath(kernel);
@@ -105,19 +107,24 @@ export function PersonalKernelShell({
     end: s.id === "post",
   }));
 
+  // Unified shell: section bar visible iff shellControlsVisible (not scroll-independent).
+  const sectionHidden = !shellControlsVisible;
+
   return (
     <div
       className={`page personal-page personal-page--kernel personal-page--layered personal-page--${kernel}${
         immersive ? " personal-page--immersive" : ""
-      }${chromeHidden ? " is-scrolled is-chrome-hidden" : ""}`}
+      }${chromeHidden && !shellControlsVisible ? " is-scrolled is-chrome-hidden" : ""}${
+        shellControlsVisible ? " is-shell-open" : " is-shell-clean"
+      }`}
     >
-      {/* LAYER 1 — living LifeOS identity (shared Personal/Business anchor) */}
+      {/* LAYER 1 — living LifeOS identity (independent of shell bars) */}
       <LivingLifeOsIdentity />
-      {/* LAYER 2 — scroll-aware section bar beneath identity */}
+      {/* LAYER 2 — top section bar: part of unified shellControlsVisible */}
       <SegmentGlassBar
         tabs={tabs}
         activeId={section === "search" ? "post" : section}
-        scrolled={chromeHidden}
+        scrolled={sectionHidden}
         showBack={false}
         searchTo={`${base}/search`}
         backTo={`${base}/post`}

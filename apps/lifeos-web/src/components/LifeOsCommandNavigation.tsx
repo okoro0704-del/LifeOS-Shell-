@@ -11,13 +11,13 @@ import { useLocation, useNavigate } from "react-router-dom";
 import type { InstalledAppManifest } from "@lifeos/shared";
 import {
   IconBell,
-  IconBook,
   IconBroadcast,
   IconExplore,
   IconHeadphones,
   IconHome,
+  IconLearnverse,
+  IconLink,
   IconMessage,
-  IconProfile,
   IconReceive,
   IconStay,
   IconTicket,
@@ -164,6 +164,10 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
     navigate(next === "PERSONAL" ? personalLandingPath(user?.trustId) : workspaceHomePath("BUSINESS"));
   }
 
+  function flipSpace() {
+    switchSpace(mode === "PERSONAL" ? "BUSINESS" : "PERSONAL");
+  }
+
   const exploreActive =
     path.endsWith("/plus") || path === "/app/services/explore" || path.startsWith("/app/services/explore/");
   const homeActive =
@@ -174,7 +178,7 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
         path === "/app/personal/free" ||
         path === "/app/personal/offline";
 
-  const edgeLabel = expanded ? "Close LifeOS controls" : "Open LifeOS controls";
+  const edgeLabel = expanded ? "Hide LifeOS controls" : "Show LifeOS controls";
 
   return (
     <>
@@ -274,7 +278,7 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
           <CmdIcon
             id="learnverse"
             label="Learnverse"
-            Icon={IconBook}
+            Icon={IconLearnverse}
             active={path.includes("/learnverse")}
             revealed={revealedId === "learnverse"}
             railSide={railSide}
@@ -304,28 +308,17 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
 
           <span className="lifeos-cmd-nav__gap" aria-hidden />
 
-          <div className="lifeos-cmd-nav__spaces" role="group" aria-label="Spaces">
-            <CmdIcon
-              id="space-personal"
-              label="Personal Space"
-              Icon={IconProfile}
-              active={mode === "PERSONAL"}
-              revealed={revealedId === "space-personal"}
-              railSide={railSide}
-              onReveal={() => revealLabel("space-personal")}
-              onLaunch={() => switchSpace("PERSONAL")}
-            />
-            <CmdIcon
-              id="space-business"
-              label="Business Space"
-              Icon={IconStay}
-              active={mode === "BUSINESS"}
-              revealed={revealedId === "space-business"}
-              railSide={railSide}
-              onReveal={() => revealLabel("space-business")}
-              onLaunch={() => switchSpace("BUSINESS")}
-            />
-          </div>
+          {/* Space switch — flip Personal ↔ Business without a person glyph. */}
+          <CmdIcon
+            id="space-switch"
+            label={mode === "PERSONAL" ? "Business Space" : "Personal Space"}
+            Icon={mode === "PERSONAL" ? IconStay : IconLink}
+            active={false}
+            revealed={revealedId === "space-switch"}
+            railSide={railSide}
+            onReveal={() => revealLabel("space-switch")}
+            onLaunch={flipSpace}
+          />
 
           <button
             ref={closeBtnRef}
@@ -475,15 +468,13 @@ function StreamifyIcon({ size = 20 }: { size?: number }) {
 
 /** Chevron points toward the rail that will emerge (opposite of handle). */
 function EdgeChevron({ handleSide, open }: { handleSide: "left" | "right"; open: boolean }) {
-  // Closed: point inward toward content (toward where rail will appear).
-  // Open: invert to suggest collapse.
   const pointLeft = handleSide === "right" ? !open : open;
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
       {pointLeft ? (
-        <path d="M14.5 6 9 12l5.5 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M14.5 5.5 8.5 12l6 6.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
       ) : (
-        <path d="M9.5 6 15 12l-5.5 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M9.5 5.5 15.5 12l-6 6.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
       )}
     </svg>
   );

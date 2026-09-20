@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -12,23 +13,19 @@ import { useWorkspace } from "./WorkspaceContext";
 
 export type NavSide = "left" | "right";
 
+/** First-visit shell peek duration before immersive auto-hide. */
+export const SHELL_INTRO_MS = 2800;
+const INTRO_KEY = "lifeos.shell.introSeen";
+const HINT_KEY = "lifeos.navDock.hintSeen";
+
 type NavDockCtx = {
-  /** Unified shell reveal — side nav + kernel switcher together. */
+  /** ONE source of truth: top section + side rail + bottom kernel bar. */
   shellControlsVisible: boolean;
   /** @deprecated alias of shellControlsVisible */
   expanded: boolean;
-  /**
-   * Edge handle side (preserved space rule):
-   * PERSONAL → right · BUSINESS → left
-   */
   handleSide: NavSide;
-  /**
-   * Command rail pops from the OPPOSITE side of the handle.
-   * PERSONAL: handle right → rail left
-   * BUSINESS: handle left → rail right
-   */
   railSide: NavSide;
-  /** @deprecated use handleSide — kept for transitional callers */
+  /** @deprecated use handleSide */
   side: NavSide;
   open: () => void;
   close: () => void;
@@ -37,7 +34,21 @@ type NavDockCtx = {
 
 const Ctx = createContext<NavDockCtx | null>(null);
 
-const HINT_KEY = "lifeos.navDock.hintSeen";
+export function hasSeenShellIntro(): boolean {
+  try {
+    return sessionStorage.getItem(INTRO_KEY) === "1";
+  } catch {
+    return true;
+  }
+}
+
+export function markShellIntroSeen(): void {
+  try {
+    sessionStorage.setItem(INTRO_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+}
 
 export function hasSeenNavDockHint(): boolean {
   try {
@@ -58,11 +69,26 @@ export function markNavDockHintSeen(): void {
 export function NavigationDockProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
   const { mode } = useWorkspace();
-  const [shellControlsVisible, setVisible] = useState(false);
+  const introDone = useRef(hasSeenShellIntro());
+  const [shellControlsVisible, setVisible] = useState(() => !introDone.current);
   const handleSide: NavSide = mode === "BUSINESS" ? "left" : "right";
   const railSide: NavSide = handleSide === "right" ? "left" : "right";
 
+  // First visit: briefly show unified shell, then immersive auto-hide once per session.
   useEffect(() => {
+    if (introDone.current) return;
+    setVisible(true);
+    const t = window.setTimeout(() => {
+      setVisible(false);
+      markShellIntroSeen();
+      introDone.current = true;
+    }, SHELL_INTRO_MS);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  // After intro, route/space changes close the shell together (all three bars).
+  useEffect(() => {
+    if (!introDone.current) return;
     setVisible(false);
   }, [location.pathname, mode]);
 
@@ -70,6 +96,7 @@ export function NavigationDockProvider({ children }: { children: ReactNode }) {
     document.documentElement.classList.toggle("lifeos-nav-dock-open", shellControlsVisible);
     document.documentElement.dataset.navSide = handleSide;
     document.documentElement.dataset.railSide = railSide;
+    document.documentElement.dataset.shellControls = shellControlsVisible ? "1" : "0";
     if (shellControlsVisible) {
       const prev = document.body.style.overflow;
       document.body.style.overflow = "hidden";

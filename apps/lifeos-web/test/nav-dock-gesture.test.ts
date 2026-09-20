@@ -47,10 +47,18 @@ describe("nav dock gesture arbitration", () => {
     el.remove();
   });
 
+  it("allows hitlayer for double-tap close while blocking other buttons", () => {
+    const hit = document.createElement("button");
+    hit.className = "lifeos-cmd-nav__hitlayer";
+    document.body.appendChild(hit);
+    expect(isNavDockGestureBlocked(hit)).toBe(false);
+    hit.remove();
+  });
+
   it("uses mobile-friendly double-tap thresholds", () => {
-    expect(TAP_HOLD_MS).toBeGreaterThanOrEqual(400);
-    expect(DOUBLE_GAP_MS).toBeGreaterThanOrEqual(450);
-    expect(MOVE_CANCEL_PX).toBeGreaterThanOrEqual(20);
+    expect(TAP_HOLD_MS).toBeGreaterThanOrEqual(500);
+    expect(DOUBLE_GAP_MS).toBeGreaterThanOrEqual(550);
+    expect(MOVE_CANCEL_PX).toBeGreaterThanOrEqual(24);
   });
 });
 

@@ -4,6 +4,7 @@ import { MediaFeed } from "../../components/MediaFeed";
 import { ImmersiveMediaFeed } from "../../components/ImmersiveMediaFeed";
 import { SegmentGlassBar } from "../../components/SegmentGlassBar";
 import { useChromeVisibility } from "../../context/ChromeVisibilityContext";
+import { useNavigationDock } from "../../context/NavigationDockContext";
 import { KernelBrandBar } from "./PersonalHomePage";
 import { catalogByKinds, type MediaItem } from "../../lib/personalCatalog";
 import { personalKernelFromPath, personalNavBase, type PersonalKernel } from "../../components/shell/nav";
@@ -35,6 +36,7 @@ function Shell({
   const base = `${personalNavBase(kernel)}/streamify`;
   const home = `${personalNavBase(kernel)}/post`;
   const { chromeHidden, reportScroll } = useChromeVisibility();
+  const { shellControlsVisible } = useNavigationDock();
   const bodyRef = useRef<HTMLDivElement>(null);
   const prevY = useRef(0);
 
@@ -64,14 +66,14 @@ function Shell({
   return (
     <div
       className={`page personal-page personal-page--surface${immersive ? " personal-page--immersive" : ""}${
-        chromeHidden ? " is-scrolled is-chrome-hidden" : ""
+        chromeHidden && !shellControlsVisible ? " is-scrolled is-chrome-hidden" : ""
       }`}
     >
       <KernelBrandBar hidden={false} />
       <SegmentGlassBar
         tabs={tabs}
         activeId={active}
-        scrolled={chromeHidden}
+        scrolled={!shellControlsVisible}
         showBack
         searchTo={`${base}/search`}
         backTo={home}
