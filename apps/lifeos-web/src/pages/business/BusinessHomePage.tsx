@@ -285,7 +285,6 @@ export function BusinessHomePage() {
           )}
         />
       </div>
-      <div className="business-home__breath" aria-hidden />
     </div>
   );
 }

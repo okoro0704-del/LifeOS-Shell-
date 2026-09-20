@@ -103,7 +103,6 @@ export function ExpandedDiscoveryGrid<T extends DiscoveryQuadItem>({
           </li>
         ))}
       </ul>
-      <div className="discovery-expanded__breath" aria-hidden />
       <DiamondControl
         ariaLabel={contractAriaLabel}
         onActivate={onContract}
