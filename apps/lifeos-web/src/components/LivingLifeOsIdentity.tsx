@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useCommandLayer } from "../hooks/useCommandLayer";
 
 export type LivingIdentityPhase = "lifeos" | "ask" | "task";
@@ -14,49 +14,69 @@ const PHASE_LABEL: Record<LivingIdentityPhase, string> = {
 };
 
 /**
+ * Module-level living cycle — survives shell open/close, section changes,
+ * and remounts of LivingLifeOsIdentity across Personal/Business surfaces.
+ */
+let sharedPhase: LivingIdentityPhase = "lifeos";
+let sharedTimer: ReturnType<typeof setInterval> | null = null;
+let sharedSubs = 0;
+const listeners = new Set<(p: LivingIdentityPhase) => void>();
+
+function emitPhase(next: LivingIdentityPhase) {
+  sharedPhase = next;
+  listeners.forEach((fn) => fn(next));
+}
+
+function advanceShared() {
+  const idx = LIVING_IDENTITY_PHASES.indexOf(sharedPhase);
+  emitPhase(LIVING_IDENTITY_PHASES[(idx + 1) % LIVING_IDENTITY_PHASES.length]!);
+}
+
+function ensureSharedTimer() {
+  if (sharedTimer) return;
+  if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+  sharedTimer = setInterval(advanceShared, LIVING_IDENTITY_INTERVAL_MS);
+}
+
+function stopSharedTimer() {
+  if (!sharedTimer) return;
+  clearInterval(sharedTimer);
+  sharedTimer = null;
+}
+
+function onDocVisibility() {
+  if (document.visibilityState === "hidden") stopSharedTimer();
+  else if (sharedSubs > 0) ensureSharedTimer();
+}
+
+function retainSharedCycle(onPhase: (p: LivingIdentityPhase) => void) {
+  listeners.add(onPhase);
+  sharedSubs += 1;
+  if (sharedSubs === 1 && typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", onDocVisibility);
+  }
+  ensureSharedTimer();
+  return () => {
+    listeners.delete(onPhase);
+    sharedSubs = Math.max(0, sharedSubs - 1);
+    if (sharedSubs === 0) {
+      stopSharedTimer();
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onDocVisibility);
+      }
+    }
+  };
+}
+
+/**
  * Living LifeOS Box — one persistent container; LifeOS → ASK ME → TASK ME.
  * Same shell-end anchor in Personal and Business. Transparent top chrome.
  */
 export function LivingLifeOsIdentity({ hidden = false }: { hidden?: boolean }) {
   const { openCommand } = useCommandLayer();
-  const [phase, setPhase] = useState<LivingIdentityPhase>("lifeos");
-  const phaseRef = useRef<LivingIdentityPhase>("lifeos");
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [phase, setPhase] = useState<LivingIdentityPhase>(() => sharedPhase);
 
-  const advance = useCallback(() => {
-    const idx = LIVING_IDENTITY_PHASES.indexOf(phaseRef.current);
-    const next = LIVING_IDENTITY_PHASES[(idx + 1) % LIVING_IDENTITY_PHASES.length]!;
-    phaseRef.current = next;
-    setPhase(next);
-  }, []);
-
-  useEffect(() => {
-    phaseRef.current = "lifeos";
-    setPhase("lifeos");
-
-    const start = () => {
-      if (timerRef.current) return;
-      timerRef.current = setInterval(advance, LIVING_IDENTITY_INTERVAL_MS);
-    };
-    const stop = () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    };
-
-    const onVisibility = () => {
-      if (document.visibilityState === "hidden") stop();
-      else start();
-    };
-
-    if (document.visibilityState !== "hidden") start();
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => {
-      stop();
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
-  }, [advance]);
+  useEffect(() => retainSharedCycle(setPhase), []);
 
   function onActivate() {
     if (phase === "ask") {
