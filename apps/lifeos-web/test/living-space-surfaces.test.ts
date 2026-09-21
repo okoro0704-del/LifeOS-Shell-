@@ -41,8 +41,8 @@ describe("Living Space First + Offline TV/Radio broadcast", () => {
     expect(bar).toContain("LifeOS");
     expect(bar).toContain("TV");
     expect(bar).toContain("Radio");
-    expect(bar).toContain("Control");
     expect(bar).toContain("BROADCAST_OPTIONS");
+    expect(bar).not.toContain("lifeos-surface-switcher__control");
   });
 
   it("Offline kernel lands on bare TV broadcast path", () => {
@@ -65,12 +65,19 @@ describe("Living Space First + Offline TV/Radio broadcast", () => {
     expect(tv).toContain("lifeos-surface--bare");
   });
 
-  it("Control remote changes channel", () => {
+  it("Control peek + Auto/Manual creator tuning", () => {
     const remote = readFileSync(join(root, "src/components/BroadcastRemoteControl.tsx"), "utf8");
-    expect(remote).toContain("Channel up");
-    expect(remote).toContain("Channel down");
-    expect(remote).toContain("channelUp");
-    expect(remote).toContain("Control remote");
+    expect(remote).toContain("lifeos-remote-peek");
+    expect(remote).toContain("Open Control");
+    expect(remote).toContain("Auto");
+    expect(remote).toContain("Manual");
+    expect(remote).toContain("Next creator");
+    expect(remote).toContain("Creator brand name");
+    expect(remote).toContain("kernelAdjacentCreatorIndex");
+    expect(remote).toContain("kernelIndexForBrand");
+    const runtime = readFileSync(join(root, "src/lib/offlineKernelRuntime.ts"), "utf8");
+    expect(runtime).toContain("kernelCreatorsFor");
+    expect(runtime).toContain("kernelIndexForBrand");
   });
 
   it("Living swipe stays Free ↔ Main; Offline is broadcast destination", () => {

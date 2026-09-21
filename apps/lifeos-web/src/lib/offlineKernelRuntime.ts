@@ -42,3 +42,57 @@ export function kernelMediaFor(kinds: MediaItem["kind"][]): MediaItem[] {
 export function kernelHasLocalContent(kinds: MediaItem["kind"][]): boolean {
   return kernelMediaFor(kinds).length > 0;
 }
+
+/** Brand / creator label for a catalog item (TV station identity). */
+export function kernelBrandOf(item: MediaItem): string {
+  const brand = (item.author || item.storeDisplayName || item.title || "").trim();
+  return brand || "Unknown";
+}
+
+/** Unique creator brands in catalog order (first appearance wins). */
+export function kernelCreatorsFor(kinds: MediaItem["kind"][]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of kernelMediaFor(kinds)) {
+    const brand = kernelBrandOf(item);
+    const key = brand.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(brand);
+  }
+  return out;
+}
+
+/** Index of first catalog item matching a creator brand name (fuzzy). */
+export function kernelIndexForBrand(kinds: MediaItem["kind"][], query: string): number {
+  const q = query.trim().toLowerCase();
+  if (!q) return -1;
+  const pool = kernelMediaFor(kinds);
+  const exact = pool.findIndex((i) => kernelBrandOf(i).toLowerCase() === q);
+  if (exact >= 0) return exact;
+  return pool.findIndex((i) => {
+    const brand = kernelBrandOf(i).toLowerCase();
+    return brand.includes(q) || q.includes(brand);
+  });
+}
+
+/** Index of first item for the next/prev unique creator relative to `fromIndex`. */
+export function kernelAdjacentCreatorIndex(
+  kinds: MediaItem["kind"][],
+  fromIndex: number,
+  direction: "next" | "prev",
+): number {
+  const pool = kernelMediaFor(kinds);
+  if (pool.length === 0) return 0;
+  const creators = kernelCreatorsFor(kinds);
+  if (creators.length === 0) return 0;
+  const cur = pool[((fromIndex % pool.length) + pool.length) % pool.length]!;
+  const curBrand = kernelBrandOf(cur).toLowerCase();
+  let ci = creators.findIndex((c) => c.toLowerCase() === curBrand);
+  if (ci < 0) ci = 0;
+  const nextCi =
+    direction === "next"
+      ? (ci + 1) % creators.length
+      : (ci - 1 + creators.length) % creators.length;
+  return kernelIndexForBrand(kinds, creators[nextCi]!);
+}

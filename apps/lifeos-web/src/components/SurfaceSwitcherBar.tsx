@@ -17,7 +17,7 @@ const BROADCAST_OPTIONS: { id: LifeOsSurface; label: string }[] = [
 /**
  * Top-edge surface switcher — summoned by double-tap.
  * Living: LifeOS · TV · Radio
- * Offline broadcast: TV · Radio + Control (remote)
+ * Offline broadcast: TV · Radio only (Control is the bottom peek icon).
  */
 export function SurfaceSwitcherBar() {
   const {
@@ -27,7 +27,6 @@ export function SurfaceSwitcherBar() {
     switcherVisible,
     closeSwitcher,
     openSwitcher,
-    openControl,
   } = useLifeOsSurface();
   const idleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const options = broadcastMode ? BROADCAST_OPTIONS : LIVING_OPTIONS;
@@ -84,20 +83,6 @@ export function SurfaceSwitcherBar() {
           </button>
         ))}
       </div>
-      {broadcastMode ? (
-        <button
-          type="button"
-          className="lifeos-surface-switcher__control"
-          aria-label="Control"
-          data-no-nav-dock
-          onClick={() => {
-            closeSwitcher();
-            openControl();
-          }}
-        >
-          Control
-        </button>
-      ) : null}
       <button
         type="button"
         className="lifeos-surface-switcher__a11y"
