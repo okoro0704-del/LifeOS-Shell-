@@ -12,6 +12,14 @@ export type LifeOsSurface = "LIVING_LIFEOS" | "OFFLINE_HUB" | "TV" | "RADIO";
 
 export type SurfaceTier = "ACTIVE" | "WARM" | "SUSPENDED";
 
+/**
+ * TV/Radio overlay machine — mutually exclusive reveals.
+ * HIDDEN: broadcast only + edge reveal handle.
+ * REMOTE_REVEALED: TV/Radio icons + station remote.
+ * PROGRAM_INFO_REVEALED: creator + NOW/NEXT.
+ */
+export type BroadcastUiMode = "HIDDEN" | "REMOTE_REVEALED" | "PROGRAM_INFO_REVEALED";
+
 type SurfaceCtx = {
   surface: LifeOsSurface;
   setSurface: (next: LifeOsSurface) => void;
@@ -21,25 +29,36 @@ type SurfaceCtx = {
   enterBroadcast: () => void;
   exitBroadcast: () => void;
   broadcastMode: boolean;
+  broadcastUiMode: BroadcastUiMode;
+  openRemoteReveal: () => void;
+  openProgramInfo: () => void;
+  closeBroadcastUi: () => void;
+  toggleRemoteReveal: () => void;
+  /** Living LifeOS surface switcher (not used on bare TV/Radio). */
   switcherVisible: boolean;
   openSwitcher: () => void;
   closeSwitcher: () => void;
   toggleSwitcher: () => void;
+  /** @deprecated prefer broadcastUiMode — true when REMOTE_REVEALED */
   controlVisible: boolean;
   openControl: () => void;
   closeControl: () => void;
   toggleControl: () => void;
+  /** @deprecated prefer broadcastUiMode — true when PROGRAM_INFO_REVEALED */
   nowNextVisible: boolean;
   openNowNext: () => void;
   closeNowNext: () => void;
   mediaPaused: boolean;
   toggleMediaPaused: () => void;
   setMediaPaused: (paused: boolean) => void;
-  /** Zero-based TV channel index (station zap). */
+  /** Zero-based catalog index for the active TV station program. */
   tvChannel: number;
+  /** Zero-based catalog index for the active Radio station program. */
+  radioChannel: number;
   channelUp: () => void;
   channelDown: () => void;
   setTvChannel: (n: number) => void;
+  setRadioChannel: (n: number) => void;
 };
 
 const Ctx = createContext<SurfaceCtx | null>(null);
@@ -48,11 +67,14 @@ export function LifeOsSurfaceProvider({ children }: { children: ReactNode }) {
   const [surface, setSurfaceState] = useState<LifeOsSurface>("LIVING_LIFEOS");
   const [prev, setPrev] = useState<LifeOsSurface | null>(null);
   const [lastStation, setLastStation] = useState<"TV" | "RADIO" | null>(null);
+  const [broadcastUiMode, setBroadcastUiMode] = useState<BroadcastUiMode>("HIDDEN");
   const [switcherVisible, setSwitcherVisible] = useState(false);
-  const [controlVisible, setControlVisible] = useState(false);
-  const [nowNextVisible, setNowNextVisible] = useState(false);
   const [mediaPaused, setMediaPaused] = useState(false);
   const [tvChannel, setTvChannelState] = useState(0);
+  const [radioChannel, setRadioChannelState] = useState(0);
+
+  const controlVisible = broadcastUiMode === "REMOTE_REVEALED";
+  const nowNextVisible = broadcastUiMode === "PROGRAM_INFO_REVEALED";
 
   const setSurface = useCallback((next: LifeOsSurface) => {
     setSurfaceState((cur) => {
@@ -62,10 +84,7 @@ export function LifeOsSurfaceProvider({ children }: { children: ReactNode }) {
     });
     if (next === "TV" || next === "RADIO") setLastStation(next);
     setSwitcherVisible(false);
-    setNowNextVisible(false);
-    if (next !== "TV" && next !== "RADIO") {
-      setControlVisible(false);
-    }
+    setBroadcastUiMode("HIDDEN");
   }, []);
 
   const enterOffline = useCallback(() => {
@@ -75,14 +94,12 @@ export function LifeOsSurfaceProvider({ children }: { children: ReactNode }) {
       return lastStation ?? "OFFLINE_HUB";
     });
     setSwitcherVisible(false);
-    setControlVisible(false);
-    setNowNextVisible(false);
+    setBroadcastUiMode("HIDDEN");
   }, [lastStation]);
   const enterBroadcast = enterOffline;
 
   const exitBroadcast = useCallback(() => {
-    setControlVisible(false);
-    setNowNextVisible(false);
+    setBroadcastUiMode("HIDDEN");
     setSurfaceState("LIVING_LIFEOS");
     setSwitcherVisible(false);
   }, []);
@@ -97,39 +114,42 @@ export function LifeOsSurfaceProvider({ children }: { children: ReactNode }) {
     [surface, prev],
   );
 
+  const openRemoteReveal = useCallback(() => {
+    setSwitcherVisible(false);
+    setBroadcastUiMode("REMOTE_REVEALED");
+  }, []);
+  const openProgramInfo = useCallback(() => {
+    setSwitcherVisible(false);
+    setBroadcastUiMode("PROGRAM_INFO_REVEALED");
+  }, []);
+  const closeBroadcastUi = useCallback(() => setBroadcastUiMode("HIDDEN"), []);
+  const toggleRemoteReveal = useCallback(() => {
+    setSwitcherVisible(false);
+    setBroadcastUiMode((m) => (m === "REMOTE_REVEALED" ? "HIDDEN" : "REMOTE_REVEALED"));
+  }, []);
+
   const openSwitcher = useCallback(() => {
-    setControlVisible(false);
+    setBroadcastUiMode("HIDDEN");
     setSwitcherVisible(true);
   }, []);
   const closeSwitcher = useCallback(() => setSwitcherVisible(false), []);
   const toggleSwitcher = useCallback(() => {
     setSwitcherVisible((v) => {
-      if (!v) setControlVisible(false);
+      if (!v) setBroadcastUiMode("HIDDEN");
       return !v;
     });
   }, []);
 
-  const openControl = useCallback(() => {
-    setSwitcherVisible(false);
-    setNowNextVisible(false);
-    setControlVisible(true);
-  }, []);
-  const closeControl = useCallback(() => setControlVisible(false), []);
-  const toggleControl = useCallback(() => {
-    setControlVisible((v) => {
-      if (!v) setSwitcherVisible(false);
-      return !v;
-    });
-  }, []);
-  const openNowNext = useCallback(() => {
-    setSwitcherVisible(false);
-    setControlVisible(false);
-    setNowNextVisible(true);
-  }, []);
-  const closeNowNext = useCallback(() => setNowNextVisible(false), []);
+  const openControl = openRemoteReveal;
+  const closeControl = closeBroadcastUi;
+  const toggleControl = toggleRemoteReveal;
+  const openNowNext = openProgramInfo;
+  const closeNowNext = closeBroadcastUi;
+
   const toggleMediaPaused = useCallback(() => setMediaPaused((paused) => !paused), []);
 
   const channelUp = useCallback(() => {
+    /* Catalog index bumps are handled by BroadcastRemoteControl via creator zap. */
     setTvChannelState((n) => n + 1);
   }, []);
   const channelDown = useCallback(() => {
@@ -137,6 +157,9 @@ export function LifeOsSurfaceProvider({ children }: { children: ReactNode }) {
   }, []);
   const setTvChannel = useCallback((n: number) => {
     setTvChannelState(Math.floor(n));
+  }, []);
+  const setRadioChannel = useCallback((n: number) => {
+    setRadioChannelState(Math.floor(n));
   }, []);
 
   const value = useMemo(
@@ -148,6 +171,11 @@ export function LifeOsSurfaceProvider({ children }: { children: ReactNode }) {
       broadcastMode,
       enterBroadcast,
       exitBroadcast,
+      broadcastUiMode,
+      openRemoteReveal,
+      openProgramInfo,
+      closeBroadcastUi,
+      toggleRemoteReveal,
       switcherVisible,
       openSwitcher,
       closeSwitcher,
@@ -163,9 +191,11 @@ export function LifeOsSurfaceProvider({ children }: { children: ReactNode }) {
       toggleMediaPaused,
       setMediaPaused,
       tvChannel,
+      radioChannel,
       channelUp,
       channelDown,
       setTvChannel,
+      setRadioChannel,
     }),
     [
       surface,
@@ -175,6 +205,11 @@ export function LifeOsSurfaceProvider({ children }: { children: ReactNode }) {
       broadcastMode,
       enterBroadcast,
       exitBroadcast,
+      broadcastUiMode,
+      openRemoteReveal,
+      openProgramInfo,
+      closeBroadcastUi,
+      toggleRemoteReveal,
       switcherVisible,
       openSwitcher,
       closeSwitcher,
@@ -189,45 +224,52 @@ export function LifeOsSurfaceProvider({ children }: { children: ReactNode }) {
       mediaPaused,
       toggleMediaPaused,
       tvChannel,
+      radioChannel,
       channelUp,
       channelDown,
       setTvChannel,
+      setRadioChannel,
     ],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
+const FALLBACK: SurfaceCtx = {
+  surface: "LIVING_LIFEOS",
+  setSurface: () => undefined,
+  tierOf: () => "ACTIVE",
+  enterOffline: () => undefined,
+  broadcastMode: false,
+  enterBroadcast: () => undefined,
+  exitBroadcast: () => undefined,
+  broadcastUiMode: "HIDDEN",
+  openRemoteReveal: () => undefined,
+  openProgramInfo: () => undefined,
+  closeBroadcastUi: () => undefined,
+  toggleRemoteReveal: () => undefined,
+  switcherVisible: false,
+  openSwitcher: () => undefined,
+  closeSwitcher: () => undefined,
+  toggleSwitcher: () => undefined,
+  controlVisible: false,
+  openControl: () => undefined,
+  closeControl: () => undefined,
+  toggleControl: () => undefined,
+  nowNextVisible: false,
+  openNowNext: () => undefined,
+  closeNowNext: () => undefined,
+  mediaPaused: false,
+  toggleMediaPaused: () => undefined,
+  setMediaPaused: () => undefined,
+  tvChannel: 0,
+  radioChannel: 0,
+  channelUp: () => undefined,
+  channelDown: () => undefined,
+  setTvChannel: () => undefined,
+  setRadioChannel: () => undefined,
+};
+
 export function useLifeOsSurface() {
-  const ctx = useContext(Ctx);
-  if (!ctx) {
-    return {
-      surface: "LIVING_LIFEOS" as LifeOsSurface,
-      setSurface: () => undefined,
-      tierOf: () => "ACTIVE" as SurfaceTier,
-      enterOffline: () => undefined,
-      broadcastMode: false,
-      enterBroadcast: () => undefined,
-      exitBroadcast: () => undefined,
-      switcherVisible: false,
-      openSwitcher: () => undefined,
-      closeSwitcher: () => undefined,
-      toggleSwitcher: () => undefined,
-      controlVisible: false,
-      openControl: () => undefined,
-      closeControl: () => undefined,
-      toggleControl: () => undefined,
-      nowNextVisible: false,
-      openNowNext: () => undefined,
-      closeNowNext: () => undefined,
-      mediaPaused: false,
-      toggleMediaPaused: () => undefined,
-      setMediaPaused: () => undefined,
-      tvChannel: 0,
-      channelUp: () => undefined,
-      channelDown: () => undefined,
-      setTvChannel: () => undefined,
-    };
-  }
-  return ctx;
+  return useContext(Ctx) ?? FALLBACK;
 }

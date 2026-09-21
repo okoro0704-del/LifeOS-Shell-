@@ -1,36 +1,56 @@
 import { useEffect } from "react";
 import { useLifeOsSurface } from "../context/LifeOsSurfaceContext";
 import { broadcastSchedule } from "../lib/broadcastSchedule";
-
-const NOW_NEXT_IDLE_MS = 4000;
+import { BROADCAST_REMOTE_IDLE_MS } from "./SurfaceSwitcherBar";
 
 export function BroadcastNowNext() {
-  const { surface, tvChannel, nowNextVisible, closeNowNext } = useLifeOsSurface();
+  const {
+    surface,
+    tvChannel,
+    radioChannel,
+    broadcastUiMode,
+    closeBroadcastUi,
+  } = useLifeOsSurface();
   const onAir = surface === "TV" || surface === "RADIO";
-  const schedule = onAir ? broadcastSchedule(surface, tvChannel) : null;
+  const visible = onAir && broadcastUiMode === "PROGRAM_INFO_REVEALED";
+  const channel = surface === "RADIO" ? radioChannel : tvChannel;
+  const schedule = onAir ? broadcastSchedule(surface, channel) : null;
 
   useEffect(() => {
-    if (!nowNextVisible || !onAir) return;
-    const timeout = window.setTimeout(closeNowNext, NOW_NEXT_IDLE_MS);
+    if (!visible) return;
+    const timeout = window.setTimeout(closeBroadcastUi, BROADCAST_REMOTE_IDLE_MS);
     return () => window.clearTimeout(timeout);
-  }, [nowNextVisible, onAir, surface, tvChannel, closeNowNext]);
+  }, [visible, surface, channel, closeBroadcastUi]);
 
-  if (!onAir || !nowNextVisible || !schedule) return null;
+  if (!visible || !schedule) return null;
+
+  const nowLabel = schedule.now.live
+    ? `LIVE — ${schedule.now.title}`
+    : schedule.now.title;
 
   return (
-    <aside className="broadcast-now-next" aria-label="Broadcast schedule" aria-live="polite">
-      <div>
-        <span>NOW</span>
-        <strong>{schedule.now.title}</strong>
-        {schedule.now.creator ? <small>{schedule.now.creator}</small> : null}
-      </div>
-      <div>
-        <span>NEXT</span>
-        <strong>{schedule.next.title}</strong>
-        {schedule.next.creator ? <small>{schedule.next.creator}</small> : null}
-      </div>
-    </aside>
+    <div
+      className="broadcast-program-info"
+      aria-label="Broadcast schedule"
+      aria-live="polite"
+      data-broadcast-ui={broadcastUiMode}
+      data-no-nav-dock
+    >
+      <header className="broadcast-program-info__station">
+        <strong>{schedule.stationName}</strong>
+      </header>
+      <aside className="broadcast-program-info__schedule">
+        <div>
+          <span>NOW</span>
+          <strong className={schedule.now.live ? "is-live" : undefined}>{nowLabel}</strong>
+        </div>
+        <div>
+          <span>NEXT</span>
+          <strong>{schedule.next.title}</strong>
+        </div>
+      </aside>
+    </div>
   );
 }
 
-export const BROADCAST_NOW_NEXT_IDLE_MS = NOW_NEXT_IDLE_MS;
+export const BROADCAST_NOW_NEXT_IDLE_MS = BROADCAST_REMOTE_IDLE_MS;

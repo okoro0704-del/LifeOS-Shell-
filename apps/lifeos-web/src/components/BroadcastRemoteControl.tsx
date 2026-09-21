@@ -1,35 +1,35 @@
 import { useEffect, useRef } from "react";
-import { IconBroadcast, IconHome } from "@lifeos/ui";
 import { useLifeOsSurface } from "../context/LifeOsSurfaceContext";
-
-const IDLE_MS = 4000;
+import { broadcastKinds } from "../lib/broadcastSchedule";
+import { kernelAdjacentCreatorIndex } from "../lib/offlineKernelRuntime";
+import { BROADCAST_REMOTE_IDLE_MS } from "./SurfaceSwitcherBar";
 
 /**
- * Ephemeral glyph-only remote. Overlays content — never changes layout.
- * Hidden until single-tap; auto-hides after idle.
+ * Minimal creator-station zapper. Overlays content — never changes layout.
+ * Visible only in REMOTE_REVEALED; auto-hides after idle.
  */
 export function BroadcastRemoteControl() {
   const {
     surface,
-    controlVisible,
-    closeControl,
-    setSurface,
-    channelUp,
-    channelDown,
-    mediaPaused,
-    toggleMediaPaused,
-    setMediaPaused,
+    broadcastUiMode,
+    closeBroadcastUi,
+    tvChannel,
+    radioChannel,
+    setTvChannel,
+    setRadioChannel,
   } = useLifeOsSurface();
   const onAir = surface === "TV" || surface === "RADIO";
+  const visible = onAir && broadcastUiMode === "REMOTE_REVEALED";
   const idleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const channel = surface === "RADIO" ? radioChannel : tvChannel;
 
   function armIdle() {
     if (idleRef.current) clearTimeout(idleRef.current);
-    idleRef.current = setTimeout(() => closeControl(), IDLE_MS);
+    idleRef.current = setTimeout(() => closeBroadcastUi(), BROADCAST_REMOTE_IDLE_MS);
   }
 
   useEffect(() => {
-    if (!controlVisible || !onAir) {
+    if (!visible) {
       if (idleRef.current) clearTimeout(idleRef.current);
       return;
     }
@@ -38,74 +38,52 @@ export function BroadcastRemoteControl() {
       if (idleRef.current) clearTimeout(idleRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [controlVisible, onAir, closeControl]);
+  }, [visible, closeBroadcastUi, surface, channel]);
 
-  if (!onAir || !controlVisible) return null;
+  function zap(direction: "next" | "prev") {
+    if (!onAir) return;
+    const kinds = broadcastKinds(surface);
+    const from = surface === "RADIO" ? radioChannel : tvChannel;
+    const next = kernelAdjacentCreatorIndex(kinds, from, direction);
+    if (surface === "RADIO") setRadioChannel(next);
+    else setTvChannel(next);
+    armIdle();
+  }
+
+  if (!visible) return null;
 
   return (
     <nav
-      className="lifeos-ghost-controls"
-      aria-label="Broadcast remote"
+      className="lifeos-ghost-controls lifeos-ghost-controls--stations"
+      aria-label="Station remote"
       data-no-nav-dock
+      data-broadcast-ui={broadcastUiMode}
       onPointerDown={armIdle}
     >
       <button
         type="button"
-        aria-label="Previous"
-        title="Previous"
+        aria-label="Previous station"
+        title="Previous station"
         data-no-nav-dock
-        onClick={() => {
-          channelDown();
-          armIdle();
-        }}
+        onClick={() => zap("prev")}
       >
         <span aria-hidden>‹</span>
       </button>
+      <span className="lifeos-ghost-controls__dot" aria-hidden>
+        ●
+      </span>
       <button
         type="button"
-        aria-label={mediaPaused ? "Play" : "Pause"}
-        title={mediaPaused ? "Play" : "Pause"}
+        aria-label="Next station"
+        title="Next station"
         data-no-nav-dock
-        onClick={() => {
-          toggleMediaPaused();
-          armIdle();
-        }}
-      >
-        <span aria-hidden>{mediaPaused ? "▶" : "Ⅱ"}</span>
-      </button>
-      <button
-        type="button"
-        aria-label="Next"
-        title="Next"
-        data-no-nav-dock
-        onClick={() => {
-          channelUp();
-          armIdle();
-        }}
+        onClick={() => zap("next")}
       >
         <span aria-hidden>›</span>
       </button>
-      <button
-        type="button"
-        aria-label="Live"
-        title="Live"
-        data-no-nav-dock
-        onClick={() => {
-          setMediaPaused(false);
-          armIdle();
-        }}
-      >
-        <IconBroadcast size={20} />
-      </button>
-      <button
-        type="button"
-        aria-label="Offline hub"
-        title="Offline"
-        data-no-nav-dock
-        onClick={() => setSurface("OFFLINE_HUB")}
-      >
-        <IconHome size={20} />
-      </button>
+      <span className="lifeos-ghost-controls__caption" aria-hidden>
+        Control
+      </span>
     </nav>
   );
 }

@@ -67,7 +67,15 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
   const { mode, setMode } = useWorkspace();
   const { expanded, handleSide, railSide, close, toggle, confirmSelection, noteShellActivity } =
     useNavigationDock();
-  const { setSurface, enterOffline, exitBroadcast } = useLifeOsSurface();
+  const {
+    setSurface,
+    enterOffline,
+    exitBroadcast,
+    surface,
+    broadcastUiMode,
+    toggleRemoteReveal,
+    closeBroadcastUi,
+  } = useLifeOsSurface();
   const panelId = useId();
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const [revealedId, setRevealedId] = useState<string | null>(null);
@@ -75,9 +83,15 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
   const path = location.pathname.replace(/\/+$/, "") || "/";
   const kernel = personalKernelFromPath(path) ?? "main";
   const personalBase = personalNavBase(kernel);
+  const onAir = surface === "TV" || surface === "RADIO";
+  const remoteRevealed = broadcastUiMode === "REMOTE_REVEALED";
   const showMessaging = hasDeployedMyBrandOS(apps) && path !== "/app/elcom";
   const messagesTo = showMessaging ? "/app/elcom" : "/app/messages";
   const tapMode: CmdTapMode = "immediate";
+
+  useEffect(() => {
+    if (onAir && expanded) close();
+  }, [onAir, expanded, close]);
 
   useEffect(() => {
     if (!expanded) {
@@ -222,32 +236,52 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
   const businessHomeActive = path === "/app/business" || path === "/app/business/";
   const businessExploreActive = businessHomeActive;
 
-  const edgeLabel = expanded ? "Hide LifeOS controls" : "Show LifeOS controls";
+  const edgeLabel = onAir
+    ? remoteRevealed
+      ? "Hide broadcast controls"
+      : "Show broadcast controls"
+    : expanded
+      ? "Hide LifeOS controls"
+      : "Show LifeOS controls";
+  const edgeOpen = onAir ? remoteRevealed : expanded;
+
+  function onEdgeReveal() {
+    if (onAir) {
+      if (expanded) close();
+      toggleRemoteReveal();
+      return;
+    }
+    if (broadcastUiMode !== "HIDDEN") closeBroadcastUi();
+    toggle();
+  }
 
   return (
     <>
       <button
         type="button"
         className="lifeos-cmd-nav__a11y-open"
-        aria-expanded={expanded}
-        aria-controls={panelId}
-        onClick={() => toggle()}
+        aria-expanded={edgeOpen}
+        aria-controls={onAir ? undefined : panelId}
+        onClick={onEdgeReveal}
       >
         {edgeLabel}
       </button>
 
       <button
         type="button"
-        className={`lifeos-cmd-nav__edge lifeos-cmd-nav__edge--${handleSide}${expanded ? " is-open" : ""}`}
+        className={`lifeos-cmd-nav__edge lifeos-cmd-nav__edge--${handleSide}${
+          edgeOpen ? " is-open" : ""
+        }${onAir ? " lifeos-cmd-nav__edge--broadcast" : ""}`}
         aria-label={edgeLabel}
-        aria-expanded={expanded}
-        aria-controls={panelId}
+        aria-expanded={edgeOpen}
+        aria-controls={onAir ? undefined : panelId}
         title={edgeLabel}
         data-no-nav-dock
-        onClick={() => toggle()}
+        data-broadcast-reveal
+        onClick={onEdgeReveal}
       >
         <span className="lifeos-cmd-nav__edge-hit" aria-hidden>
-          <EdgeChevron handleSide={handleSide} open={expanded} />
+          <EdgeChevron handleSide={handleSide} open={edgeOpen} />
         </span>
       </button>
 

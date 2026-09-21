@@ -1,7 +1,9 @@
 /**
- * Shared Offline Kernel runtime for TV + Radio.
- * Presentation layers consume this — they do not own separate offline stores.
+ * LifeOS Offline Kernel cloud adapter.
+ * Device runtime (catalog + localStorage) stays authoritative when offline.
+ * When ONLINE and OFFLINE_KERNEL_API_URL is set, prefer cloud station package programs.
  */
+
 import { catalogByKinds, type MediaItem } from "./personalCatalog";
 import { applyWatchedOffline } from "./personalMonetization";
 
@@ -12,28 +14,98 @@ export type OfflineKernelCapability =
   | "playlists"
   | "last-played"
   | "cached-stations"
-  | "offline-playback";
+  | "offline-playback"
+  | "cloud-station-sync";
 
-/** Capabilities provided by the shared offline kernel (infrastructure). */
 export const OFFLINE_KERNEL_CAPABILITIES: OfflineKernelCapability[] = [
   "local-media",
   "playlists",
   "last-played",
   "cached-stations",
   "offline-playback",
+  "cloud-station-sync",
 ];
+
+type CloudProgram = {
+  id: string;
+  channelType: "TV" | "RADIO";
+  title: string;
+  assetId: string | null;
+  mediaUrl: string | null;
+  coverUrl: string | null;
+  durationMs: number;
+};
+
+type CloudPackageCache = {
+  stationId: string;
+  fetchedAt: number;
+  programs: CloudProgram[];
+};
+
+const PACKAGE_TTL_MS = 60_000;
+let packageCache: CloudPackageCache | null = null;
 
 function isOnline(): boolean {
   return typeof navigator === "undefined" || navigator.onLine;
 }
 
+function kernelApiUrl(): string {
+  const fromEnv =
+    (typeof import.meta !== "undefined" &&
+      (import.meta as ImportMeta & { env?: Record<string, string> }).env?.VITE_OFFLINE_KERNEL_API_URL) ||
+    "";
+  return String(fromEnv || "").replace(/\/$/, "");
+}
+
+export async function syncStationPackage(stationIdOrSlug: string): Promise<CloudProgram[]> {
+  const base = kernelApiUrl();
+  if (!base || !isOnline()) return packageCache?.programs ?? [];
+  try {
+    const res = await fetch(`${base}/v1/stations/${encodeURIComponent(stationIdOrSlug)}/package`);
+    if (!res.ok) return packageCache?.programs ?? [];
+    const pkg = (await res.json()) as { stationId: string; programs: CloudProgram[] };
+    packageCache = {
+      stationId: pkg.stationId,
+      fetchedAt: Date.now(),
+      programs: pkg.programs ?? [],
+    };
+    return packageCache.programs;
+  } catch {
+    return packageCache?.programs ?? [];
+  }
+}
+
+function cloudProgramsAsMedia(kinds: MediaItem["kind"][]): MediaItem[] {
+  if (!packageCache || Date.now() - packageCache.fetchedAt > PACKAGE_TTL_MS * 5) return [];
+  const wantTv = kinds.some((k) => k === "video" || k === "reel");
+  const wantRadio = kinds.some((k) => k === "music" || k === "podcast");
+  return packageCache.programs
+    .filter((p) => (p.channelType === "TV" && wantTv) || (p.channelType === "RADIO" && wantRadio))
+    .filter((p) => Boolean(p.mediaUrl))
+    .map((p) => ({
+      id: p.assetId || p.id,
+      kind: (p.channelType === "RADIO" ? "music" : "video") as MediaItem["kind"],
+      title: p.title,
+      detail: "Station program",
+      free: true,
+      ownedOrConsumed: true,
+      premiumRequired: false,
+      mediaUrl: p.mediaUrl!,
+      posterUrl: p.coverUrl || undefined,
+      author: packageCache?.stationId,
+    }));
+}
+
 /**
- * Resolve media for TV/Radio through the shared offline kernel.
- * Online → full catalog for kinds.
- * Offline → owned/consumed local library only (same store as Personal offline filter).
+ * Resolve media for TV/Radio through the Offline Kernel adapter.
+ * Prefer cloud package when synced; otherwise local catalog.
+ * Offline → owned/consumed local library only.
  */
 export function kernelMediaFor(kinds: MediaItem["kind"][]): MediaItem[] {
   applyWatchedOffline();
+  const cloud = cloudProgramsAsMedia(kinds);
+  if (cloud.length && isOnline()) return cloud;
+  if (cloud.length && !isOnline()) return cloud;
   const pool = catalogByKinds(kinds);
   if (isOnline()) return pool;
   return pool.filter((i) => i.ownedOrConsumed);
@@ -43,13 +115,11 @@ export function kernelHasLocalContent(kinds: MediaItem["kind"][]): boolean {
   return kernelMediaFor(kinds).length > 0;
 }
 
-/** Brand / creator label for a catalog item (TV station identity). */
 export function kernelBrandOf(item: MediaItem): string {
   const brand = (item.author || item.storeDisplayName || item.title || "").trim();
   return brand || "Unknown";
 }
 
-/** Unique creator brands in catalog order (first appearance wins). */
 export function kernelCreatorsFor(kinds: MediaItem["kind"][]): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
@@ -63,7 +133,6 @@ export function kernelCreatorsFor(kinds: MediaItem["kind"][]): string[] {
   return out;
 }
 
-/** Index of first catalog item matching a creator brand name (fuzzy). */
 export function kernelIndexForBrand(kinds: MediaItem["kind"][], query: string): number {
   const q = query.trim().toLowerCase();
   if (!q) return -1;
@@ -76,7 +145,6 @@ export function kernelIndexForBrand(kinds: MediaItem["kind"][], query: string): 
   });
 }
 
-/** Index of first item for the next/prev unique creator relative to `fromIndex`. */
 export function kernelAdjacentCreatorIndex(
   kinds: MediaItem["kind"][],
   fromIndex: number,

@@ -5,9 +5,9 @@ import { useLifeOsSurface } from "../context/LifeOsSurfaceContext";
 import { attachNavDockDoubleTap } from "../lib/navDockGesture";
 
 /**
- * TV/Radio: single tap summons remote; double tap summons Now/Next.
+ * TV/Radio: double tap on broadcast → PROGRAM_INFO_REVEALED (creator + NOW/NEXT).
+ * Single tap on broadcast does nothing — remote opens only via the edge reveal handle.
  * Offline hub and Business toggle shell; Living toggles its surface switcher.
- * BUSINESS: double-tap toggles unified Business shell controls.
  */
 export function NavigationDockGestures({ children }: { children: ReactNode }) {
   const { toggle, expanded, close } = useNavigationDock();
@@ -17,10 +17,9 @@ export function NavigationDockGestures({ children }: { children: ReactNode }) {
     switcherVisible,
     closeSwitcher,
     surface,
-    controlVisible,
-    closeControl,
-    openControl,
-    openNowNext,
+    broadcastUiMode,
+    closeBroadcastUi,
+    openProgramInfo,
   } = useLifeOsSurface();
   const rootRef = useRef<HTMLDivElement>(null);
   const [ripple, setRipple] = useState<{ x: number; y: number; id: number } | null>(null);
@@ -30,8 +29,8 @@ export function NavigationDockGestures({ children }: { children: ReactNode }) {
   switcherRef.current = switcherVisible;
   const expandedRef = useRef(expanded);
   expandedRef.current = expanded;
-  const controlRef = useRef(controlVisible);
-  controlRef.current = controlVisible;
+  const uiModeRef = useRef(broadcastUiMode);
+  uiModeRef.current = broadcastUiMode;
   const surfaceRef = useRef(surface);
   surfaceRef.current = surface;
 
@@ -45,39 +44,41 @@ export function NavigationDockGestures({ children }: { children: ReactNode }) {
         if (modeRef.current === "PERSONAL") {
           if (surfaceRef.current === "TV" || surfaceRef.current === "RADIO") {
             if (expandedRef.current) close();
-            openNowNext();
+            openProgramInfo();
           } else if (surfaceRef.current === "OFFLINE_HUB") {
             if (switcherRef.current) closeSwitcher();
+            if (uiModeRef.current !== "HIDDEN") closeBroadcastUi();
             if (expandedRef.current) close();
             else toggle();
           } else {
             if (expandedRef.current) close();
-            if (controlRef.current) closeControl();
+            if (uiModeRef.current !== "HIDDEN") closeBroadcastUi();
             toggleSwitcher();
           }
         } else {
           if (switcherRef.current) closeSwitcher();
-          if (controlRef.current) closeControl();
+          if (uiModeRef.current !== "HIDDEN") closeBroadcastUi();
           toggle();
         }
         window.setTimeout(() => setRipple(null), 420);
       },
-      () => {
-        if (
-          modeRef.current === "PERSONAL" &&
-          (surfaceRef.current === "TV" || surfaceRef.current === "RADIO")
-        ) {
-          openControl();
-        }
-      },
+      // No single-tap broadcast action — edge handle owns REMOTE_REVEALED.
     );
-  }, [toggle, toggleSwitcher, close, closeSwitcher, closeControl, openControl, openNowNext]);
+  }, [
+    toggle,
+    toggleSwitcher,
+    close,
+    closeSwitcher,
+    closeBroadcastUi,
+    openProgramInfo,
+  ]);
 
   return (
     <div
       className="lifeos-nav-dock-gesture-root"
       ref={rootRef}
       data-lifeos-surface={surface}
+      data-broadcast-ui={broadcastUiMode}
     >
       {children}
       {ripple ? (

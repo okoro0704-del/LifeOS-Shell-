@@ -47,6 +47,8 @@ export type MediaItem = {
   /** Paid to appear in Plus trending */
   trending?: boolean;
   trendScore?: number;
+  /** True only for genuine live broadcasts — never set on replays. */
+  live?: boolean;
 };
 
 const SAMPLE_VIDEOS = [
@@ -199,6 +201,7 @@ export const PERSONAL_CATALOG: MediaItem[] = [
     likes: "18k",
     mediaUrl: videoAt(4),
     posterUrl: poster("creator-tip"),
+    live: true,
   },
   {
     id: "r3",
@@ -275,6 +278,7 @@ export const PERSONAL_CATALOG: MediaItem[] = [
     premiumRequired: false,
     author: "open.mic",
     mediaUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+    live: true,
   },
   {
     id: "pod1",

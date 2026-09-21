@@ -16,7 +16,7 @@ function channelIndex(n: number, len: number): number {
  * Radio — signal filling space. The broadcast remote owns interaction.
  */
 export function RadioSurface() {
-  const { surface, tierOf, broadcastMode, tvChannel, mediaPaused } = useLifeOsSurface();
+  const { surface, tierOf, broadcastMode, radioChannel, mediaPaused } = useLifeOsSurface();
   const active = surface === "RADIO";
   const tier = tierOf("RADIO");
   const audio = kernelMediaFor(["music", "podcast"]);
@@ -28,8 +28,8 @@ export function RadioSurface() {
 
   const station = useMemo(() => {
     if (audio.length === 0) return null;
-    return audio[channelIndex(tvChannel, audio.length)] ?? null;
-  }, [audio, tvChannel]);
+    return audio[channelIndex(radioChannel, audio.length)] ?? null;
+  }, [audio, radioChannel]);
 
   const brand = station ? kernelBrandOf(station) : null;
   const src = station?.mediaUrl ?? null;
