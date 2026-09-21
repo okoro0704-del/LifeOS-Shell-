@@ -24,6 +24,10 @@ import { LifeOsCommandNavigation } from "./LifeOsCommandNavigation";
 import { NavigationDockGestures } from "./NavigationDockGestures";
 import { ActiveKernelSignature } from "./ActiveKernelSignature";
 import { TransientAlertSurface } from "./TransientAlertSurface";
+import { SurfaceSwitcherBar } from "./SurfaceSwitcherBar";
+import { TvSurface } from "./TvSurface";
+import { RadioSurface } from "./RadioSurface";
+import { useLifeOsSurface } from "../context/LifeOsSurfaceContext";
 import { LifeOSWakeListener } from "./LifeOSWakeListener";
 import { PageTopBar } from "./PageTopBar";
 import { VerificationStars } from "./VerificationStars";
@@ -77,9 +81,12 @@ function isBusinessDetailPath(pathname: string): boolean {
 export function AppShell() {
   const { user } = useAuth();
   const { mode, setMode } = useWorkspace();
+  const { surface } = useLifeOsSurface();
   const location = useLocation();
   const navigate = useNavigate();
   const { openCommand } = useCommandLayer();
+  const livingActive = surface === "LIVING_LIFEOS";
+  const personalSurfaces = mode === "PERSONAL";
   const [unread, setUnread] = useState(0);
   const [demoUnread, setDemoUnread] = useState(0);
   const [offline, setOffline] = useState(!navigator.onLine);
@@ -218,10 +225,16 @@ export function AppShell() {
 
   return (
     <NavigationDockGestures>
-    <div className="shell shell--side-dock">
+    <div
+      className={`shell shell--side-dock${
+        personalSurfaces && !livingActive ? " is-living-suspended" : ""
+      }${personalSurfaces ? ` shell--surface-${surface.toLowerCase()}` : ""}`}
+      data-lifeos-surface={personalSurfaces ? surface : undefined}
+    >
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
+      {personalSurfaces ? <SurfaceSwitcherBar /> : null}
       <aside className="sidebar" aria-label="Primary">
         <div className="brand">
           <span className="brand-mark" aria-hidden />
@@ -371,32 +384,20 @@ export function AppShell() {
             className="offline-kernel-prompt"
             role="dialog"
             aria-modal="true"
-            aria-label="Go offline"
+            aria-label="You are offline"
           >
             <div className="offline-kernel-prompt__sheet">
               <h2>You lost internet</h2>
               <p>
-                Would you like to go to the Offline kernel until your network is restored? You can
-                keep watching saved movies there.
+                You can keep living in LifeOS. Local TV and Radio stay available when you summon them.
               </p>
               <div className="offline-kernel-prompt__actions">
                 <button
                   type="button"
                   className="los-btn los-btn--primary"
-                  onClick={() => {
-                    setOfflinePrompt(false);
-                    setLastSelectedKernel("offline", user?.trustId);
-                    navigate("/app/personal/offline/post");
-                  }}
-                >
-                  Go
-                </button>
-                <button
-                  type="button"
-                  className="los-btn"
                   onClick={() => setOfflinePrompt(false)}
                 >
-                  Stay
+                  Stay in LifeOS
                 </button>
               </div>
             </div>
@@ -496,17 +497,27 @@ export function AppShell() {
 
         <main
           id="main-content"
-          className={`content${isImmersive ? " content--immersive" : ""}`}
+          className={`content${isImmersive ? " content--immersive" : ""}${
+            personalSurfaces && !livingActive ? " content--surface-suspended" : ""
+          }`}
           key={location.pathname}
+          aria-hidden={personalSurfaces && !livingActive ? true : undefined}
         >
           <div className="page-enter">
             <Outlet />
           </div>
         </main>
 
+        {personalSurfaces ? (
+          <>
+            <TvSurface />
+            <RadioSurface />
+          </>
+        ) : null}
+
         <CommandOverlay />
         <LifeOSWakeListener />
-        {!isImmersive ? (
+        {!isImmersive && livingActive ? (
           <>
             <LifeOsCommandNavigation apps={installedApps} unread={shellUnread} />
             <ActiveKernelSignature />

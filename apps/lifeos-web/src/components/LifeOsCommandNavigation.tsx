@@ -20,7 +20,6 @@ import {
   IconHome,
   IconKernel,
   IconMessage,
-  IconReceive,
   IconTicket,
   IconTv,
   IconWallet,
@@ -31,6 +30,7 @@ import { triggerWorkspaceHaptic } from "../lib/mobileBridge";
 import { setLastSelectedKernel } from "../lib/kernelNavigation";
 import { personalLandingPath } from "../lib/personalConnectivity";
 import { useWorkspace, type WorkspaceMode } from "../context/WorkspaceContext";
+import { useLifeOsSurface } from "../context/LifeOsSurfaceContext";
 import { useNavigationDock } from "../context/NavigationDockContext";
 import {
   CMD_LABEL_HOLD_MS,
@@ -66,6 +66,7 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
   const { mode, setMode } = useWorkspace();
   const { expanded, handleSide, railSide, close, toggle, confirmSelection, noteShellActivity } =
     useNavigationDock();
+  const { setSurface } = useLifeOsSurface();
   const panelId = useId();
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const [revealedId, setRevealedId] = useState<string | null>(null);
@@ -148,7 +149,7 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
   }
 
   function goStreamify() {
-    navigate(`${personalNavBase(kernel)}/streamify`);
+    setSurface("TV");
     afterSelect();
   }
 
@@ -310,9 +311,9 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
 
             <CmdIcon
               id="streamify"
-              label="Streamify"
+              label="TV"
               Icon={StreamifyIcon}
-              active={path.includes("/streamify")}
+              active={false}
               revealed={revealedId === "streamify"}
               railSide={railSide}
               tapMode={tapMode}
@@ -423,28 +424,13 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
 
       {mode === "PERSONAL" ? (
         <nav
-          className={`lifeos-kernel-bar${expanded ? " is-open" : ""}`}
+          className={`lifeos-kernel-bar lifeos-kernel-bar--two${expanded ? " is-open" : ""}`}
           aria-label="Kernel switcher"
           aria-hidden={!expanded}
           data-no-nav-dock
           hidden={!expanded}
           onPointerDown={() => noteShellActivity()}
         >
-          <button
-            type="button"
-            className={`lifeos-kernel-bar__btn${kernel === "offline" ? " is-active" : ""}`}
-            aria-label="Offline"
-            aria-pressed={kernel === "offline"}
-            title="Offline"
-            data-no-nav-dock
-            onClick={(e) => {
-              e.stopPropagation();
-              selectKernel("offline");
-            }}
-          >
-            <IconReceive size={22} />
-            <span className="lifeos-kernel-bar__label">Offline</span>
-          </button>
           <button
             type="button"
             className={`lifeos-kernel-bar__btn${kernel === "main" ? " is-active" : ""}`}

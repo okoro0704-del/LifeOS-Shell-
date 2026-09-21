@@ -8881,3 +8881,121 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
     transition: none;
   }
 }
+
+
+/* —— Living Space surfaces: LifeOS · TV · Radio —— */
+.lifeos-surface-switcher {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  z-index: 130;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: center;
+  padding: calc(0.45rem + env(safe-area-inset-top, 0px)) 1rem 0.55rem;
+  transform: translate(-50%, -120%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.22s ease, opacity 0.22s ease;
+  background: transparent;
+}
+
+.lifeos-surface-switcher.is-open {
+  transform: translate(-50%, 0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.lifeos-surface-switcher__btn {
+  min-width: 4.5rem;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.85rem;
+  border: 0;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: #16a34a;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lifeos-surface-switcher__btn.is-active {
+  color: #15803d;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.lifeos-surface-switcher__a11y {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.lifeos-surface {
+  position: fixed;
+  inset: 0;
+  z-index: 88;
+  display: none;
+  flex-direction: column;
+  background: var(--los-bg, #0a0a0a);
+  color: inherit;
+}
+
+.lifeos-surface.is-active {
+  display: flex;
+}
+
+.lifeos-surface__chrome {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: calc(0.35rem + env(safe-area-inset-top, 0px)) 1rem 0.35rem;
+  background: transparent;
+}
+
+.lifeos-surface__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+}
+
+.lifeos-surface__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.lifeos-surface__body--radio {
+  padding: 0.5rem 0 1rem;
+}
+
+.content--surface-suspended {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.shell.is-living-suspended .sidebar,
+.shell.is-living-suspended .page-topbar,
+.shell.is-living-suspended .offline-banner {
+  visibility: hidden;
+}
+
+.lifeos-kernel-bar--two {
+  grid-template-columns: 1fr 1fr;
+  width: min(12rem, calc(100vw - 2rem));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lifeos-surface-switcher {
+    transition: none;
+  }
+}

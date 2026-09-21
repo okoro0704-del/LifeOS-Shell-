@@ -46,7 +46,7 @@ describe("personal consumer space wiring", () => {
     expect(src).toContain("lifeos-cmd-nav__icon");
     expect(src).toContain("lifeos-cmd-nav__edge");
     expect(src).toContain("lifeos-kernel-bar");
-    expect(src).toContain('aria-label="Offline"');
+    expect(src).not.toContain('aria-label="Offline"');
     expect(src).toContain('aria-label="Main"');
     expect(src).toContain('aria-label="Free"');
     expect(src).toContain("lifeos-cmd-nav__cmd-label");

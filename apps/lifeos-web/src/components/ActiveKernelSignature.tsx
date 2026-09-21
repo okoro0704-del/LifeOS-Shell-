@@ -2,26 +2,30 @@ import { personalKernelFromPath } from "./shell/nav";
 import { useLocation } from "react-router-dom";
 import { useNavigationDock } from "../context/NavigationDockContext";
 import { useWorkspace } from "../context/WorkspaceContext";
+import { useLifeOsSurface } from "../context/LifeOsSurfaceContext";
 
 const LABEL = {
   main: "Main",
   free: "Free",
-  offline: "Offline",
+  offline: null,
 } as const;
 
 /**
- * Persistent flat kernel signature — Personal Space only.
- * Business Space must not show Main/Free/Offline ambient labels.
+ * Persistent flat kernel signature — Personal Living LifeOS only.
+ * Offline is infrastructure (not user-facing). Hidden on TV/Radio surfaces.
  */
 export function ActiveKernelSignature() {
   const location = useLocation();
   const { mode } = useWorkspace();
   const { shellControlsVisible } = useNavigationDock();
+  const { surface } = useLifeOsSurface();
   const kernel = personalKernelFromPath(location.pathname) ?? "main";
 
   if (mode === "BUSINESS") return null;
+  if (surface !== "LIVING_LIFEOS") return null;
 
   const label = LABEL[kernel];
+  if (!label) return null;
   const hide = shellControlsVisible;
 
   return (

@@ -69,22 +69,18 @@ export function needsFaceOnKernelSwitch(): boolean {
 }
 
 /** Landing after login /app redirect.
- * Online → Main. Offline → Offline (saved media).
- * Pending face-gate kernel still wins when present.
+ * Always enter Living LifeOS (Personal Space). Offline Kernel is infrastructure only —
+ * it is not a first-open destination.
  */
 export function personalLandingPath(trustId?: string | null): string {
-  if (typeof navigator !== "undefined" && !navigator.onLine) {
-    setLastSelectedKernel("offline", trustId);
-    return "/app/personal/offline/post";
-  }
   const pending = peekPendingKernelPath();
-  if (pending) return pending;
+  if (pending && !pending.includes("/offline")) return pending;
   setLastSelectedKernel("main", trustId);
   return "/app/personal/post";
 }
 
-/** When login cannot reach the network, enter Offline instead of failing. */
+/** When login cannot reach the network, still enter Living LifeOS immediately. */
 export function offlineLoginFallbackPath(trustId?: string | null): string {
-  setLastSelectedKernel("offline", trustId);
-  return "/app/personal/offline/post";
+  setLastSelectedKernel("main", trustId);
+  return "/app/personal/post";
 }

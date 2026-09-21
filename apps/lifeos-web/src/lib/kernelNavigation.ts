@@ -1,7 +1,9 @@
 import type { PersonalKernel } from "../components/shell/nav";
 
-/** Canonical spatial order: Free ↔ Offline ↔ Main */
-export const KERNEL_NAV_ORDER: PersonalKernel[] = ["free", "offline", "main"];
+/** Canonical spatial order for Living LifeOS content modes: Free ↔ Main.
+ * Offline Kernel is infrastructure for TV/Radio — not a swipe destination.
+ */
+export const KERNEL_NAV_ORDER: PersonalKernel[] = ["free", "main"];
 
 export type KernelSwipeFingers = 2;
 
@@ -78,7 +80,9 @@ export function adjacentKernel(
   current: PersonalKernel,
   direction: "left" | "right",
 ): PersonalKernel | null {
-  const idx = KERNEL_NAV_ORDER.indexOf(current);
+  // Offline is infrastructure — treat as Main for Living LifeOS swipe peers.
+  const cur = current === "offline" ? "main" : current;
+  const idx = KERNEL_NAV_ORDER.indexOf(cur);
   if (idx < 0) return null;
   // Swipe left → move toward right neighbor (higher index).
   if (direction === "left") {

@@ -33,6 +33,8 @@ const INTERACTIVE_SELECTOR = [
   ".lifeos-cmd-nav__edge",
   ".lifeos-biz-dock",
   ".lifeos-kernel-bar",
+  ".lifeos-surface-switcher",
+  ".lifeos-surface__chrome",
   ".lifeos-transient-alerts",
   ".bottom-nav",
   ".command-overlay",
