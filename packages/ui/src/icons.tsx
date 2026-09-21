@@ -211,12 +211,14 @@ export function IconMessage(p: IconProps) {
   );
 }
 
-/** TV / display — Streamify visual mode. */
+/** Advanced widescreen TV — broadcast station, not a cartoon set. */
 export function IconTv(p: IconProps) {
   return (
     <Svg {...p}>
-      <rect x="3.5" y="5" width="17" height="12" rx="1.75" />
-      <path d="M8 21h8M12 17v4" />
+      <rect x="2.5" y="6" width="19" height="11.5" rx="2" />
+      <path d="M7.5 20.5h9" />
+      <path d="M12 17.5v3" />
+      <path d="M5.5 9.25h13" opacity="0.45" />
     </Svg>
   );
 }
@@ -232,15 +234,15 @@ export function IconHeadphones(p: IconProps) {
   );
 }
 
-/** Broadcast / live waves. */
+/** Broadcast / live frequency — Radio signal identity. */
 export function IconBroadcast(p: IconProps) {
   return (
     <Svg {...p}>
-      <circle cx="12" cy="12" r="1.75" />
-      <path d="M8.2 8.2a5.5 5.5 0 0 0 0 7.6" />
-      <path d="M15.8 8.2a5.5 5.5 0 0 1 0 7.6" />
-      <path d="M5.5 5.5a9.5 9.5 0 0 0 0 13" />
-      <path d="M18.5 5.5a9.5 9.5 0 0 1 0 13" />
+      <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
+      <path d="M8.35 8.35a5.25 5.25 0 0 0 0 7.3" />
+      <path d="M15.65 8.35a5.25 5.25 0 0 1 0 7.3" />
+      <path d="M5.7 5.7a9 9 0 0 0 0 12.6" />
+      <path d="M18.3 5.7a9 9 0 0 1 0 12.6" />
     </Svg>
   );
 }

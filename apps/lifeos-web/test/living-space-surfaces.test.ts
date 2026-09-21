@@ -10,6 +10,7 @@ import {
   OFFLINE_KERNEL_CAPABILITIES,
 } from "../src/lib/offlineKernelRuntime";
 import { personalKernelPath } from "../src/components/shell/nav";
+import { SURFACE_SWITCHER_IDLE_MS } from "../src/components/SurfaceSwitcherBar";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -33,16 +34,18 @@ describe("Living Space First + Offline TV/Radio broadcast", () => {
     expect(Array.isArray(kernelMediaFor(["video", "reel"]))).toBe(true);
   });
 
-  it("double-tap summons surface switcher on Personal", () => {
+  it("double-tap summons transparent ghost remote on Personal", () => {
     const gest = readFileSync(join(root, "src/components/NavigationDockGestures.tsx"), "utf8");
     expect(gest).toContain("toggleSwitcher");
     expect(gest).toContain('modeRef.current === "PERSONAL"');
     const bar = readFileSync(join(root, "src/components/SurfaceSwitcherBar.tsx"), "utf8");
-    expect(bar).toContain("LifeOS");
-    expect(bar).toContain("TV");
-    expect(bar).toContain("Radio");
+    expect(bar).toContain("lifeos-ghost-remote");
+    expect(bar).toContain("IconTv");
+    expect(bar).toContain("IconBroadcast");
     expect(bar).toContain("BROADCAST_OPTIONS");
     expect(bar).not.toContain("lifeos-surface-switcher__control");
+    expect(SURFACE_SWITCHER_IDLE_MS).toBeGreaterThanOrEqual(3000);
+    expect(SURFACE_SWITCHER_IDLE_MS).toBeLessThanOrEqual(5000);
   });
 
   it("Offline kernel lands on bare TV broadcast path", () => {
@@ -51,18 +54,26 @@ describe("Living Space First + Offline TV/Radio broadcast", () => {
     expect(home).toContain("offline-broadcast-landing");
     expect(home).not.toContain('Navigate to="/app/personal/offline/post"');
     const nav = readFileSync(join(root, "src/components/LifeOsCommandNavigation.tsx"), "utf8");
-    expect(nav).toContain('aria-label="Offline"');
-    expect(nav).toContain('selectKernel("offline")');
-    expect(nav).toContain("enterBroadcast");
+    expect(nav).toContain("enterBroadcastSurface");
+    expect(nav).toContain('enterBroadcastSurface("TV")');
+    expect(nav).toContain('aria-label="My TV"');
+    expect(nav).toContain('aria-label="My Radio"');
   });
 
-  it("TV and Radio surfaces share offline kernel id and channel seek", () => {
+  it("TV owns fullscreen; Radio is wave-field only", () => {
     const tv = readFileSync(join(root, "src/components/TvSurface.tsx"), "utf8");
     const radio = readFileSync(join(root, "src/components/RadioSurface.tsx"), "utf8");
+    const waves = readFileSync(join(root, "src/components/RadioWaveField.tsx"), "utf8");
     expect(tv).toContain('data-kernel="lifeos-offline-kernel"');
     expect(radio).toContain('data-kernel="lifeos-offline-kernel"');
     expect(tv).toContain("seekPublicationId");
     expect(tv).toContain("lifeos-surface--bare");
+    expect(tv).not.toContain("key={`tv-ch-");
+    expect(radio).toContain("RadioWaveField");
+    expect(radio).not.toContain("MediaFeed");
+    expect(radio).not.toContain("ImmersiveMediaFeed");
+    expect(waves).toContain("radio-wave-field__ring");
+    expect(waves).toContain("radio-wave-field__core");
   });
 
   it("Control peek + Auto/Manual creator tuning", () => {
@@ -78,6 +89,16 @@ describe("Living Space First + Offline TV/Radio broadcast", () => {
     const runtime = readFileSync(join(root, "src/lib/offlineKernelRuntime.ts"), "utf8");
     expect(runtime).toContain("kernelCreatorsFor");
     expect(runtime).toContain("kernelIndexForBrand");
+  });
+
+  it("ghost remote CSS is transparent and safe-area aware", () => {
+    const css = readFileSync(join(root, "src/styles.css"), "utf8");
+    expect(css).toContain(".lifeos-ghost-remote");
+    expect(css).toContain("safe-area-inset-top");
+    expect(css).toContain("backdrop-filter");
+    expect(css).toContain("radio-ring-out");
+    expect(css).toContain(".lifeos-surface--radio");
+    expect(css).toContain("rgba(0, 0, 0, 0.12)");
   });
 
   it("Living swipe stays Free ↔ Main; Offline is broadcast destination", () => {

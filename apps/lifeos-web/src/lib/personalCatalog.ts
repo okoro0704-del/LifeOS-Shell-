@@ -262,6 +262,8 @@ export const PERSONAL_CATALOG: MediaItem[] = [
     free: false,
     ownedOrConsumed: true,
     premiumRequired: true,
+    author: "night.drive",
+    mediaUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
   },
   {
     id: "m2",
@@ -269,8 +271,10 @@ export const PERSONAL_CATALOG: MediaItem[] = [
     kind: "music",
     detail: "Free single",
     free: true,
-    ownedOrConsumed: false,
+    ownedOrConsumed: true,
     premiumRequired: false,
+    author: "open.mic",
+    mediaUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
   },
   {
     id: "pod1",
@@ -280,6 +284,8 @@ export const PERSONAL_CATALOG: MediaItem[] = [
     free: false,
     ownedOrConsumed: true,
     premiumRequired: true,
+    author: "makers.ng",
+    mediaUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
   },
   {
     id: "pod2",
@@ -289,6 +295,8 @@ export const PERSONAL_CATALOG: MediaItem[] = [
     free: true,
     ownedOrConsumed: true,
     premiumRequired: false,
+    author: "city.diary",
+    mediaUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
   },
   {
     id: "v1",

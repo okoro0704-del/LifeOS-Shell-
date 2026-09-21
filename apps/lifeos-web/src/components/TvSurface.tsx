@@ -9,8 +9,8 @@ function channelIndex(n: number, len: number): number {
 }
 
 /**
- * TV surface — bare fullscreen when Offline Kernel broadcast is active.
- * Channel changes come from Control remote (tvChannel).
+ * TV surface — premium fullscreen station.
+ * Stable feed mount; channel seeks without remounting the remote layer.
  */
 export function TvSurface() {
   const { surface, tierOf, broadcastMode, tvChannel } = useLifeOsSurface();
@@ -38,7 +38,6 @@ export function TvSurface() {
       {active ? (
         <div className="lifeos-surface__body">
           <ImmersiveMediaFeed
-            key={`tv-ch-${channelId ?? "empty"}`}
             items={items}
             empty={
               offline && !hasLocal

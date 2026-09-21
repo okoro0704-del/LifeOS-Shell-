@@ -1,23 +1,26 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ComponentType, type SVGProps } from "react";
+import { IconBroadcast, IconTv } from "@lifeos/ui";
 import { useLifeOsSurface, type LifeOsSurface } from "../context/LifeOsSurfaceContext";
 
 const SWITCHER_IDLE_MS = 4000;
 
-const LIVING_OPTIONS: { id: LifeOsSurface; label: string }[] = [
-  { id: "LIVING_LIFEOS", label: "LifeOS" },
-  { id: "TV", label: "TV" },
-  { id: "RADIO", label: "Radio" },
+type IconComp = ComponentType<SVGProps<SVGSVGElement> & { size?: number }>;
+
+const LIVING_OPTIONS: { id: LifeOsSurface; label: string; aria: string; Icon?: IconComp }[] = [
+  { id: "LIVING_LIFEOS", label: "LifeOS", aria: "Living LifeOS" },
+  { id: "TV", label: "My TV", aria: "My TV", Icon: IconTv },
+  { id: "RADIO", label: "My Radio", aria: "My Radio", Icon: IconBroadcast },
 ];
 
-const BROADCAST_OPTIONS: { id: LifeOsSurface; label: string }[] = [
-  { id: "TV", label: "TV" },
-  { id: "RADIO", label: "Radio" },
+const BROADCAST_OPTIONS: { id: LifeOsSurface; label: string; aria: string; Icon?: IconComp }[] = [
+  { id: "TV", label: "TV", aria: "TV", Icon: IconTv },
+  { id: "RADIO", label: "Radio", aria: "Radio", Icon: IconBroadcast },
 ];
 
 /**
- * Top-edge surface switcher — summoned by double-tap.
- * Living: LifeOS · TV · Radio
- * Offline broadcast: TV · Radio only (Control is the bottom peek icon).
+ * Transparent futuristic remote — summoned by double-tap.
+ * Living: LifeOS · My TV · My Radio. Broadcast infrastructure: TV · Radio.
+ * Ghost layer over content; auto-hides. No sheet / modal / toolbar weight.
  */
 export function SurfaceSwitcherBar() {
   const {
@@ -59,34 +62,47 @@ export function SurfaceSwitcherBar() {
 
   return (
     <div
-      className={`lifeos-surface-switcher${switcherVisible ? " is-open" : ""}${
-        broadcastMode ? " lifeos-surface-switcher--broadcast" : ""
+      className={`lifeos-ghost-remote${switcherVisible ? " is-open" : ""}${
+        broadcastMode ? " lifeos-ghost-remote--broadcast" : ""
       }`}
       role="toolbar"
       aria-label={broadcastMode ? "TV and Radio" : "LifeOS surfaces"}
       aria-hidden={!switcherVisible}
       data-no-nav-dock
+      data-ghost-remote
       onPointerDown={noteActivity}
     >
-      <div className="lifeos-surface-switcher__row" role="group" aria-label="Surfaces">
-        {options.map((o) => (
-          <button
-            key={o.id}
-            type="button"
-            className={`lifeos-surface-switcher__btn${surface === o.id ? " is-active" : ""}`}
-            aria-label={o.label === "LifeOS" ? "Living LifeOS" : o.label}
-            aria-pressed={surface === o.id}
-            data-no-nav-dock
-            onClick={() => pick(o.id)}
-          >
-            {o.label}
-          </button>
-        ))}
+      <div className="lifeos-ghost-remote__glass" aria-hidden />
+      <div className="lifeos-ghost-remote__row" role="group" aria-label="Surfaces">
+        {options.map((o) => {
+          const Icon = o.Icon;
+          const active = surface === o.id;
+          return (
+            <button
+              key={o.id}
+              type="button"
+              className={`lifeos-ghost-remote__btn lifeos-ghost-remote__btn--${o.id.toLowerCase()}${
+                active ? " is-active" : ""
+              }`}
+              aria-label={o.aria}
+              aria-pressed={active}
+              data-no-nav-dock
+              onClick={() => pick(o.id)}
+            >
+              {Icon ? (
+                <span className="lifeos-ghost-remote__glyph" aria-hidden>
+                  <Icon size={22} />
+                </span>
+              ) : null}
+              <span className="lifeos-ghost-remote__label">{o.label}</span>
+            </button>
+          );
+        })}
       </div>
       <button
         type="button"
-        className="lifeos-surface-switcher__a11y"
-        aria-label={switcherVisible ? "Hide surface switcher" : "Show surface switcher"}
+        className="lifeos-ghost-remote__a11y"
+        aria-label={switcherVisible ? "Hide surface remote" : "Show surface remote"}
         onClick={() => (switcherVisible ? closeSwitcher() : openSwitcher())}
       >
         Surfaces
