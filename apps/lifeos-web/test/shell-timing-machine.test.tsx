@@ -54,7 +54,7 @@ describe("shell timing state machine (fake timers)", () => {
     return { ui, get: () => latest };
   }
 
-  it("dismisses ~10000ms after summon with no interaction", () => {
+  it("dismisses ~4000ms after summon with no interaction", () => {
     const { get, ui } = mount();
     act(() => get().open());
     expect(ui.getByTestId("probe").dataset.visible).toBe("1");

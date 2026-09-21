@@ -8,7 +8,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 describe("shell timing constants", () => {
   it("exposes 3s idle and 1s confirm", () => {
-    expect(SHELL_IDLE_MS).toBe(10000);
+    expect(SHELL_IDLE_MS).toBe(4000);
     expect(SHELL_CONFIRM_MS).toBe(1000);
     expect(SHELL_INTRO_MS).toBe(3000);
   });

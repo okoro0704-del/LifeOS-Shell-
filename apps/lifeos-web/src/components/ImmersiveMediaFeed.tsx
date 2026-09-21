@@ -220,6 +220,7 @@ function ContentSlide({
   credits,
   onCredits,
   overlayCaption,
+  interactionOpen,
 }: {
   item: MediaItem;
   active: boolean;
@@ -227,6 +228,8 @@ function ContentSlide({
   credits: number;
   onCredits: (n: number) => void;
   overlayCaption: boolean;
+  /** Interaction Mode — summoned overlays. Pure Media when false. */
+  interactionOpen: boolean;
 }) {
   const tier = resolveTier(item);
   const vipRate = vipRateFor(item);
@@ -243,12 +246,17 @@ function ContentSlide({
   const [toast, setToast] = useState<string | null>(null);
   const [readOpen, setReadOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { expanded: dockExpanded } = useNavigationDock();
+  const { expanded: dockExpanded, noteShellActivity } = useNavigationDock();
+  const showChrome = interactionOpen || commentOpen;
 
   useEffect(() => {
     if (locked) return;
     if (isVideo && active) markWatchedOffline(item);
   }, [item, isVideo, locked, active]);
+
+  useEffect(() => {
+    if (commentOpen) noteShellActivity();
+  }, [commentOpen, noteShellActivity]);
 
   useEffect(() => {
     const el = videoRef.current;
@@ -356,9 +364,10 @@ function ContentSlide({
     <li
       className={`immersive-feed__slide${overlayCaption ? " immersive-feed__slide--overlay" : " immersive-feed__slide--split"}${
         locked ? " is-locked" : ""
-      }${writing ? " immersive-feed__slide--writing" : ""}`}
+      }${writing ? " immersive-feed__slide--writing" : ""}${showChrome ? " is-interaction" : " is-pure"}`}
       data-active={active ? "true" : undefined}
       data-publication-id={item.id}
+      data-ui-mode={showChrome ? "interaction" : "pure"}
       aria-hidden={!active}
     >
       <div
@@ -391,27 +400,31 @@ function ContentSlide({
             />
           )
         ) : null}
-        {overlayCaption ? <div className="immersive-feed__scrim" aria-hidden /> : null}
-        <SideRail
-          loved={loved}
-          commentCount={comments.length}
-          reuseCount={reuses}
-          initial={(item.author || "C").replace(/^@/, "").slice(0, 1).toUpperCase()}
-          slug={creator}
-          onOpenCreator={() => openCreatorApp(creator)}
-          onLove={love}
-          onComment={() => setCommentOpen(true)}
-          onReuse={() => {
-            setReuses(markReused(item.id));
-            flash("Reused to your drafts");
-          }}
-          onShare={() => {
-            void shareItem({ title: item.title, text: item.detail || item.title }).then((r) => {
-              flash(r === "shared" ? "Shared" : r === "copied" ? "Link copied" : "Couldn't share");
-            });
-          }}
-        />
-        {overlayCaption ? <div className="immersive-feed__copy immersive-feed__copy--on">{caption}</div> : null}
+        {showChrome && overlayCaption ? <div className="immersive-feed__scrim" aria-hidden /> : null}
+        {showChrome ? (
+          <SideRail
+            loved={loved}
+            commentCount={comments.length}
+            reuseCount={reuses}
+            initial={(item.author || "C").replace(/^@/, "").slice(0, 1).toUpperCase()}
+            slug={creator}
+            onOpenCreator={() => openCreatorApp(creator)}
+            onLove={love}
+            onComment={() => setCommentOpen(true)}
+            onReuse={() => {
+              setReuses(markReused(item.id));
+              flash("Reused to your drafts");
+            }}
+            onShare={() => {
+              void shareItem({ title: item.title, text: item.detail || item.title }).then((r) => {
+                flash(r === "shared" ? "Shared" : r === "copied" ? "Link copied" : "Couldn't share");
+              });
+            }}
+          />
+        ) : null}
+        {showChrome && overlayCaption ? (
+          <div className="immersive-feed__copy immersive-feed__copy--on">{caption}</div>
+        ) : null}
         {toast ? (
           <div className="immersive-feed__toast" role="status">
             {toast}
@@ -419,7 +432,7 @@ function ContentSlide({
         ) : null}
       </div>
 
-      {!overlayCaption ? <div className="immersive-feed__meta-block">{caption}</div> : null}
+      {showChrome && !overlayCaption ? <div className="immersive-feed__meta-block">{caption}</div> : null}
 
       {readOpen ? (
         <div className="engage-sheet immersive-feed__read-sheet" role="dialog" aria-label="Read">
@@ -516,6 +529,8 @@ export function ImmersiveMediaFeed({
   const overlayCaption = true;
   const leadingOffset = leading ? 1 : 0;
   const { setChromeHidden } = useChromeVisibility();
+  const { shellControlsVisible } = useNavigationDock();
+  const interactionOpen = shellControlsVisible;
 
   const rows = useMemo<FeedRow[]>(() => {
     if (showAds) {
@@ -695,6 +710,7 @@ export function ImmersiveMediaFeed({
             credits={credits}
             onCredits={setCredits}
             overlayCaption={overlayCaption}
+            interactionOpen={interactionOpen}
           />
         );
       })}

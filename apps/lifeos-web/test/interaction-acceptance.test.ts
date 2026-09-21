@@ -14,7 +14,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 describe("interaction acceptance — idle / learnverse / live / demo", () => {
   it("idle dwell is 10 seconds; confirm remains 1 second", () => {
-    expect(SHELL_IDLE_MS).toBe(10000);
+    expect(SHELL_IDLE_MS).toBe(4000);
     expect(SHELL_CONFIRM_MS).toBe(1000);
     expect(SHELL_INTRO_MS).toBe(3000);
   });

@@ -5934,8 +5934,9 @@ html.lifeos-chrome-hidden .immersive-feed {
 .immersive-feed__asset {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
+  background: transparent;
 }
 
 .immersive-feed__scrim {
@@ -8067,6 +8068,28 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
 .personal-page--immersive .living-lifeos-box {
   position: sticky;
   flex: 0 0 auto;
+}
+
+/* Pure Media Mode — living LifeOS identity + kernel sig hide until Interaction Mode. */
+.personal-page--immersive.is-shell-clean > .living-lifeos-box,
+.personal-page--immersive.is-shell-clean .lifeos-kernel-sig {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+
+.personal-page--immersive.is-shell-open > .living-lifeos-box,
+.personal-page--immersive.is-shell-open .lifeos-kernel-sig {
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 0.22s ease;
+}
+
+/* Gallery-first: media frame never reflows when overlays summon. */
+.immersive-feed__slide.is-pure .immersive-feed__scrim,
+.immersive-feed__slide.is-pure .immersive-feed__rail,
+.immersive-feed__slide.is-pure .immersive-feed__copy {
+  display: none !important;
 }
 
 .business-home--immersive > .kernel-brand-bar--static,
