@@ -8890,7 +8890,8 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
   left: 50%;
   z-index: 130;
   display: flex;
-  gap: 0.75rem;
+  flex-direction: column;
+  gap: 0.55rem;
   align-items: center;
   justify-content: center;
   padding: calc(0.45rem + env(safe-area-inset-top, 0px)) 1rem 0.55rem;
@@ -8905,6 +8906,13 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
   transform: translate(-50%, 0);
   opacity: 1;
   pointer-events: auto;
+}
+
+.lifeos-surface-switcher__row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: center;
 }
 
 .lifeos-surface-switcher__btn {
@@ -8929,6 +8937,23 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
   text-underline-offset: 0.18em;
 }
 
+.lifeos-surface-switcher__control {
+  min-width: 5.5rem;
+  min-height: 2.4rem;
+  padding: 0.3rem 0.9rem;
+  border: 0;
+  border-radius: 0.35rem;
+  background: transparent;
+  color: #16a34a;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
 .lifeos-surface-switcher__a11y {
   position: absolute;
   width: 1px;
@@ -8949,6 +8974,10 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
 
 .lifeos-surface.is-active {
   display: flex;
+}
+
+.lifeos-surface--bare .lifeos-surface__chrome {
+  display: none;
 }
 
 .lifeos-surface__chrome {
@@ -8987,6 +9016,121 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
 .shell.is-living-suspended .page-topbar,
 .shell.is-living-suspended .offline-banner {
   visibility: hidden;
+}
+
+.shell.is-broadcast-bare .sidebar,
+.shell.is-broadcast-bare .page-topbar,
+.shell.is-broadcast-bare .offline-banner,
+.shell.is-broadcast-bare .install-banner {
+  display: none;
+}
+
+.offline-broadcast-landing {
+  min-height: 100dvh;
+  background: #000;
+}
+
+/* Control remote — Offline broadcast */
+.lifeos-remote {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.lifeos-remote.is-open {
+  pointer-events: auto;
+}
+
+.lifeos-remote__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+.lifeos-remote__panel {
+  position: relative;
+  z-index: 1;
+  width: min(18rem, calc(100vw - 2rem));
+  margin-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  padding: 1rem 1.1rem 1.15rem;
+  border-radius: 1rem;
+  background: linear-gradient(165deg, #1a1d22 0%, #0e1014 100%);
+  color: #f3f4f6;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.lifeos-remote__head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  align-items: center;
+  text-align: center;
+}
+
+.lifeos-remote__head strong {
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lifeos-remote__ch {
+  color: #9ca3af;
+}
+
+.lifeos-remote__pad {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+}
+
+.lifeos-remote__key {
+  min-height: 3.25rem;
+  border: 0;
+  border-radius: 0.65rem;
+  background: #2a2f38;
+  color: #f9fafb;
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lifeos-remote__key:active {
+  background: #3b4250;
+}
+
+.lifeos-remote__done {
+  min-height: 2.5rem;
+  border: 0;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: #9ca3af;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lifeos-remote__leave {
+  min-height: 2.65rem;
+  border: 0;
+  border-radius: 0.55rem;
+  background: #374151;
+  color: #f9fafb;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
 }
 
 .lifeos-kernel-bar--two {

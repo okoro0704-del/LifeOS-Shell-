@@ -3,19 +3,34 @@ import { useLifeOsSurface, type LifeOsSurface } from "../context/LifeOsSurfaceCo
 
 const SWITCHER_IDLE_MS = 4000;
 
-const OPTIONS: { id: LifeOsSurface; label: string }[] = [
+const LIVING_OPTIONS: { id: LifeOsSurface; label: string }[] = [
   { id: "LIVING_LIFEOS", label: "LifeOS" },
+  { id: "TV", label: "TV" },
+  { id: "RADIO", label: "Radio" },
+];
+
+const BROADCAST_OPTIONS: { id: LifeOsSurface; label: string }[] = [
   { id: "TV", label: "TV" },
   { id: "RADIO", label: "Radio" },
 ];
 
 /**
  * Top-edge surface switcher — summoned by double-tap.
- * LifeOS · TV · Radio — temporary, auto-hides on idle.
+ * Living: LifeOS · TV · Radio
+ * Offline broadcast: TV · Radio + Control (remote)
  */
 export function SurfaceSwitcherBar() {
-  const { surface, setSurface, switcherVisible, closeSwitcher, openSwitcher } = useLifeOsSurface();
+  const {
+    surface,
+    setSurface,
+    broadcastMode,
+    switcherVisible,
+    closeSwitcher,
+    openSwitcher,
+    openControl,
+  } = useLifeOsSurface();
   const idleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const options = broadcastMode ? BROADCAST_OPTIONS : LIVING_OPTIONS;
 
   useEffect(() => {
     if (!switcherVisible) {
@@ -45,27 +60,44 @@ export function SurfaceSwitcherBar() {
 
   return (
     <div
-      className={`lifeos-surface-switcher${switcherVisible ? " is-open" : ""}`}
+      className={`lifeos-surface-switcher${switcherVisible ? " is-open" : ""}${
+        broadcastMode ? " lifeos-surface-switcher--broadcast" : ""
+      }`}
       role="toolbar"
-      aria-label="LifeOS surfaces"
+      aria-label={broadcastMode ? "TV and Radio" : "LifeOS surfaces"}
       aria-hidden={!switcherVisible}
       data-no-nav-dock
       onPointerDown={noteActivity}
     >
-      {OPTIONS.map((o) => (
+      <div className="lifeos-surface-switcher__row" role="group" aria-label="Surfaces">
+        {options.map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            className={`lifeos-surface-switcher__btn${surface === o.id ? " is-active" : ""}`}
+            aria-label={o.label === "LifeOS" ? "Living LifeOS" : o.label}
+            aria-pressed={surface === o.id}
+            data-no-nav-dock
+            onClick={() => pick(o.id)}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+      {broadcastMode ? (
         <button
-          key={o.id}
           type="button"
-          className={`lifeos-surface-switcher__btn${surface === o.id ? " is-active" : ""}`}
-          aria-label={o.label === "LifeOS" ? "Living LifeOS" : o.label}
-          aria-pressed={surface === o.id}
+          className="lifeos-surface-switcher__control"
+          aria-label="Control"
           data-no-nav-dock
-          onClick={() => pick(o.id)}
+          onClick={() => {
+            closeSwitcher();
+            openControl();
+          }}
         >
-          {o.label}
+          Control
         </button>
-      ))}
-      {/* Keep for a11y when closed — edge affordance via double-tap; no persistent chrome */}
+      ) : null}
       <button
         type="button"
         className="lifeos-surface-switcher__a11y"

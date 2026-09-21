@@ -25,6 +25,7 @@ import { NavigationDockGestures } from "./NavigationDockGestures";
 import { ActiveKernelSignature } from "./ActiveKernelSignature";
 import { TransientAlertSurface } from "./TransientAlertSurface";
 import { SurfaceSwitcherBar } from "./SurfaceSwitcherBar";
+import { BroadcastRemoteControl } from "./BroadcastRemoteControl";
 import { TvSurface } from "./TvSurface";
 import { RadioSurface } from "./RadioSurface";
 import { useLifeOsSurface } from "../context/LifeOsSurfaceContext";
@@ -81,12 +82,13 @@ function isBusinessDetailPath(pathname: string): boolean {
 export function AppShell() {
   const { user } = useAuth();
   const { mode, setMode } = useWorkspace();
-  const { surface } = useLifeOsSurface();
+  const { surface, broadcastMode, enterBroadcast, exitBroadcast } = useLifeOsSurface();
   const location = useLocation();
   const navigate = useNavigate();
   const { openCommand } = useCommandLayer();
   const livingActive = surface === "LIVING_LIFEOS";
   const personalSurfaces = mode === "PERSONAL";
+  const bareBroadcast = personalSurfaces && broadcastMode;
   const [unread, setUnread] = useState(0);
   const [demoUnread, setDemoUnread] = useState(0);
   const [offline, setOffline] = useState(!navigator.onLine);
@@ -149,6 +151,19 @@ export function AppShell() {
       if (mode !== "BUSINESS") setMode("BUSINESS");
     }
   }, [location.pathname, mode, setMode]);
+
+  // Offline kernel path ↔ bare TV/Radio broadcast session.
+  useEffect(() => {
+    if (mode !== "PERSONAL") {
+      if (broadcastMode) exitBroadcast();
+      return;
+    }
+    if (personalKernel === "offline") {
+      enterBroadcast();
+    } else if (broadcastMode) {
+      exitBroadcast();
+    }
+  }, [mode, personalKernel, broadcastMode, enterBroadcast, exitBroadcast]);
 
   const handleModeChange = (_next: WorkspaceMode) => {};
 
@@ -228,8 +243,11 @@ export function AppShell() {
     <div
       className={`shell shell--side-dock${
         personalSurfaces && !livingActive ? " is-living-suspended" : ""
-      }${personalSurfaces ? ` shell--surface-${surface.toLowerCase()}` : ""}`}
+      }${bareBroadcast ? " is-broadcast-bare" : ""}${
+        personalSurfaces ? ` shell--surface-${surface.toLowerCase()}` : ""
+      }`}
       data-lifeos-surface={personalSurfaces ? surface : undefined}
+      data-broadcast={bareBroadcast ? "1" : undefined}
     >
       <a href="#main-content" className="skip-link">
         Skip to content
@@ -420,6 +438,7 @@ export function AppShell() {
                   className="los-btn los-btn--primary"
                   onClick={() => {
                     setOnlineKernelPrompt(false);
+                    exitBroadcast();
                     setLastSelectedKernel("free", user?.trustId);
                     navigate("/app/personal/free/post");
                   }}
@@ -431,6 +450,7 @@ export function AppShell() {
                   className="los-btn los-btn--primary"
                   onClick={() => {
                     setOnlineKernelPrompt(false);
+                    exitBroadcast();
                     setLastSelectedKernel("main", user?.trustId);
                     navigate("/app/personal/post");
                   }}
@@ -512,12 +532,13 @@ export function AppShell() {
           <>
             <TvSurface />
             <RadioSurface />
+            <BroadcastRemoteControl />
           </>
         ) : null}
 
         <CommandOverlay />
         <LifeOSWakeListener />
-        {!isImmersive && livingActive ? (
+        {!isImmersive && livingActive && !bareBroadcast ? (
           <>
             <LifeOsCommandNavigation apps={installedApps} unread={shellUnread} />
             <ActiveKernelSignature />

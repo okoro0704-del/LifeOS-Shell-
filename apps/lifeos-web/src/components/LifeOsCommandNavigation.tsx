@@ -20,6 +20,7 @@ import {
   IconHome,
   IconKernel,
   IconMessage,
+  IconReceive,
   IconTicket,
   IconTv,
   IconWallet,
@@ -66,7 +67,7 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
   const { mode, setMode } = useWorkspace();
   const { expanded, handleSide, railSide, close, toggle, confirmSelection, noteShellActivity } =
     useNavigationDock();
-  const { setSurface } = useLifeOsSurface();
+  const { setSurface, enterBroadcast, exitBroadcast } = useLifeOsSurface();
   const panelId = useId();
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const [revealedId, setRevealedId] = useState<string | null>(null);
@@ -186,6 +187,12 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
     void triggerWorkspaceHaptic();
     setMode("PERSONAL");
     setLastSelectedKernel(next, user?.trustId);
+    if (next === "offline") {
+      enterBroadcast();
+    } else {
+      exitBroadcast();
+      setSurface("LIVING_LIFEOS");
+    }
     navigate(personalKernelPath(next));
     afterSelect();
   }
@@ -424,13 +431,28 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
 
       {mode === "PERSONAL" ? (
         <nav
-          className={`lifeos-kernel-bar lifeos-kernel-bar--two${expanded ? " is-open" : ""}`}
+          className={`lifeos-kernel-bar${expanded ? " is-open" : ""}`}
           aria-label="Kernel switcher"
           aria-hidden={!expanded}
           data-no-nav-dock
           hidden={!expanded}
           onPointerDown={() => noteShellActivity()}
         >
+          <button
+            type="button"
+            className={`lifeos-kernel-bar__btn${kernel === "offline" ? " is-active" : ""}`}
+            aria-label="Offline"
+            aria-pressed={kernel === "offline"}
+            title="Offline"
+            data-no-nav-dock
+            onClick={(e) => {
+              e.stopPropagation();
+              selectKernel("offline");
+            }}
+          >
+            <IconReceive size={22} />
+            <span className="lifeos-kernel-bar__label">Offline</span>
+          </button>
           <button
             type="button"
             className={`lifeos-kernel-bar__btn${kernel === "main" ? " is-active" : ""}`}

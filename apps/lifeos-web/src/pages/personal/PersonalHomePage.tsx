@@ -532,8 +532,15 @@ export function FreeKernelHome() {
   return <Navigate to="/app/personal/free/post" replace />;
 }
 
+/** Offline Kernel entry — AppShell enters bare TV broadcast; no Living chrome. */
 export function OfflineKernelHome() {
-  return <Navigate to="/app/personal/offline/post" replace />;
+  return (
+    <div
+      className="offline-broadcast-landing"
+      data-kernel="lifeos-offline-kernel"
+      aria-label="Offline"
+    />
+  );
 }
 
 export const PersonalPostPage = () => <KernelPostPage kernel="main" />;

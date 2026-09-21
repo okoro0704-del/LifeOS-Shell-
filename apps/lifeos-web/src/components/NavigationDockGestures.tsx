@@ -5,14 +5,21 @@ import { useLifeOsSurface } from "../context/LifeOsSurfaceContext";
 import { attachNavDockDoubleTap } from "../lib/navDockGesture";
 
 /**
- * PERSONAL: double-tap summons LifeOS · TV · Radio surface switcher.
+ * PERSONAL: double-tap summons surface switcher (LifeOS·TV·Radio, or TV·Radio in Offline).
+ * Offline broadcast: bare TV — double-tap only reveals TV | Radio (+ Control).
  * BUSINESS: double-tap toggles unified Business shell controls.
- * Double-tap while switcher/shell open closes it (canonical toggle).
  */
 export function NavigationDockGestures({ children }: { children: ReactNode }) {
   const { toggle, expanded, close } = useNavigationDock();
   const { mode } = useWorkspace();
-  const { toggleSwitcher, switcherVisible, closeSwitcher, surface } = useLifeOsSurface();
+  const {
+    toggleSwitcher,
+    switcherVisible,
+    closeSwitcher,
+    surface,
+    controlVisible,
+    closeControl,
+  } = useLifeOsSurface();
   const rootRef = useRef<HTMLDivElement>(null);
   const [ripple, setRipple] = useState<{ x: number; y: number; id: number } | null>(null);
   const modeRef = useRef(mode);
@@ -21,6 +28,8 @@ export function NavigationDockGestures({ children }: { children: ReactNode }) {
   switcherRef.current = switcherVisible;
   const expandedRef = useRef(expanded);
   expandedRef.current = expanded;
+  const controlRef = useRef(controlVisible);
+  controlRef.current = controlVisible;
 
   useEffect(() => {
     const root = rootRef.current;
@@ -28,16 +37,20 @@ export function NavigationDockGestures({ children }: { children: ReactNode }) {
     return attachNavDockDoubleTap(root, (x, y) => {
       setRipple({ x, y, id: Date.now() });
       if (modeRef.current === "PERSONAL") {
-        // Close shell if it was open — surface switcher is the Personal summon.
         if (expandedRef.current) close();
-        toggleSwitcher();
+        if (controlRef.current) {
+          closeControl();
+        } else {
+          toggleSwitcher();
+        }
       } else {
         if (switcherRef.current) closeSwitcher();
+        if (controlRef.current) closeControl();
         toggle();
       }
       window.setTimeout(() => setRipple(null), 420);
     });
-  }, [toggle, toggleSwitcher, close, closeSwitcher]);
+  }, [toggle, toggleSwitcher, close, closeSwitcher, closeControl]);
 
   return (
     <div

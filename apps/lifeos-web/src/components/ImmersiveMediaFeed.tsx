@@ -509,6 +509,7 @@ export function ImmersiveMediaFeed({
   leading,
   showAds = false,
   initialPublicationId,
+  seekPublicationId,
   hasMore = false,
   onNearEnd,
 }: {
@@ -520,6 +521,8 @@ export function ImmersiveMediaFeed({
   showAds?: boolean;
   /** Deep-link: start with this canonical MediaItem.id as active. */
   initialPublicationId?: string | null;
+  /** Remote Control: snap to this publication when it changes. */
+  seekPublicationId?: string | null;
   hasMore?: boolean;
   onNearEnd?: () => void;
 }) {
@@ -592,6 +595,14 @@ export function ImmersiveMediaFeed({
       didInitScroll.current = true;
     }
   }, [initialPublicationId, initialRowIndex]);
+
+  useEffect(() => {
+    if (!seekPublicationId) return;
+    const i = rows.findIndex((r) => r.type === "content" && r.item.id === seekPublicationId);
+    if (i < 0 || i === activeRowIndexRef.current) return;
+    setActiveRowIndex(i);
+    snapToRow(i);
+  }, [seekPublicationId, rows, snapToRow]);
 
   useEffect(() => {
     const root = listRef.current;

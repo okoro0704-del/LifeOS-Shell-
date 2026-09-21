@@ -15,8 +15,9 @@ describe("content navigation kernel contracts", () => {
     expect(personalKernelFromPath("/app/personal/free/post")).toBe("free");
   });
 
-  it("OFFLINE routes through existing offline kernel path", () => {
-    expect(personalKernelPath("offline")).toBe("/app/personal/offline/post");
+  it("OFFLINE routes through bare broadcast Offline path", () => {
+    expect(personalKernelPath("offline")).toBe("/app/personal/offline");
+    expect(personalKernelFromPath("/app/personal/offline")).toBe("offline");
     expect(personalKernelFromPath("/app/personal/offline/reels")).toBe("offline");
   });
 

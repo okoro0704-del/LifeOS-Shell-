@@ -62,7 +62,8 @@ export function workspaceHomePath(mode: WorkspaceMode): string {
 }
 
 export function personalKernelPath(kernel: PersonalKernel): string {
-  if (kernel === "offline") return "/app/personal/offline/post";
+  /** Offline lands on bare TV broadcast — not a Living feed section. */
+  if (kernel === "offline") return "/app/personal/offline";
   if (kernel === "free") return "/app/personal/free/post";
   return "/app/personal/post";
 }
