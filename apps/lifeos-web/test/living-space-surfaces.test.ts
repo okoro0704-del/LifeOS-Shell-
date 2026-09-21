@@ -43,6 +43,8 @@ describe("Living Space First + Offline TV/Radio broadcast", () => {
     expect(bar).toContain("IconTv");
     expect(bar).toContain("IconBroadcast");
     expect(bar).toContain("BROADCAST_OPTIONS");
+    expect(bar).toContain('label: "TV"');
+    expect(bar).toContain('label: "Radio"');
     expect(bar).not.toContain("lifeos-surface-switcher__control");
     expect(SURFACE_SWITCHER_IDLE_MS).toBeGreaterThanOrEqual(3000);
     expect(SURFACE_SWITCHER_IDLE_MS).toBeLessThanOrEqual(5000);
@@ -60,7 +62,7 @@ describe("Living Space First + Offline TV/Radio broadcast", () => {
     expect(nav).toContain('aria-label="My Radio"');
   });
 
-  it("TV owns fullscreen; Radio is wave-field only", () => {
+  it("TV owns fullscreen; Radio is canvas wave-field only", () => {
     const tv = readFileSync(join(root, "src/components/TvSurface.tsx"), "utf8");
     const radio = readFileSync(join(root, "src/components/RadioSurface.tsx"), "utf8");
     const waves = readFileSync(join(root, "src/components/RadioWaveField.tsx"), "utf8");
@@ -68,12 +70,14 @@ describe("Living Space First + Offline TV/Radio broadcast", () => {
     expect(radio).toContain('data-kernel="lifeos-offline-kernel"');
     expect(tv).toContain("seekPublicationId");
     expect(tv).toContain("lifeos-surface--bare");
-    expect(tv).not.toContain("key={`tv-ch-");
+    expect(tv).toContain("is-program-dip");
     expect(radio).toContain("RadioWaveField");
+    expect(radio).toContain("radio-meta");
     expect(radio).not.toContain("MediaFeed");
     expect(radio).not.toContain("ImmersiveMediaFeed");
-    expect(waves).toContain("radio-wave-field__ring");
-    expect(waves).toContain("radio-wave-field__core");
+    expect(waves).toContain("radio-wave-field__canvas");
+    expect(waves).toContain("cancelAnimationFrame");
+    expect(waves).toContain("reduced");
   });
 
   it("Control peek + Auto/Manual creator tuning", () => {
@@ -91,14 +95,18 @@ describe("Living Space First + Offline TV/Radio broadcast", () => {
     expect(runtime).toContain("kernelIndexForBrand");
   });
 
-  it("ghost remote CSS is transparent and safe-area aware", () => {
+  it("futuristic visual tokens: transparent remote + reduced motion", () => {
     const css = readFileSync(join(root, "src/styles.css"), "utf8");
+    expect(css).toContain("--los-ghost-bg");
+    expect(css).toContain("--los-ghost-blur");
     expect(css).toContain(".lifeos-ghost-remote");
+    expect(css).toContain("scale(0.97)");
     expect(css).toContain("safe-area-inset-top");
-    expect(css).toContain("backdrop-filter");
-    expect(css).toContain("radio-ring-out");
-    expect(css).toContain(".lifeos-surface--radio");
-    expect(css).toContain("rgba(0, 0, 0, 0.12)");
+    expect(css).toContain("radio-wave-field__canvas");
+    expect(css).toContain(".radio-meta");
+    expect(css).toContain("prefers-reduced-motion");
+    expect(css).toContain("lifeos-tv-dip");
+    expect(css).not.toMatch(/\.lifeos-ghost-remote__glass[^}]*background:\s*#000/);
   });
 
   it("Living swipe stays Free ↔ Main; Offline is broadcast destination", () => {

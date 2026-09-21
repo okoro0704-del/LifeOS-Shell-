@@ -8,8 +8,8 @@ type IconComp = ComponentType<SVGProps<SVGSVGElement> & { size?: number }>;
 
 const LIVING_OPTIONS: { id: LifeOsSurface; label: string; aria: string; Icon?: IconComp }[] = [
   { id: "LIVING_LIFEOS", label: "LifeOS", aria: "Living LifeOS" },
-  { id: "TV", label: "My TV", aria: "My TV", Icon: IconTv },
-  { id: "RADIO", label: "My Radio", aria: "My Radio", Icon: IconBroadcast },
+  { id: "TV", label: "TV", aria: "TV", Icon: IconTv },
+  { id: "RADIO", label: "Radio", aria: "Radio", Icon: IconBroadcast },
 ];
 
 const BROADCAST_OPTIONS: { id: LifeOsSurface; label: string; aria: string; Icon?: IconComp }[] = [
@@ -18,9 +18,8 @@ const BROADCAST_OPTIONS: { id: LifeOsSurface; label: string; aria: string; Icon?
 ];
 
 /**
- * Transparent futuristic remote — summoned by double-tap.
- * Living: LifeOS · My TV · My Radio. Broadcast infrastructure: TV · Radio.
- * Ghost layer over content; auto-hides. No sheet / modal / toolbar weight.
+ * Temporary projected energy — floating remote over physical content.
+ * Double-tap summons; inactivity / selection dismisses. No layout shift.
  */
 export function SurfaceSwitcherBar() {
   const {
@@ -92,6 +91,12 @@ export function SurfaceSwitcherBar() {
               {Icon ? (
                 <span className="lifeos-ghost-remote__glyph" aria-hidden>
                   <Icon size={22} />
+                  {o.id === "TV" && active ? (
+                    <span className="lifeos-ghost-remote__pulse lifeos-ghost-remote__pulse--tv" />
+                  ) : null}
+                  {o.id === "RADIO" && active ? (
+                    <span className="lifeos-ghost-remote__pulse lifeos-ghost-remote__pulse--radio" />
+                  ) : null}
                 </span>
               ) : null}
               <span className="lifeos-ghost-remote__label">{o.label}</span>

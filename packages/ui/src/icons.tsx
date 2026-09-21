@@ -211,14 +211,13 @@ export function IconMessage(p: IconProps) {
   );
 }
 
-/** Advanced widescreen TV — broadcast station, not a cartoon set. */
+/** Ultra-thin futuristic display — broadcast station, not a cartoon set. */
 export function IconTv(p: IconProps) {
   return (
-    <Svg {...p}>
-      <rect x="2.5" y="6" width="19" height="11.5" rx="2" />
-      <path d="M7.5 20.5h9" />
-      <path d="M12 17.5v3" />
-      <path d="M5.5 9.25h13" opacity="0.45" />
+    <Svg {...p} strokeWidth={1.5}>
+      <rect x="3" y="5.5" width="18" height="11" rx="1.5" />
+      <path d="M9 20h6" opacity="0.7" />
+      <circle cx="12" cy="20" r="0.9" fill="currentColor" stroke="none" opacity="0.85" />
     </Svg>
   );
 }
@@ -234,15 +233,15 @@ export function IconHeadphones(p: IconProps) {
   );
 }
 
-/** Broadcast / live frequency — Radio signal identity. */
+/** Frequency / signal waves — Radio identity (connects to full-screen field). */
 export function IconBroadcast(p: IconProps) {
   return (
-    <Svg {...p}>
-      <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
-      <path d="M8.35 8.35a5.25 5.25 0 0 0 0 7.3" />
-      <path d="M15.65 8.35a5.25 5.25 0 0 1 0 7.3" />
-      <path d="M5.7 5.7a9 9 0 0 0 0 12.6" />
-      <path d="M18.3 5.7a9 9 0 0 1 0 12.6" />
+    <Svg {...p} strokeWidth={1.5}>
+      <circle cx="12" cy="12" r="1.35" fill="currentColor" stroke="none" />
+      <path d="M9.1 9.1a4.1 4.1 0 0 0 0 5.8" />
+      <path d="M14.9 9.1a4.1 4.1 0 0 1 0 5.8" />
+      <path d="M6.6 6.6a7.6 7.6 0 0 0 0 10.8" />
+      <path d="M17.4 6.6a7.6 7.6 0 0 1 0 10.8" />
     </Svg>
   );
 }

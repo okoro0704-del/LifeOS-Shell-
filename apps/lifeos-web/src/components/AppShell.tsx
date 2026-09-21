@@ -431,7 +431,7 @@ export function AppShell() {
           >
             <div className="offline-kernel-prompt__sheet">
               <h2>You have internet again</h2>
-              <p>Would you like to leave the Offline kernel? Choose where to go, or stay Offline.</p>
+              <p>Would you like to leave My TV / My Radio? Choose where to go, or keep watching.</p>
               <div className="offline-kernel-prompt__actions offline-kernel-prompt__actions--triple">
                 <button
                   type="button"

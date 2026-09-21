@@ -26,11 +26,13 @@ describe("shell chrome command inventory", () => {
     expect(src).not.toContain("IconStay");
   });
 
-  it("kernel bar wires Offline Main Free to selectKernel (Personal only)", () => {
+  it("kernel bar wires My TV / My Radio / Main / Free (Offline is infrastructure)", () => {
     const src = readFileSync(join(root, "src/components/LifeOsCommandNavigation.tsx"), "utf8");
-    expect(src).toContain('selectKernel("offline")');
+    expect(src).toContain('enterBroadcastSurface("TV")');
+    expect(src).toContain('enterBroadcastSurface("RADIO")');
     expect(src).toContain('selectKernel("main")');
     expect(src).toContain('selectKernel("free")');
+    expect(src).not.toContain('aria-label="Offline"');
     expect(src).toContain("lifeos-kernel-bar__label");
   });
 

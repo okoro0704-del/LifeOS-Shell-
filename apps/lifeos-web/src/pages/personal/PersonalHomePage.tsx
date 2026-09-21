@@ -538,7 +538,7 @@ export function OfflineKernelHome() {
     <div
       className="offline-broadcast-landing"
       data-kernel="lifeos-offline-kernel"
-      aria-label="Offline"
+      aria-label="Broadcast"
     />
   );
 }

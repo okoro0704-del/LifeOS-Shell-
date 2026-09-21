@@ -8883,7 +8883,19 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
 }
 
 
-/* —— Living Space: transparent ghost remote + TV / Radio —— */
+/* —— Media modes: content is physical; controls are temporary energy —— */
+:root {
+  --los-ghost-bg: rgba(255, 255, 255, 0.1);
+  --los-ghost-border: rgba(255, 255, 255, 0.14);
+  --los-ghost-blur: 18px;
+  --los-ghost-glow: 0 0 24px rgba(255, 255, 255, 0.06);
+  --los-ghost-text: rgba(248, 250, 252, 0.78);
+  --los-ghost-text-active: rgba(255, 255, 255, 0.98);
+  --los-ghost-scrim: rgba(0, 0, 0, 0.18);
+  --los-media-switch-ms: 320ms;
+  --los-radio-signal: rgba(125, 211, 252, 0.9);
+}
+
 .lifeos-ghost-remote,
 .lifeos-surface-switcher {
   position: fixed;
@@ -8895,32 +8907,34 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
   gap: 0;
   align-items: center;
   justify-content: center;
-  padding: calc(0.55rem + env(safe-area-inset-top, 0px)) 1rem 0.65rem;
-  transform: translate(-50%, calc(-100% - 0.5rem));
+  padding: calc(0.5rem + env(safe-area-inset-top, 0px)) 0.85rem 0.55rem;
+  transform: translate(-50%, calc(-100% - 0.35rem)) scale(0.97);
   opacity: 0;
   pointer-events: none;
-  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.28s ease;
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.28s ease;
   background: transparent;
   isolation: isolate;
 }
 
 .lifeos-ghost-remote.is-open,
 .lifeos-surface-switcher.is-open {
-  transform: translate(-50%, 0);
+  transform: translate(-50%, 0) scale(1);
   opacity: 1;
   pointer-events: auto;
 }
 
 .lifeos-ghost-remote__glass {
   position: absolute;
-  inset: 0.15rem -0.35rem auto;
-  height: calc(100% - 0.2rem);
-  border-radius: 1.15rem;
-  background: rgba(255, 255, 255, 0.045);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(14px) saturate(1.15);
-  -webkit-backdrop-filter: blur(14px) saturate(1.15);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+  inset: 0.1rem -0.2rem auto;
+  height: calc(100% - 0.15rem);
+  border-radius: 1.05rem;
+  background: var(--los-ghost-bg);
+  border: 1px solid var(--los-ghost-border);
+  backdrop-filter: blur(var(--los-ghost-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--los-ghost-blur)) saturate(1.12);
+  box-shadow: var(--los-ghost-glow), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   pointer-events: none;
   z-index: 0;
 }
@@ -8930,7 +8944,7 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
   position: relative;
   z-index: 1;
   display: flex;
-  gap: 0.35rem;
+  gap: 0.2rem;
   align-items: stretch;
   justify-content: center;
 }
@@ -8942,51 +8956,105 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.2rem;
-  min-width: 4.75rem;
-  min-height: 3.15rem;
-  padding: 0.4rem 0.85rem;
+  gap: 0.18rem;
+  min-width: 4.4rem;
+  min-height: 2.95rem;
+  padding: 0.35rem 0.7rem;
   border: 0;
-  border-radius: 0.85rem;
+  border-radius: 0.75rem;
   background: transparent;
-  color: rgba(248, 250, 252, 0.55);
+  color: var(--los-ghost-text);
   font: inherit;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 650;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: color 0.22s ease, opacity 0.22s ease, transform 0.22s ease, background 0.22s ease;
+  text-shadow: 0 1px 8px var(--los-ghost-scrim);
+  transition:
+    color 0.22s ease,
+    opacity 0.22s ease,
+    transform 0.2s ease,
+    filter 0.22s ease,
+    background 0.22s ease;
 }
 
 .lifeos-ghost-remote__btn:not(.is-active) {
-  opacity: 0.72;
+  opacity: 0.62;
+  filter: brightness(0.92);
+}
+
+.lifeos-ghost-remote__btn:active {
+  transform: scale(0.96);
 }
 
 .lifeos-ghost-remote__btn.is-active,
 .lifeos-surface-switcher__btn.is-active {
-  color: rgba(255, 255, 255, 0.96);
+  color: var(--los-ghost-text-active);
   opacity: 1;
-  background: rgba(255, 255, 255, 0.06);
+  filter: none;
+  background: rgba(255, 255, 255, 0.05);
   text-decoration: none;
 }
 
 .lifeos-ghost-remote__btn--tv.is-active {
-  color: #e8f1ff;
-  text-shadow: 0 0 18px rgba(147, 197, 253, 0.35);
+  color: #f0f7ff;
+  filter: drop-shadow(0 0 10px rgba(147, 197, 253, 0.45));
 }
 
 .lifeos-ghost-remote__btn--radio.is-active {
   color: #ecfeff;
-  text-shadow: 0 0 18px rgba(103, 232, 249, 0.35);
+  filter: drop-shadow(0 0 10px rgba(103, 232, 249, 0.45));
 }
 
 .lifeos-ghost-remote__glyph {
+  position: relative;
   display: grid;
   place-items: center;
   line-height: 0;
-  opacity: 0.9;
+  opacity: 0.95;
+}
+
+.lifeos-ghost-remote__pulse {
+  position: absolute;
+  inset: -0.35rem;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.lifeos-ghost-remote__pulse--tv {
+  box-shadow: 0 0 0 1px rgba(191, 219, 254, 0.35);
+  animation: ghost-tv-pulse 2.4s ease-in-out infinite;
+}
+
+.lifeos-ghost-remote__pulse--radio {
+  box-shadow: 0 0 0 1px rgba(165, 243, 252, 0.4);
+  animation: ghost-radio-pulse 1.8s ease-out infinite;
+}
+
+@keyframes ghost-tv-pulse {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes ghost-radio-pulse {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.7);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
 }
 
 .lifeos-ghost-remote__label {
@@ -9018,14 +9086,19 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
 
 .lifeos-surface.is-active {
   display: flex;
+  animation: lifeos-surface-enter var(--los-media-switch-ms) cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .lifeos-surface--tv {
   background: #000;
 }
 
+.lifeos-surface--tv.is-program-dip .lifeos-surface__body {
+  animation: lifeos-tv-dip 280ms ease both;
+}
+
 .lifeos-surface--radio {
-  background: radial-gradient(ellipse 70% 55% at 50% 50%, #0c1218 0%, #050608 55%, #020203 100%);
+  background: radial-gradient(ellipse 72% 58% at 50% 50%, #0b1118 0%, #040507 52%, #010102 100%);
 }
 
 .lifeos-surface--bare .lifeos-surface__chrome {
@@ -9068,6 +9141,27 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
   background: transparent;
 }
 
+@keyframes lifeos-surface-enter {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes lifeos-tv-dip {
+  0% {
+    opacity: 1;
+  }
+  40% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
 .content--surface-suspended {
   visibility: hidden;
   pointer-events: none;
@@ -9091,76 +9185,17 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
   background: #000;
 }
 
-/* Radio — center-outward living waves */
+/* Radio — canvas signal field (center → outward) */
 .radio-wave-field {
   position: absolute;
   inset: 0;
-  display: grid;
-  place-items: center;
-  --radio-wave-energy: 0.85;
   pointer-events: none;
 }
 
-.radio-wave-field__glow {
-  position: absolute;
-  width: min(42vmin, 18rem);
-  height: min(42vmin, 18rem);
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(56, 189, 248, 0.22) 0%, rgba(56, 189, 248, 0.05) 42%, transparent 70%);
-  filter: blur(2px);
-  animation: radio-glow-breathe 4.8s ease-in-out infinite;
-}
-
-.radio-wave-field__core {
-  position: absolute;
-  width: clamp(0.55rem, 1.6vmin, 0.85rem);
-  height: clamp(0.55rem, 1.6vmin, 0.85rem);
-  border-radius: 50%;
-  background: rgba(226, 252, 255, 0.95);
-  box-shadow:
-    0 0 12px rgba(125, 211, 252, 0.85),
-    0 0 36px rgba(34, 211, 238, 0.45);
-  z-index: 2;
-}
-
-.radio-wave-field__ring {
-  position: absolute;
-  width: calc(4vmin + var(--ring-i, 0) * 11vmin);
-  height: calc(4vmin + var(--ring-i, 0) * 11vmin);
-  max-width: 130vmax;
-  max-height: 130vmax;
-  border-radius: 50%;
-  border: 1px solid rgba(125, 211, 252, calc(0.28 - var(--ring-i, 0) * 0.03));
-  opacity: 0;
-  transform: scale(0.35);
-  animation: radio-ring-out calc(3.6s + var(--ring-i, 0) * 0.18s) cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
-  animation-delay: calc(var(--ring-i, 0) * 0.42s);
-}
-
-.radio-wave-field__ripple {
-  position: absolute;
-  width: min(70vmin, 28rem);
-  height: min(70vmin, 28rem);
-  border-radius: 50%;
-  border: 1px solid rgba(165, 243, 252, 0.12);
-  opacity: 0;
-}
-
-.radio-wave-field__ripple--a {
-  animation: radio-ripple 5.2s ease-out infinite;
-}
-
-.radio-wave-field__ripple--b {
-  animation: radio-ripple 5.2s ease-out infinite 1.7s;
-}
-
-.radio-wave-field__ripple--c {
-  animation: radio-ripple 5.2s ease-out infinite 3.4s;
-}
-
-.radio-wave-field.is-live .radio-wave-field__ring,
-.radio-wave-field.is-live .radio-wave-field__ripple {
-  animation-play-state: running;
+.radio-wave-field__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .radio-wave-field__empty {
@@ -9180,41 +9215,52 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
   clip: rect(0 0 0 0);
 }
 
-@keyframes radio-ring-out {
-  0% {
-    opacity: calc(0.55 * var(--radio-wave-energy, 0.85));
-    transform: scale(0.28);
-  }
-  70% {
-    opacity: calc(0.18 * var(--radio-wave-energy, 0.85));
-  }
-  100% {
-    opacity: 0;
-    transform: scale(calc(1.15 + var(--radio-wave-energy, 0.85) * 0.35));
-  }
+.radio-meta {
+  position: absolute;
+  left: 50%;
+  bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  max-width: min(18rem, calc(100vw - 2rem));
+  padding: 0.55rem 0.9rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--los-ghost-border);
+  background: var(--los-ghost-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: var(--los-ghost-text-active);
+  text-align: center;
+  transform: translate(-50%, 0.5rem);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s ease, transform 0.28s ease;
 }
 
-@keyframes radio-ripple {
-  0% {
-    opacity: 0.35;
-    transform: scale(0.2);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.55);
-  }
+.radio-meta.is-open {
+  opacity: 1;
+  transform: translate(-50%, 0);
 }
 
-@keyframes radio-glow-breathe {
-  0%,
-  100% {
-    transform: scale(0.92);
-    opacity: 0.75;
-  }
-  50% {
-    transform: scale(1.08);
-    opacity: 1;
-  }
+.radio-meta__brand {
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.radio-meta__now {
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+.radio-meta__title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  opacity: 0.9;
 }
 
 /* Bottom Control peek — ghost weight */
@@ -9230,14 +9276,14 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
   gap: 0.12rem;
   min-width: 3rem;
   padding: 0.3rem 0.75rem calc(0.4rem + env(safe-area-inset-bottom, 0px));
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--los-ghost-border);
   border-bottom: 0;
   border-radius: 0.85rem 0.85rem 0 0;
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(241, 245, 249, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.18);
+  background: var(--los-ghost-bg);
+  color: var(--los-ghost-text);
+  backdrop-filter: blur(var(--los-ghost-blur));
+  -webkit-backdrop-filter: blur(var(--los-ghost-blur));
+  box-shadow: var(--los-ghost-glow);
   transform: translate(-50%, 0);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -9297,7 +9343,7 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
   border: 0;
   margin: 0;
   padding: 0;
-  background: rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.1);
   cursor: pointer;
 }
 
@@ -9308,12 +9354,12 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
   margin-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
   padding: 1rem 1.1rem 1.15rem;
   border-radius: 1.1rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(12, 14, 18, 0.42);
+  border: 1px solid var(--los-ghost-border);
+  background: rgba(12, 14, 18, 0.38);
   color: #f3f4f6;
   backdrop-filter: blur(18px) saturate(1.1);
   -webkit-backdrop-filter: blur(18px) saturate(1.1);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
@@ -9469,16 +9515,28 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
   .lifeos-ghost-remote,
   .lifeos-surface-switcher,
   .lifeos-remote-peek,
-  .lifeos-remote__panel {
-    transition: none;
+  .lifeos-remote__panel,
+  .lifeos-surface.is-active,
+  .lifeos-surface--tv.is-program-dip .lifeos-surface__body {
+    transition: opacity 0.2s ease;
     animation: none;
   }
 
-  .radio-wave-field__ring,
-  .radio-wave-field__ripple,
-  .radio-wave-field__glow {
+  .lifeos-ghost-remote {
+    transform: translate(-50%, calc(-100% - 0.35rem));
+  }
+
+  .lifeos-ghost-remote.is-open {
+    transform: translate(-50%, 0);
+  }
+
+  .lifeos-ghost-remote__pulse--tv,
+  .lifeos-ghost-remote__pulse--radio {
     animation: none;
     opacity: 0.35;
-    transform: none;
+  }
+
+  .radio-meta {
+    transition: opacity 0.2s ease;
   }
 }

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ImmersiveMediaFeed } from "./ImmersiveMediaFeed";
 import { kernelMediaFor, kernelHasLocalContent } from "../lib/offlineKernelRuntime";
 import { useLifeOsSurface } from "../context/LifeOsSurfaceContext";
@@ -9,8 +9,8 @@ function channelIndex(n: number, len: number): number {
 }
 
 /**
- * TV surface — premium fullscreen station.
- * Stable feed mount; channel seeks without remounting the remote layer.
+ * TV — fullscreen program owns the screen.
+ * Channel changes use a restrained broadcast dip, not a slideshow.
  */
 export function TvSurface() {
   const { surface, tierOf, broadcastMode, tvChannel } = useLifeOsSurface();
@@ -19,17 +19,28 @@ export function TvSurface() {
   const items = kernelMediaFor(["video", "reel"]);
   const hasLocal = kernelHasLocalContent(["video", "reel"]);
   const offline = typeof navigator !== "undefined" && !navigator.onLine;
+  const [dip, setDip] = useState(false);
+  const prevChannel = useRef(tvChannel);
 
   const channelId = useMemo(() => {
     if (items.length === 0) return null;
     return items[channelIndex(tvChannel, items.length)]?.id ?? null;
   }, [items, tvChannel]);
 
+  useEffect(() => {
+    if (prevChannel.current === tvChannel) return;
+    prevChannel.current = tvChannel;
+    if (!active) return;
+    setDip(true);
+    const t = window.setTimeout(() => setDip(false), 280);
+    return () => window.clearTimeout(t);
+  }, [tvChannel, active]);
+
   return (
     <div
       className={`lifeos-surface lifeos-surface--tv lifeos-surface--${tier.toLowerCase()}${
-        active ? " is-active" : ""
-      }${broadcastMode ? " lifeos-surface--bare" : ""}`}
+        active ? " is-active is-entering" : ""
+      }${broadcastMode ? " lifeos-surface--bare" : ""}${dip ? " is-program-dip" : ""}`}
       aria-hidden={!active}
       data-surface="TV"
       data-kernel="lifeos-offline-kernel"

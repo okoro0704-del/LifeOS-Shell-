@@ -11,7 +11,8 @@ describe("personal consumer space wiring", () => {
     expect(src).toContain("PersonalPostPage");
     expect(src).toContain("PersonalProductsPage");
     expect(src).toContain("FreePostPage");
-    expect(src).toContain("OfflinePostPage");
+    expect(src).toContain("OfflineKernelHome");
+    expect(src).toContain('Navigate to="/app/personal/offline"');
     expect(src).toContain("LearnVerseRoutes");
   });
 
