@@ -7,7 +7,7 @@ import { useLifeOsSurface } from "../context/LifeOsSurfaceContext";
 const LABEL = {
   main: "Main",
   free: "Free",
-  offline: null,
+  offline: "Offline",
 } as const;
 
 /**

@@ -20,6 +20,7 @@ import {
   IconHome,
   IconKernel,
   IconMessage,
+  IconReceive,
   IconTicket,
   IconTv,
   IconWallet,
@@ -66,7 +67,7 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
   const { mode, setMode } = useWorkspace();
   const { expanded, handleSide, railSide, close, toggle, confirmSelection, noteShellActivity } =
     useNavigationDock();
-  const { surface, setSurface, enterBroadcast, exitBroadcast } = useLifeOsSurface();
+  const { setSurface, enterOffline, exitBroadcast } = useLifeOsSurface();
   const panelId = useId();
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const [revealedId, setRevealedId] = useState<string | null>(null);
@@ -187,23 +188,12 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
     setMode("PERSONAL");
     setLastSelectedKernel(next, user?.trustId);
     if (next === "offline") {
-      enterBroadcast();
+      enterOffline();
     } else {
       exitBroadcast();
       setSurface("LIVING_LIFEOS");
     }
     navigate(personalKernelPath(next));
-    afterSelect();
-  }
-
-  /** Enter Offline Kernel as TV/Radio broadcast infrastructure (no consumer Offline UI). */
-  function enterBroadcastSurface(next: "TV" | "RADIO") {
-    void triggerWorkspaceHaptic();
-    setMode("PERSONAL");
-    setLastSelectedKernel("offline", user?.trustId);
-    enterBroadcast();
-    setSurface(next);
-    navigate(personalKernelPath("offline"));
     afterSelect();
   }
 
@@ -450,37 +440,18 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
         >
           <button
             type="button"
-            className={`lifeos-kernel-bar__btn${
-              kernel === "offline" && surface === "TV" ? " is-active" : ""
-            }`}
-            aria-label="My TV"
-            aria-pressed={kernel === "offline" && surface === "TV"}
-            title="My TV"
+            className={`lifeos-kernel-bar__btn${kernel === "offline" ? " is-active" : ""}`}
+            aria-label="Offline"
+            aria-pressed={kernel === "offline"}
+            title="Offline"
             data-no-nav-dock
             onClick={(e) => {
               e.stopPropagation();
-              enterBroadcastSurface("TV");
+              selectKernel("offline");
             }}
           >
-            <IconTv size={22} />
-            <span className="lifeos-kernel-bar__label">My TV</span>
-          </button>
-          <button
-            type="button"
-            className={`lifeos-kernel-bar__btn${
-              kernel === "offline" && surface === "RADIO" ? " is-active" : ""
-            }`}
-            aria-label="My Radio"
-            aria-pressed={kernel === "offline" && surface === "RADIO"}
-            title="My Radio"
-            data-no-nav-dock
-            onClick={(e) => {
-              e.stopPropagation();
-              enterBroadcastSurface("RADIO");
-            }}
-          >
-            <IconBroadcast size={22} />
-            <span className="lifeos-kernel-bar__label">My Radio</span>
+            <IconReceive size={22} />
+            <span className="lifeos-kernel-bar__label">Offline</span>
           </button>
           <button
             type="button"

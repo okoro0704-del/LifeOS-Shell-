@@ -8,7 +8,7 @@ import {
 } from "react";
 
 /** User-facing LifeOS surfaces — only one ACTIVE at a time. */
-export type LifeOsSurface = "LIVING_LIFEOS" | "TV" | "RADIO";
+export type LifeOsSurface = "LIVING_LIFEOS" | "OFFLINE_HUB" | "TV" | "RADIO";
 
 export type SurfaceTier = "ACTIVE" | "WARM" | "SUSPENDED";
 
@@ -16,10 +16,11 @@ type SurfaceCtx = {
   surface: LifeOsSurface;
   setSurface: (next: LifeOsSurface) => void;
   tierOf: (s: LifeOsSurface) => SurfaceTier;
-  /** Offline Kernel broadcast session — TV/Radio only switcher + Control. */
-  broadcastMode: boolean;
+  /** Enter Offline without interrupting an active TV/Radio station. */
+  enterOffline: () => void;
   enterBroadcast: () => void;
   exitBroadcast: () => void;
+  broadcastMode: boolean;
   switcherVisible: boolean;
   openSwitcher: () => void;
   closeSwitcher: () => void;
@@ -28,6 +29,12 @@ type SurfaceCtx = {
   openControl: () => void;
   closeControl: () => void;
   toggleControl: () => void;
+  nowNextVisible: boolean;
+  openNowNext: () => void;
+  closeNowNext: () => void;
+  mediaPaused: boolean;
+  toggleMediaPaused: () => void;
+  setMediaPaused: (paused: boolean) => void;
   /** Zero-based TV channel index (station zap). */
   tvChannel: number;
   channelUp: () => void;
@@ -40,9 +47,11 @@ const Ctx = createContext<SurfaceCtx | null>(null);
 export function LifeOsSurfaceProvider({ children }: { children: ReactNode }) {
   const [surface, setSurfaceState] = useState<LifeOsSurface>("LIVING_LIFEOS");
   const [prev, setPrev] = useState<LifeOsSurface | null>(null);
-  const [broadcastMode, setBroadcastMode] = useState(false);
+  const [lastStation, setLastStation] = useState<"TV" | "RADIO" | null>(null);
   const [switcherVisible, setSwitcherVisible] = useState(false);
   const [controlVisible, setControlVisible] = useState(false);
+  const [nowNextVisible, setNowNextVisible] = useState(false);
+  const [mediaPaused, setMediaPaused] = useState(false);
   const [tvChannel, setTvChannelState] = useState(0);
 
   const setSurface = useCallback((next: LifeOsSurface) => {
@@ -51,29 +60,33 @@ export function LifeOsSurfaceProvider({ children }: { children: ReactNode }) {
       setPrev(cur);
       return next;
     });
+    if (next === "TV" || next === "RADIO") setLastStation(next);
     setSwitcherVisible(false);
-    if (next === "LIVING_LIFEOS") {
+    setNowNextVisible(false);
+    if (next !== "TV" && next !== "RADIO") {
       setControlVisible(false);
     }
   }, []);
 
-  const enterBroadcast = useCallback(() => {
-    setBroadcastMode(true);
+  const enterOffline = useCallback(() => {
     setSurfaceState((cur) => {
       if (cur === "TV" || cur === "RADIO") return cur;
       setPrev(cur);
-      return "TV";
+      return lastStation ?? "OFFLINE_HUB";
     });
     setSwitcherVisible(false);
     setControlVisible(false);
-  }, []);
+    setNowNextVisible(false);
+  }, [lastStation]);
+  const enterBroadcast = enterOffline;
 
   const exitBroadcast = useCallback(() => {
-    setBroadcastMode(false);
     setControlVisible(false);
+    setNowNextVisible(false);
     setSurfaceState("LIVING_LIFEOS");
     setSwitcherVisible(false);
   }, []);
+  const broadcastMode = surface !== "LIVING_LIFEOS";
 
   const tierOf = useCallback(
     (s: LifeOsSurface): SurfaceTier => {
@@ -98,6 +111,7 @@ export function LifeOsSurfaceProvider({ children }: { children: ReactNode }) {
 
   const openControl = useCallback(() => {
     setSwitcherVisible(false);
+    setNowNextVisible(false);
     setControlVisible(true);
   }, []);
   const closeControl = useCallback(() => setControlVisible(false), []);
@@ -107,6 +121,13 @@ export function LifeOsSurfaceProvider({ children }: { children: ReactNode }) {
       return !v;
     });
   }, []);
+  const openNowNext = useCallback(() => {
+    setSwitcherVisible(false);
+    setControlVisible(false);
+    setNowNextVisible(true);
+  }, []);
+  const closeNowNext = useCallback(() => setNowNextVisible(false), []);
+  const toggleMediaPaused = useCallback(() => setMediaPaused((paused) => !paused), []);
 
   const channelUp = useCallback(() => {
     setTvChannelState((n) => n + 1);
@@ -123,6 +144,7 @@ export function LifeOsSurfaceProvider({ children }: { children: ReactNode }) {
       surface,
       setSurface,
       tierOf,
+      enterOffline,
       broadcastMode,
       enterBroadcast,
       exitBroadcast,
@@ -134,6 +156,12 @@ export function LifeOsSurfaceProvider({ children }: { children: ReactNode }) {
       openControl,
       closeControl,
       toggleControl,
+      nowNextVisible,
+      openNowNext,
+      closeNowNext,
+      mediaPaused,
+      toggleMediaPaused,
+      setMediaPaused,
       tvChannel,
       channelUp,
       channelDown,
@@ -143,6 +171,7 @@ export function LifeOsSurfaceProvider({ children }: { children: ReactNode }) {
       surface,
       setSurface,
       tierOf,
+      enterOffline,
       broadcastMode,
       enterBroadcast,
       exitBroadcast,
@@ -154,6 +183,11 @@ export function LifeOsSurfaceProvider({ children }: { children: ReactNode }) {
       openControl,
       closeControl,
       toggleControl,
+      nowNextVisible,
+      openNowNext,
+      closeNowNext,
+      mediaPaused,
+      toggleMediaPaused,
       tvChannel,
       channelUp,
       channelDown,
@@ -171,6 +205,7 @@ export function useLifeOsSurface() {
       surface: "LIVING_LIFEOS" as LifeOsSurface,
       setSurface: () => undefined,
       tierOf: () => "ACTIVE" as SurfaceTier,
+      enterOffline: () => undefined,
       broadcastMode: false,
       enterBroadcast: () => undefined,
       exitBroadcast: () => undefined,
@@ -182,6 +217,12 @@ export function useLifeOsSurface() {
       openControl: () => undefined,
       closeControl: () => undefined,
       toggleControl: () => undefined,
+      nowNextVisible: false,
+      openNowNext: () => undefined,
+      closeNowNext: () => undefined,
+      mediaPaused: false,
+      toggleMediaPaused: () => undefined,
+      setMediaPaused: () => undefined,
       tvChannel: 0,
       channelUp: () => undefined,
       channelDown: () => undefined,

@@ -221,6 +221,7 @@ function ContentSlide({
   onCredits,
   overlayCaption,
   interactionOpen,
+  mediaPaused,
 }: {
   item: MediaItem;
   active: boolean;
@@ -230,6 +231,7 @@ function ContentSlide({
   overlayCaption: boolean;
   /** Interaction Mode — summoned overlays. Pure Media when false. */
   interactionOpen: boolean;
+  mediaPaused?: boolean;
 }) {
   const tier = resolveTier(item);
   const vipRate = vipRateFor(item);
@@ -261,13 +263,13 @@ function ContentSlide({
   useEffect(() => {
     const el = videoRef.current;
     if (!el || !isVideo || locked) return;
-    if (active && !dockExpanded) {
+    if (active && !dockExpanded && !mediaPaused) {
       el.muted = true;
       void el.play().catch(() => undefined);
     } else {
       el.pause();
     }
-  }, [active, isVideo, locked, item.mediaUrl, dockExpanded]);
+  }, [active, isVideo, locked, item.mediaUrl, dockExpanded, mediaPaused]);
 
   useEffect(() => {
     if (!active) setReadOpen(false);
@@ -510,6 +512,7 @@ export function ImmersiveMediaFeed({
   showAds = false,
   initialPublicationId,
   seekPublicationId,
+  mediaPaused = false,
   hasMore = false,
   onNearEnd,
 }: {
@@ -523,6 +526,8 @@ export function ImmersiveMediaFeed({
   initialPublicationId?: string | null;
   /** Remote Control: snap to this publication when it changes. */
   seekPublicationId?: string | null;
+  /** External transport state; pauses without unmounting or changing layout. */
+  mediaPaused?: boolean;
   hasMore?: boolean;
   onNearEnd?: () => void;
 }) {
@@ -722,6 +727,7 @@ export function ImmersiveMediaFeed({
             onCredits={setCredits}
             overlayCaption={overlayCaption}
             interactionOpen={interactionOpen}
+            mediaPaused={mediaPaused}
           />
         );
       })}

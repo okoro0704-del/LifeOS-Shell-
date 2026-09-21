@@ -8,11 +8,10 @@ type IconComp = ComponentType<SVGProps<SVGSVGElement> & { size?: number }>;
 
 const LIVING_OPTIONS: { id: LifeOsSurface; label: string; aria: string; Icon?: IconComp }[] = [
   { id: "LIVING_LIFEOS", label: "LifeOS", aria: "Living LifeOS" },
-  { id: "TV", label: "TV", aria: "TV", Icon: IconTv },
-  { id: "RADIO", label: "Radio", aria: "Radio", Icon: IconBroadcast },
 ];
 
-const BROADCAST_OPTIONS: { id: LifeOsSurface; label: string; aria: string; Icon?: IconComp }[] = [
+const OFFLINE_OPTIONS: { id: LifeOsSurface; label: string; aria: string; Icon?: IconComp }[] = [
+  { id: "OFFLINE_HUB", label: "Offline", aria: "Offline hub" },
   { id: "TV", label: "TV", aria: "TV", Icon: IconTv },
   { id: "RADIO", label: "Radio", aria: "Radio", Icon: IconBroadcast },
 ];
@@ -31,7 +30,7 @@ export function SurfaceSwitcherBar() {
     openSwitcher,
   } = useLifeOsSurface();
   const idleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const options = broadcastMode ? BROADCAST_OPTIONS : LIVING_OPTIONS;
+  const options = broadcastMode ? OFFLINE_OPTIONS : LIVING_OPTIONS;
 
   useEffect(() => {
     if (!switcherVisible) {
@@ -65,7 +64,7 @@ export function SurfaceSwitcherBar() {
         broadcastMode ? " lifeos-ghost-remote--broadcast" : ""
       }`}
       role="toolbar"
-      aria-label={broadcastMode ? "TV and Radio" : "LifeOS surfaces"}
+      aria-label={broadcastMode ? "Offline surfaces" : "LifeOS surfaces"}
       aria-hidden={!switcherVisible}
       data-no-nav-dock
       data-ghost-remote

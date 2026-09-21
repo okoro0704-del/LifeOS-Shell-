@@ -34,6 +34,10 @@ const INTERACTIVE_SELECTOR = [
   ".lifeos-biz-dock",
   ".lifeos-kernel-bar",
   ".lifeos-surface-switcher",
+  ".lifeos-ghost-controls",
+  ".broadcast-now-next",
+  ".offline-hub",
+  ".lifeos-ghost-remote",
   ".lifeos-surface__chrome",
   ".lifeos-transient-alerts",
   ".bottom-nav",
@@ -74,11 +78,13 @@ type TapPoint = { x: number; y: number; t: number };
 export function attachNavDockDoubleTap(
   root: HTMLElement,
   onDoubleTap: (clientX: number, clientY: number) => void,
+  onSingleTap?: (clientX: number, clientY: number) => void,
 ): () => void {
   let last: TapPoint | null = null;
   let start: TapPoint | null = null;
   let movedTooFar = false;
   let lastFire = 0;
+  let singleTimer: ReturnType<typeof setTimeout> | null = null;
 
   const onPointerDown = (e: PointerEvent) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -121,6 +127,8 @@ export function attachNavDockDoubleTap(
       now - last.t <= DOUBLE_GAP_MS &&
       Math.hypot(tap.x - last.x, tap.y - last.y) <= TAP_SLACK_PX
     ) {
+      if (singleTimer) clearTimeout(singleTimer);
+      singleTimer = null;
       last = null;
       if (now - lastFire > FIRE_DEBOUNCE_MS) {
         lastFire = now;
@@ -129,6 +137,16 @@ export function attachNavDockDoubleTap(
       return;
     }
     last = tap;
+    if (onSingleTap) {
+      if (singleTimer) clearTimeout(singleTimer);
+      singleTimer = setTimeout(() => {
+        singleTimer = null;
+        if (last === tap) {
+          last = null;
+          onSingleTap(tap.x, tap.y);
+        }
+      }, DOUBLE_GAP_MS);
+    }
   };
 
   const onPointerCancel = () => {
@@ -154,6 +172,7 @@ export function attachNavDockDoubleTap(
   root.addEventListener("dblclick", onDblClick, { capture: true });
 
   return () => {
+    if (singleTimer) clearTimeout(singleTimer);
     root.removeEventListener("pointerdown", onPointerDown, true);
     root.removeEventListener("pointermove", onPointerMove, true);
     root.removeEventListener("pointerup", onPointerUp, true);

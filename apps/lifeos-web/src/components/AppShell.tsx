@@ -28,6 +28,8 @@ import { SurfaceSwitcherBar } from "./SurfaceSwitcherBar";
 import { BroadcastRemoteControl } from "./BroadcastRemoteControl";
 import { TvSurface } from "./TvSurface";
 import { RadioSurface } from "./RadioSurface";
+import { OfflineHubSurface } from "./OfflineHubSurface";
+import { BroadcastNowNext } from "./BroadcastNowNext";
 import { useLifeOsSurface } from "../context/LifeOsSurfaceContext";
 import { LifeOSWakeListener } from "./LifeOSWakeListener";
 import { PageTopBar } from "./PageTopBar";
@@ -82,13 +84,13 @@ function isBusinessDetailPath(pathname: string): boolean {
 export function AppShell() {
   const { user } = useAuth();
   const { mode, setMode } = useWorkspace();
-  const { surface, broadcastMode, enterBroadcast, exitBroadcast } = useLifeOsSurface();
+  const { surface, broadcastMode, enterOffline, exitBroadcast } = useLifeOsSurface();
   const location = useLocation();
   const navigate = useNavigate();
   const { openCommand } = useCommandLayer();
   const livingActive = surface === "LIVING_LIFEOS";
   const personalSurfaces = mode === "PERSONAL";
-  const bareBroadcast = personalSurfaces && broadcastMode;
+  const bareBroadcast = personalSurfaces && (surface === "TV" || surface === "RADIO");
   const [unread, setUnread] = useState(0);
   const [demoUnread, setDemoUnread] = useState(0);
   const [offline, setOffline] = useState(!navigator.onLine);
@@ -159,11 +161,11 @@ export function AppShell() {
       return;
     }
     if (personalKernel === "offline") {
-      enterBroadcast();
+      enterOffline();
     } else if (broadcastMode) {
       exitBroadcast();
     }
-  }, [mode, personalKernel, broadcastMode, enterBroadcast, exitBroadcast]);
+  }, [mode, personalKernel, broadcastMode, enterOffline, exitBroadcast]);
 
   const handleModeChange = (_next: WorkspaceMode) => {};
 
@@ -530,17 +532,21 @@ export function AppShell() {
 
         {personalSurfaces ? (
           <>
+            <OfflineHubSurface />
             <TvSurface />
             <RadioSurface />
             <BroadcastRemoteControl />
+            <BroadcastNowNext />
           </>
         ) : null}
 
         <CommandOverlay />
         <LifeOSWakeListener />
+        {(personalSurfaces || (!isImmersive && livingActive && !bareBroadcast)) ? (
+          <LifeOsCommandNavigation apps={installedApps} unread={shellUnread} />
+        ) : null}
         {!isImmersive && livingActive && !bareBroadcast ? (
           <>
-            <LifeOsCommandNavigation apps={installedApps} unread={shellUnread} />
             <ActiveKernelSignature />
             <TransientAlertSurface />
           </>

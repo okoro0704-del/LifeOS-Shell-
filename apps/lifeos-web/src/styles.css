@@ -8810,7 +8810,7 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
   bottom: calc(0.55rem + env(safe-area-inset-bottom, 0px));
   z-index: 122;
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.45rem;
   padding: 0.15rem 0.25rem;
   border-radius: 0;
@@ -8880,6 +8880,108 @@ html[data-nav-side="right"] .lifeos-cmd-nav__a11y-open {
   .lifeos-kernel-bar {
     transition: none;
   }
+}
+
+/* Offline hub and broadcast overlays */
+.offline-hub {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  display: grid;
+  place-content: center;
+  gap: 1.5rem;
+  padding: 2rem;
+  background: #050807;
+  color: #f8fafc;
+  text-align: center;
+}
+
+.offline-hub h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 5vw, 2.4rem);
+}
+
+.offline-hub__choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(7rem, 10rem));
+  gap: 1rem;
+}
+
+.offline-hub__choices button {
+  display: grid;
+  place-items: center;
+  gap: 0.55rem;
+  min-height: 7rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  cursor: pointer;
+}
+
+.lifeos-ghost-controls {
+  position: fixed;
+  left: 50%;
+  bottom: calc(0.7rem + env(safe-area-inset-bottom, 0px));
+  z-index: 145;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+.lifeos-ghost-controls button {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.94);
+  font: inherit;
+  font-size: 1.45rem;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.9);
+  cursor: pointer;
+}
+
+.broadcast-now-next {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  z-index: 144;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(8rem, 14rem));
+  gap: 1rem;
+  width: min(30rem, calc(100vw - 2rem));
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 1rem;
+  background: rgba(0, 0, 0, 0.34);
+  color: #fff;
+  backdrop-filter: blur(12px);
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+.broadcast-now-next div {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.broadcast-now-next span {
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  opacity: 0.68;
+}
+
+.broadcast-now-next strong,
+.broadcast-now-next small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 

@@ -13,7 +13,7 @@ function channelIndex(n: number, len: number): number {
  * Channel changes use a restrained broadcast dip, not a slideshow.
  */
 export function TvSurface() {
-  const { surface, tierOf, broadcastMode, tvChannel } = useLifeOsSurface();
+  const { surface, tierOf, broadcastMode, tvChannel, mediaPaused } = useLifeOsSurface();
   const active = surface === "TV";
   const tier = tierOf("TV");
   const items = kernelMediaFor(["video", "reel"]);
@@ -60,6 +60,7 @@ export function TvSurface() {
             showAds={false}
             initialPublicationId={channelId}
             seekPublicationId={channelId}
+            mediaPaused={mediaPaused}
           />
         </div>
       ) : null}

@@ -12,23 +12,18 @@ function channelIndex(n: number, len: number): number {
   return ((n % len) + len) % len;
 }
 
-const META_IDLE_MS = 3200;
-
 /**
- * Radio — signal filling space. Waves only by default.
- * Single tap summons ephemeral station metadata; Control handles tuning.
+ * Radio — signal filling space. The broadcast remote owns interaction.
  */
 export function RadioSurface() {
-  const { surface, tierOf, broadcastMode, tvChannel } = useLifeOsSurface();
+  const { surface, tierOf, broadcastMode, tvChannel, mediaPaused } = useLifeOsSurface();
   const active = surface === "RADIO";
   const tier = tierOf("RADIO");
   const audio = kernelMediaFor(["music", "podcast"]);
   const hasLocal = kernelHasLocalContent(["music", "podcast"]);
   const offline = typeof navigator !== "undefined" && !navigator.onLine;
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const metaTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [energy, setEnergy] = useState(0.72);
-  const [metaVisible, setMetaVisible] = useState(false);
   const [reduced, setReduced] = useState(false);
 
   const station = useMemo(() => {
@@ -37,7 +32,6 @@ export function RadioSurface() {
   }, [audio, tvChannel]);
 
   const brand = station ? kernelBrandOf(station) : null;
-  const title = station?.title ?? null;
   const src = station?.mediaUrl ?? null;
 
   useEffect(() => {
@@ -51,7 +45,7 @@ export function RadioSurface() {
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
-    if (!active) {
+    if (!active || mediaPaused) {
       el.pause();
       return;
     }
@@ -65,7 +59,7 @@ export function RadioSurface() {
       el.removeAttribute("src");
       el.load();
     }
-  }, [active, src]);
+  }, [active, src, mediaPaused]);
 
   // Procedural living energy — never freezes; layered timings (non-obvious loop).
   useEffect(() => {
@@ -89,16 +83,6 @@ export function RadioSurface() {
     return () => cancelAnimationFrame(raf);
   }, [active, reduced]);
 
-  useEffect(() => {
-    if (!active) setMetaVisible(false);
-  }, [active]);
-
-  function showMeta() {
-    setMetaVisible(true);
-    if (metaTimer.current) clearTimeout(metaTimer.current);
-    metaTimer.current = setTimeout(() => setMetaVisible(false), META_IDLE_MS);
-  }
-
   return (
     <div
       className={`lifeos-surface lifeos-surface--radio lifeos-surface--${tier.toLowerCase()}${
@@ -108,9 +92,6 @@ export function RadioSurface() {
       data-surface="RADIO"
       data-kernel="lifeos-offline-kernel"
       data-radio-brand={brand ?? undefined}
-      onClick={() => {
-        if (active) showMeta();
-      }}
     >
       {active ? (
         <div className="lifeos-surface__body lifeos-surface__body--radio-waves">
@@ -121,14 +102,6 @@ export function RadioSurface() {
               {offline && !hasLocal ? "No locally available radio yet." : "Signal waiting…"}
             </p>
           ) : null}
-          <div
-            className={`radio-meta${metaVisible ? " is-open" : ""}`}
-            aria-hidden={!metaVisible}
-          >
-            {brand ? <strong className="radio-meta__brand">{brand}</strong> : null}
-            <span className="radio-meta__now">Now Playing</span>
-            {title ? <span className="radio-meta__title">{title}</span> : null}
-          </div>
           <span className="radio-wave-field__sr">
             Radio{brand ? ` · ${brand}` : ""}
           </span>

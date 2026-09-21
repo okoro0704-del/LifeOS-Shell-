@@ -5,8 +5,8 @@ import { useLifeOsSurface } from "../context/LifeOsSurfaceContext";
 import { attachNavDockDoubleTap } from "../lib/navDockGesture";
 
 /**
- * PERSONAL: double-tap summons surface switcher (LifeOS·TV·Radio, or TV·Radio in Offline).
- * Offline broadcast: bare TV — double-tap only reveals TV | Radio (+ Control).
+ * TV/Radio: single tap summons remote; double tap summons Now/Next.
+ * Offline hub and Business toggle shell; Living toggles its surface switcher.
  * BUSINESS: double-tap toggles unified Business shell controls.
  */
 export function NavigationDockGestures({ children }: { children: ReactNode }) {
@@ -19,6 +19,8 @@ export function NavigationDockGestures({ children }: { children: ReactNode }) {
     surface,
     controlVisible,
     closeControl,
+    openControl,
+    openNowNext,
   } = useLifeOsSurface();
   const rootRef = useRef<HTMLDivElement>(null);
   const [ripple, setRipple] = useState<{ x: number; y: number; id: number } | null>(null);
@@ -30,27 +32,46 @@ export function NavigationDockGestures({ children }: { children: ReactNode }) {
   expandedRef.current = expanded;
   const controlRef = useRef(controlVisible);
   controlRef.current = controlVisible;
+  const surfaceRef = useRef(surface);
+  surfaceRef.current = surface;
 
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
-    return attachNavDockDoubleTap(root, (x, y) => {
-      setRipple({ x, y, id: Date.now() });
-      if (modeRef.current === "PERSONAL") {
-        if (expandedRef.current) close();
-        if (controlRef.current) {
-          closeControl();
+    return attachNavDockDoubleTap(
+      root,
+      (x, y) => {
+        setRipple({ x, y, id: Date.now() });
+        if (modeRef.current === "PERSONAL") {
+          if (surfaceRef.current === "TV" || surfaceRef.current === "RADIO") {
+            if (expandedRef.current) close();
+            openNowNext();
+          } else if (surfaceRef.current === "OFFLINE_HUB") {
+            if (switcherRef.current) closeSwitcher();
+            if (expandedRef.current) close();
+            else toggle();
+          } else {
+            if (expandedRef.current) close();
+            if (controlRef.current) closeControl();
+            toggleSwitcher();
+          }
         } else {
-          toggleSwitcher();
+          if (switcherRef.current) closeSwitcher();
+          if (controlRef.current) closeControl();
+          toggle();
         }
-      } else {
-        if (switcherRef.current) closeSwitcher();
-        if (controlRef.current) closeControl();
-        toggle();
-      }
-      window.setTimeout(() => setRipple(null), 420);
-    });
-  }, [toggle, toggleSwitcher, close, closeSwitcher, closeControl]);
+        window.setTimeout(() => setRipple(null), 420);
+      },
+      () => {
+        if (
+          modeRef.current === "PERSONAL" &&
+          (surfaceRef.current === "TV" || surfaceRef.current === "RADIO")
+        ) {
+          openControl();
+        }
+      },
+    );
+  }, [toggle, toggleSwitcher, close, closeSwitcher, closeControl, openControl, openNowNext]);
 
   return (
     <div
