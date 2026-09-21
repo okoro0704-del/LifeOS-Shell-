@@ -1,6 +1,11 @@
 import { useEffect, useRef, type ComponentType, type SVGProps } from "react";
-import { IconBroadcast, IconTv } from "@lifeos/ui";
+import { useNavigate } from "react-router-dom";
+import { IconBroadcast, IconKernel, IconTv } from "@lifeos/ui";
+import { useAuth } from "../hooks/useAuth";
+import { setLastSelectedKernel } from "../lib/kernelNavigation";
 import { useLifeOsSurface, type LifeOsSurface } from "../context/LifeOsSurfaceContext";
+import { useWorkspace } from "../context/WorkspaceContext";
+import { personalKernelPath } from "./shell/nav";
 
 const SWITCHER_IDLE_MS = 4000;
 export const BROADCAST_REMOTE_IDLE_MS = SWITCHER_IDLE_MS;
@@ -11,19 +16,9 @@ const LIVING_OPTIONS: { id: LifeOsSurface; label: string; aria: string; Icon?: I
   { id: "LIVING_LIFEOS", label: "LifeOS", aria: "Living LifeOS" },
 ];
 
-/** Icons-only mode switch — never show TV/Radio text labels. */
-const BROADCAST_MODE_OPTIONS: {
-  id: "TV" | "RADIO";
-  aria: string;
-  Icon: IconComp;
-}[] = [
-  { id: "TV", aria: "TV", Icon: IconTv },
-  { id: "RADIO", aria: "Radio", Icon: IconBroadcast },
-];
-
 /**
  * Living: temporary LifeOS surface picker.
- * TV/Radio REMOTE_REVEALED: floating TV/Radio icons only (no labels, no glass sheet).
+ * TV/Radio REMOTE_REVEALED: Online · TV · Radio at the top.
  */
 export function SurfaceSwitcherBar() {
   const {
@@ -35,7 +30,11 @@ export function SurfaceSwitcherBar() {
     closeSwitcher,
     openSwitcher,
     closeBroadcastUi,
+    exitBroadcast,
   } = useLifeOsSurface();
+  const { setMode } = useWorkspace();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const idleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onAir = surface === "TV" || surface === "RADIO";
   const remoteOpen = onAir && broadcastUiMode === "REMOTE_REVEALED";
@@ -67,6 +66,15 @@ export function SurfaceSwitcherBar() {
     else closeSwitcher();
   }
 
+  function goOnline() {
+    closeBroadcastUi();
+    setMode("PERSONAL");
+    setLastSelectedKernel("main", user?.trustId);
+    exitBroadcast();
+    setSurface("LIVING_LIFEOS");
+    navigate(personalKernelPath("main"));
+  }
+
   function noteActivity() {
     if (!open) return;
     if (idleRef.current) clearTimeout(idleRef.current);
@@ -90,34 +98,53 @@ export function SurfaceSwitcherBar() {
         data-broadcast-ui={broadcastUiMode}
         onPointerDown={noteActivity}
       >
-        <div className="lifeos-ghost-remote__row" role="group" aria-label="TV or Radio">
-          {BROADCAST_MODE_OPTIONS.map((o) => {
-            const Icon = o.Icon;
-            const active = surface === o.id;
-            return (
-              <button
-                key={o.id}
-                type="button"
-                className={`lifeos-ghost-remote__btn lifeos-ghost-remote__btn--icon lifeos-ghost-remote__btn--${o.id.toLowerCase()}${
-                  active ? " is-active" : ""
-                }`}
-                aria-label={o.aria}
-                aria-pressed={active}
-                data-no-nav-dock
-                onClick={() => pick(o.id)}
-              >
-                <span className="lifeos-ghost-remote__glyph" aria-hidden>
-                  <Icon size={24} />
-                  {o.id === "TV" && active ? (
-                    <span className="lifeos-ghost-remote__pulse lifeos-ghost-remote__pulse--tv" />
-                  ) : null}
-                  {o.id === "RADIO" && active ? (
-                    <span className="lifeos-ghost-remote__pulse lifeos-ghost-remote__pulse--radio" />
-                  ) : null}
-                </span>
-              </button>
-            );
-          })}
+        <div className="lifeos-ghost-remote__row" role="group" aria-label="Online TV Radio">
+          <button
+            type="button"
+            className="lifeos-ghost-remote__btn lifeos-ghost-remote__btn--online"
+            aria-label="Online"
+            data-no-nav-dock
+            onClick={goOnline}
+          >
+            <span className="lifeos-ghost-remote__glyph" aria-hidden>
+              <IconKernel size={22} />
+            </span>
+            <span className="lifeos-ghost-remote__label">Online</span>
+          </button>
+          <button
+            type="button"
+            className={`lifeos-ghost-remote__btn lifeos-ghost-remote__btn--icon lifeos-ghost-remote__btn--tv${
+              surface === "TV" ? " is-active" : ""
+            }`}
+            aria-label="TV"
+            aria-pressed={surface === "TV"}
+            data-no-nav-dock
+            onClick={() => pick("TV")}
+          >
+            <span className="lifeos-ghost-remote__glyph" aria-hidden>
+              <IconTv size={24} />
+              {surface === "TV" ? (
+                <span className="lifeos-ghost-remote__pulse lifeos-ghost-remote__pulse--tv" />
+              ) : null}
+            </span>
+          </button>
+          <button
+            type="button"
+            className={`lifeos-ghost-remote__btn lifeos-ghost-remote__btn--icon lifeos-ghost-remote__btn--radio${
+              surface === "RADIO" ? " is-active" : ""
+            }`}
+            aria-label="Radio"
+            aria-pressed={surface === "RADIO"}
+            data-no-nav-dock
+            onClick={() => pick("RADIO")}
+          >
+            <span className="lifeos-ghost-remote__glyph" aria-hidden>
+              <IconBroadcast size={24} />
+              {surface === "RADIO" ? (
+                <span className="lifeos-ghost-remote__pulse lifeos-ghost-remote__pulse--radio" />
+              ) : null}
+            </span>
+          </button>
         </div>
       </div>
     );

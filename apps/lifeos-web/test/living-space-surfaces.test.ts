@@ -45,7 +45,26 @@ describe("Living Space First + Offline TV/Radio broadcast", () => {
     expect(Array.isArray(kernelMediaFor(["video", "reel"]))).toBe(true);
   });
 
-  it("edge reveal opens remote; double-tap opens program info; no conflict", () => {
+  it("Offline kernel lands on its TV/Radio hub", () => {
+    expect(personalKernelPath("offline")).toBe("/app/personal/offline");
+    const home = readFileSync(join(root, "src/pages/personal/PersonalHomePage.tsx"), "utf8");
+    expect(home).toContain("offline-broadcast-landing");
+    expect(home).not.toContain('Navigate to="/app/personal/offline/post"');
+    const nav = readFileSync(join(root, "src/components/LifeOsCommandNavigation.tsx"), "utf8");
+    expect(nav).toContain("enterOffline");
+    expect(nav).toContain('aria-label="Offline"');
+    expect(nav).not.toContain('aria-label="My TV"');
+    expect(nav).not.toContain('aria-label="My Radio"');
+    expect(nav).toContain("onOfflineHub");
+    expect(nav).toContain("if (onOfflineHub) return null");
+    const hub = readFileSync(join(root, "src/components/OfflineHubSurface.tsx"), "utf8");
+    expect(hub).toContain('setSurface("TV")');
+    expect(hub).toContain("offline-hub__online");
+    expect(hub).toContain("goOnline");
+    expect(hub).toContain('personalKernelPath("main")');
+  });
+
+  it("edge reveal opens Online TV Radio; double-tap opens program info", () => {
     const gest = readFileSync(join(root, "src/components/NavigationDockGestures.tsx"), "utf8");
     expect(gest).toContain("openProgramInfo");
     expect(gest).not.toContain("openControl");
@@ -57,30 +76,17 @@ describe("Living Space First + Offline TV/Radio broadcast", () => {
     expect(nav).toContain("onEdgeReveal");
     const bar = readFileSync(join(root, "src/components/SurfaceSwitcherBar.tsx"), "utf8");
     expect(bar).toContain("lifeos-ghost-remote");
-    expect(bar).toContain("BROADCAST_MODE_OPTIONS");
-    expect(bar).toContain("lifeos-ghost-remote__btn--icon");
-    expect(bar).not.toContain('label: "TV"');
-    expect(bar).not.toContain('label: "Radio"');
+    expect(bar).toContain('aria-label="Online"');
+    expect(bar).toContain("goOnline");
+    expect(bar).toContain('aria-label="TV"');
+    expect(bar).toContain('aria-label="Radio"');
+    expect(bar).toContain("lifeos-ghost-remote__btn--online");
+    expect(bar).not.toContain("BROADCAST_MODE_OPTIONS");
     expect(bar).not.toContain("lifeos-surface-switcher__control");
     expect(SURFACE_SWITCHER_IDLE_MS).toBeGreaterThanOrEqual(3000);
     expect(SURFACE_SWITCHER_IDLE_MS).toBeLessThanOrEqual(5000);
     expect(BROADCAST_REMOTE_IDLE_MS).toBeGreaterThanOrEqual(3000);
     expect(BROADCAST_REMOTE_IDLE_MS).toBeLessThanOrEqual(5000);
-  });
-
-  it("Offline kernel lands on its TV/Radio hub", () => {
-    expect(personalKernelPath("offline")).toBe("/app/personal/offline");
-    const home = readFileSync(join(root, "src/pages/personal/PersonalHomePage.tsx"), "utf8");
-    expect(home).toContain("offline-broadcast-landing");
-    expect(home).not.toContain('Navigate to="/app/personal/offline/post"');
-    const nav = readFileSync(join(root, "src/components/LifeOsCommandNavigation.tsx"), "utf8");
-    expect(nav).toContain("enterOffline");
-    expect(nav).toContain('aria-label="Offline"');
-    expect(nav).not.toContain('aria-label="My TV"');
-    expect(nav).not.toContain('aria-label="My Radio"');
-    expect(readFileSync(join(root, "src/components/OfflineHubSurface.tsx"), "utf8")).toContain(
-      'setSurface("TV")',
-    );
   });
 
   it("TV opens broadcast-only; Radio is canvas wave-field only", () => {

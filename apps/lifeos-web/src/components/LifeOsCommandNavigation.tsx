@@ -84,14 +84,15 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
   const kernel = personalKernelFromPath(path) ?? "main";
   const personalBase = personalNavBase(kernel);
   const onAir = surface === "TV" || surface === "RADIO";
+  const onOfflineHub = surface === "OFFLINE_HUB";
   const remoteRevealed = broadcastUiMode === "REMOTE_REVEALED";
   const showMessaging = hasDeployedMyBrandOS(apps) && path !== "/app/elcom";
   const messagesTo = showMessaging ? "/app/elcom" : "/app/messages";
   const tapMode: CmdTapMode = "immediate";
 
   useEffect(() => {
-    if (onAir && expanded) close();
-  }, [onAir, expanded, close]);
+    if ((onAir || onOfflineHub) && expanded) close();
+  }, [onAir, onOfflineHub, expanded, close]);
 
   useEffect(() => {
     if (!expanded) {
@@ -254,6 +255,9 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
     if (broadcastUiMode !== "HIDDEN") closeBroadcastUi();
     toggle();
   }
+
+  /* Offline hub: no reveal handle — Online / TV / Radio live on the page. */
+  if (onOfflineHub) return null;
 
   return (
     <>
