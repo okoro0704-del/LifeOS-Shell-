@@ -113,7 +113,7 @@ export function SurfaceSwitcherBar() {
           </button>
           <button
             type="button"
-            className={`lifeos-ghost-remote__btn lifeos-ghost-remote__btn--icon lifeos-ghost-remote__btn--tv${
+            className={`lifeos-ghost-remote__btn lifeos-ghost-remote__btn--named lifeos-ghost-remote__btn--tv${
               surface === "TV" ? " is-active" : ""
             }`}
             aria-label="TV"
@@ -122,15 +122,16 @@ export function SurfaceSwitcherBar() {
             onClick={() => pick("TV")}
           >
             <span className="lifeos-ghost-remote__glyph" aria-hidden>
-              <IconTv size={24} />
+              <IconTv size={22} />
               {surface === "TV" ? (
                 <span className="lifeos-ghost-remote__pulse lifeos-ghost-remote__pulse--tv" />
               ) : null}
             </span>
+            <span className="lifeos-ghost-remote__label">TV</span>
           </button>
           <button
             type="button"
-            className={`lifeos-ghost-remote__btn lifeos-ghost-remote__btn--icon lifeos-ghost-remote__btn--radio${
+            className={`lifeos-ghost-remote__btn lifeos-ghost-remote__btn--named lifeos-ghost-remote__btn--radio${
               surface === "RADIO" ? " is-active" : ""
             }`}
             aria-label="Radio"
@@ -139,11 +140,12 @@ export function SurfaceSwitcherBar() {
             onClick={() => pick("RADIO")}
           >
             <span className="lifeos-ghost-remote__glyph" aria-hidden>
-              <IconBroadcast size={24} />
+              <IconBroadcast size={22} />
               {surface === "RADIO" ? (
                 <span className="lifeos-ghost-remote__pulse lifeos-ghost-remote__pulse--radio" />
               ) : null}
             </span>
+            <span className="lifeos-ghost-remote__label">Radio</span>
           </button>
         </div>
       </div>

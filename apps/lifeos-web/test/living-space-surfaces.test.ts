@@ -80,7 +80,10 @@ describe("Living Space First + Offline TV/Radio broadcast", () => {
     expect(bar).toContain("goOnline");
     expect(bar).toContain('aria-label="TV"');
     expect(bar).toContain('aria-label="Radio"');
+    expect(bar).toContain(">TV</span>");
+    expect(bar).toContain(">Radio</span>");
     expect(bar).toContain("lifeos-ghost-remote__btn--online");
+    expect(bar).toContain("lifeos-ghost-remote__btn--named");
     expect(bar).not.toContain("BROADCAST_MODE_OPTIONS");
     expect(bar).not.toContain("lifeos-surface-switcher__control");
     expect(SURFACE_SWITCHER_IDLE_MS).toBeGreaterThanOrEqual(3000);
@@ -113,8 +116,11 @@ describe("Living Space First + Offline TV/Radio broadcast", () => {
     expect(remote).toContain("lifeos-ghost-controls");
     expect(remote).toContain("REMOTE_REVEALED");
     expect(remote).toContain("kernelAdjacentCreatorIndex");
+    expect(remote).toContain("kernelIndexForBrand");
     expect(remote).toContain('aria-label="Previous station"');
     expect(remote).toContain('aria-label="Next station"');
+    expect(remote).toContain('aria-label="Type creator station"');
+    expect(remote).toContain("lifeos-ghost-controls__seek");
     expect(remote).toContain("lifeos-ghost-controls__caption");
     expect(remote).not.toContain("Play");
     expect(remote).not.toContain("Pause");
@@ -126,6 +132,15 @@ describe("Living Space First + Offline TV/Radio broadcast", () => {
     const loop = kernelAdjacentCreatorIndex(["video", "reel"], creators.length - 1, "next");
     expect(next).not.toBe(0);
     expect(typeof loop).toBe("number");
+  });
+
+  it("Living LifeOS stays visible on Main immersive home", () => {
+    const css = readFileSync(join(root, "src/styles.css"), "utf8");
+    expect(css).not.toMatch(
+      /\.personal-page--immersive\.is-shell-clean\s*>\s*\.living-lifeos-box[^}]*opacity:\s*0/,
+    );
+    expect(css).toContain(".personal-page--immersive > .living-lifeos-box");
+    expect(css).toContain("Living LifeOS identity stays persistent");
   });
 
   it("program info shows creator + NOW/NEXT from real schedule", () => {
