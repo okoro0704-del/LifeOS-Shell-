@@ -14,6 +14,8 @@
   VITE_AUTH_BYPASS = "true"
   # Isolated Business Space discovery fixtures for experience testing
   VITE_LIFEOS_DEMO_DISCOVERY = "true"
+  # Cloud Offline Kernel — station manifests for TV/Radio (device runtime stays local)
+  VITE_OFFLINE_KERNEL_API_URL = "https://offline-kernel-production.up.railway.app"
 
 # Also declared in public/_redirects (publish folder) — keep both in sync.
 [[redirects]]
