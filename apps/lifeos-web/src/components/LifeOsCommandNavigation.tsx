@@ -20,7 +20,6 @@ import {
   IconHome,
   IconKernel,
   IconMessage,
-  IconReceive,
   IconTicket,
   IconTv,
   IconWallet,
@@ -476,21 +475,6 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
           hidden={!expanded}
           onPointerDown={() => noteShellActivity()}
         >
-          <button
-            type="button"
-            className={`lifeos-kernel-bar__btn${kernel === "offline" ? " is-active" : ""}`}
-            aria-label="Offline"
-            aria-pressed={kernel === "offline"}
-            title="Offline"
-            data-no-nav-dock
-            onClick={(e) => {
-              e.stopPropagation();
-              selectKernel("offline");
-            }}
-          >
-            <IconReceive size={22} />
-            <span className="lifeos-kernel-bar__label">Offline</span>
-          </button>
           <button
             type="button"
             className={`lifeos-kernel-bar__btn${kernel === "main" ? " is-active" : ""}`}

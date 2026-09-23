@@ -15,6 +15,8 @@ function channelIndex(n: number, len: number): number {
 export function TvSurface() {
   const { surface, tierOf, broadcastMode, tvChannel, mediaPaused } = useLifeOsSurface();
   const active = surface === "TV";
+  const [retained, setRetained] = useState(active);
+  useEffect(() => { if (active) setRetained(true); }, [active]);
   const tier = tierOf("TV");
   const items = kernelMediaFor(["video", "reel"]);
   const hasLocal = kernelHasLocalContent(["video", "reel"]);
@@ -46,7 +48,7 @@ export function TvSurface() {
       data-kernel="lifeos-offline-kernel"
       data-tv-channel={channelId ?? undefined}
     >
-      {active ? (
+      {active || retained ? (
         <div className="lifeos-surface__body">
           <ImmersiveMediaFeed
             items={items}
@@ -60,7 +62,7 @@ export function TvSurface() {
             showAds={false}
             initialPublicationId={channelId}
             seekPublicationId={channelId}
-            mediaPaused={mediaPaused}
+            mediaPaused={!active || mediaPaused}
           />
         </div>
       ) : null}

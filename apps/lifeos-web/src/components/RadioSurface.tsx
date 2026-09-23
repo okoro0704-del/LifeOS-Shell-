@@ -18,6 +18,8 @@ function channelIndex(n: number, len: number): number {
 export function RadioSurface() {
   const { surface, tierOf, broadcastMode, radioChannel, mediaPaused } = useLifeOsSurface();
   const active = surface === "RADIO";
+  const [retained, setRetained] = useState(active);
+  useEffect(() => { if (active) setRetained(true); }, [active]);
   const tier = tierOf("RADIO");
   const audio = kernelMediaFor(["music", "podcast"]);
   const hasLocal = kernelHasLocalContent(["music", "podcast"]);
@@ -93,7 +95,7 @@ export function RadioSurface() {
       data-kernel="lifeos-offline-kernel"
       data-radio-brand={brand ?? undefined}
     >
-      {active ? (
+      {active || retained ? (
         <div className="lifeos-surface__body lifeos-surface__body--radio-waves">
           <RadioWaveField active={active} intensity={energy} reduced={reduced} />
           <audio ref={audioRef} preload="metadata" playsInline loop aria-hidden />

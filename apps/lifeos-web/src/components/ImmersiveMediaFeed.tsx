@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { hasPremium, setPremium, type MediaItem } from "../lib/personalCatalog";
+import { useSpacePresentation } from "../context/SpacePresentationContext";
 import { openCreatorApp } from "../lib/mybrandOS";
 import {
   addComment,
@@ -244,6 +245,10 @@ function ContentSlide({
   const [comments, setComments] = useState(() => listComments(item.id));
   const [reuses, setReuses] = useState(() => getReuseCount(item.id));
   const [commentOpen, setCommentOpen] = useState(false);
+  const spacePresentation = useSpacePresentation();
+  useEffect(() => {
+    if (spacePresentation.spaceMode && !spacePresentation.interactionsOpen) setCommentOpen(false);
+  }, [spacePresentation.spaceMode, spacePresentation.interactionsOpen]);
   const [draft, setDraft] = useState("");
   const [toast, setToast] = useState<string | null>(null);
   const [readOpen, setReadOpen] = useState(false);
@@ -276,7 +281,7 @@ function ContentSlide({
   }, [active]);
 
   useEffect(() => {
-    if (tier !== "vip" || lockedPremium || locked || !active) return;
+    if (tier !== "vip" || lockedPremium || locked || !active || mediaPaused) return;
     const id = window.setInterval(() => {
       const bal = getLifeOsCredits();
       if (bal <= 0) {
@@ -287,7 +292,7 @@ function ContentSlide({
       markWatchedOffline(item);
     }, 4000);
     return () => window.clearInterval(id);
-  }, [tier, lockedPremium, locked, vipRate, item, creator, onCredits, active]);
+  }, [tier, lockedPremium, locked, vipRate, item, creator, onCredits, active, mediaPaused]);
 
   function flash(msg: string) {
     setToast(msg);
@@ -538,7 +543,8 @@ export function ImmersiveMediaFeed({
   const leadingOffset = leading ? 1 : 0;
   const { setChromeHidden } = useChromeVisibility();
   const { shellControlsVisible } = useNavigationDock();
-  const interactionOpen = shellControlsVisible;
+  const spacePresentation = useSpacePresentation();
+  const interactionOpen = spacePresentation.spaceMode ? spacePresentation.interactionsOpen : shellControlsVisible;
 
   const rows = useMemo<FeedRow[]>(() => {
     if (showAds) {

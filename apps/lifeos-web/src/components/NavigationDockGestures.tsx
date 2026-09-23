@@ -1,8 +1,14 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigationDock } from "../context/NavigationDockContext";
 import { useWorkspace } from "../context/WorkspaceContext";
 import { useLifeOsSurface } from "../context/LifeOsSurfaceContext";
 import { attachNavDockDoubleTap } from "../lib/navDockGesture";
+import { useAuth } from "../hooks/useAuth";
+import { useSpaceRuntime } from "../lib/useSpaceRuntime";
+import { SpaceControls } from "../lib/SpaceControls";
+import type { SpaceDefinition } from "../lib/space-runtime";
+import type { LifeOsSurface } from "../context/LifeOsSurfaceContext";
+import { SpacePresentationContext } from "../context/SpacePresentationContext";
 
 /**
  * TV/Radio: double tap on broadcast → PROGRAM_INFO_REVEALED (creator + NOW/NEXT).
@@ -20,7 +26,22 @@ export function NavigationDockGestures({ children }: { children: ReactNode }) {
     broadcastUiMode,
     closeBroadcastUi,
     openProgramInfo,
+    setSurface,
   } = useLifeOsSurface();
+  const { user } = useAuth();
+  const [spaceMode, setSpaceMode] = useState(false);
+  const enabled = spaceMode && mode === "PERSONAL" && !!user?.trustId;
+  const definition = useMemo<SpaceDefinition>(() => ({
+    id: `space.lifeos.${user?.trustId || 'unavailable'}`, owner: user?.trustId || 'unavailable',
+    defaultExperienceId: 'LIVING_LIFEOS',
+    experiences: [
+      { id: 'LIVING_LIFEOS', title: 'LifeOS' }, { id: 'TV', title: 'TV' },
+      { id: 'RADIO', title: 'Radio' }, { id: 'OFFLINE_HUB', title: 'Offline library' },
+    ].map(item => ({ ...item, type: item.id, lifecyclePolicy: 'retained', offlinePolicy: 'cached' })),
+  }), [user?.trustId]);
+  const runtime = useSpaceRuntime(definition, id => setSurface(id as LifeOsSurface), enabled);
+  const spaceRef = useRef({ enabled, dispatch: runtime.dispatch });
+  spaceRef.current = { enabled, dispatch: runtime.dispatch };
   const rootRef = useRef<HTMLDivElement>(null);
   const [ripple, setRipple] = useState<{ x: number; y: number; id: number } | null>(null);
   const modeRef = useRef(mode);
@@ -40,6 +61,10 @@ export function NavigationDockGestures({ children }: { children: ReactNode }) {
     return attachNavDockDoubleTap(
       root,
       (x, y) => {
+        if (spaceRef.current.enabled) {
+          spaceRef.current.dispatch({ type: 'DOUBLE_TAP_CANVAS' });
+          return;
+        }
         setRipple({ x, y, id: Date.now() });
         if (modeRef.current === "PERSONAL") {
           if (surfaceRef.current === "TV" || surfaceRef.current === "RADIO") {
@@ -74,13 +99,28 @@ export function NavigationDockGestures({ children }: { children: ReactNode }) {
   ]);
 
   return (
+    <SpacePresentationContext.Provider value={{ spaceMode: enabled, interactionsOpen: enabled && runtime.state.presentationState === 'INTERACTION' }}>
     <div
       className="lifeos-nav-dock-gesture-root"
       ref={rootRef}
       data-lifeos-surface={surface}
       data-broadcast-ui={broadcastUiMode}
+      data-space-mode={enabled ? 'SPACE' : 'APP'}
+      data-current-space-id={enabled ? runtime.state.currentSpaceId : undefined}
+      data-current-experience-id={enabled ? runtime.state.currentExperienceId : undefined}
+      data-space-presentation={enabled ? runtime.state.presentationState : undefined}
     >
       {children}
+      {enabled ? <SpaceControls state={runtime.state} definition={definition} dispatch={runtime.dispatch} interactionsAvailable={surface === 'TV' || surface === 'LIVING_LIFEOS'}>
+        {surface === 'TV' || surface === 'RADIO' ? <button type="button" onClick={openProgramInfo}>Programme information</button> : null}
+        <button type="button" onClick={() => { closeBroadcastUi(); setSpaceMode(false); }}>App mode</button>
+      </SpaceControls> : mode === 'PERSONAL' && user?.trustId ? <button type="button"
+        style={{ position: 'fixed', right: 20, bottom: 20, zIndex: 90 }}
+        onClick={() => { close(); closeSwitcher(); closeBroadcastUi(); setSpaceMode(true); }}>Space mode</button> : null}
+      {enabled ? <style>{`[data-space-mode="SPACE"] .sidebar,
+        [data-space-mode="SPACE"] .lifeos-cmd-nav,
+        [data-space-mode="SPACE"] .lifeos-surface-switcher,
+        [data-space-mode="SPACE"] [data-broadcast-reveal] { visibility: hidden; pointer-events: none; }`}</style> : null}
       {ripple ? (
         <span
           className="lifeos-cmd-nav__ripple"
@@ -90,5 +130,6 @@ export function NavigationDockGestures({ children }: { children: ReactNode }) {
         />
       ) : null}
     </div>
+    </SpacePresentationContext.Provider>
   );
 }
