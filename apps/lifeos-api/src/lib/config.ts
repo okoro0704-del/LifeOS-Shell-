@@ -6,7 +6,8 @@ function required(name: string, fallback?: string): string {
 
 /** A bypass is a local/test convenience only; production always rejects it. */
 export function isAuthBypassEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-  return env.NODE_ENV !== "production" && (env.LIFEOS_AUTH_BYPASS ?? "").toLowerCase() === "true";
+  const environment = (env.NODE_ENV ?? env.RAILWAY_ENVIRONMENT_NAME ?? "development").toLowerCase();
+  return environment !== "production" && (env.LIFEOS_AUTH_BYPASS ?? "").toLowerCase() === "true";
 }
 
 /** Cookie SameSite: "lax" for same-site (/api proxy), "none" for cross-site Netlify→Railway. */

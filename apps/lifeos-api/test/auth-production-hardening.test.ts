@@ -9,6 +9,7 @@ describe("production authentication hardening", () => {
 
   test("missing production bypass configuration remains disabled", () => {
     assert.equal(isAuthBypassEnabled({ NODE_ENV: "production" }), false);
+    assert.equal(isAuthBypassEnabled({ RAILWAY_ENVIRONMENT_NAME: "production", LIFEOS_AUTH_BYPASS: "true" }), false);
   });
 
   test("development bypass remains explicit", () => {
