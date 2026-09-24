@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["src", "test/dk1-kernel-contract.test.ts", "test/dk1-media-capability.test.ts", "test/fixtures/dk1Media.ts"]
+}

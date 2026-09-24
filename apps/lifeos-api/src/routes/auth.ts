@@ -113,8 +113,7 @@ export async function authRoutes(app: FastifyInstance) {
   });
 
   /**
-   * Temporary TrustID bypass — mint a real LifeOS session without OAuth.
-   * Enable with LIFEOS_AUTH_BYPASS=true; unset to restore TrustID login.
+   * Temporary TrustID bypass — available only outside production when explicitly enabled.
    */
   app.post("/auth/dev-session", async (req, reply) => {
     if (!config.authBypassEnabled) {

@@ -1,77 +1,47 @@
+import { resolveCurrentNext, type Program } from "@digiconomy/offline-kernel";
+import { channelSequenceProjection } from "./offlineKernelMapper";
 import { kernelBrandOf, kernelMediaFor } from "./offlineKernelRuntime";
 import type { MediaItem } from "./personalCatalog";
 
-export type BroadcastScheduleEntry = {
-  title: string;
-  creator: string;
-  live: boolean;
-};
+export type BroadcastScheduleEntry = { title: string; creator: string; live: boolean };
+export type BroadcastSchedule = { stationName: string; now: BroadcastScheduleEntry; next: BroadcastScheduleEntry };
 
-export type BroadcastSchedule = {
-  /** Station identity for the active creator channel. */
-  stationName: string;
-  now: BroadcastScheduleEntry;
-  next: BroadcastScheduleEntry;
-};
-
-const NOT_SCHEDULED: BroadcastScheduleEntry = {
-  title: "Not scheduled",
-  creator: "",
-  live: false,
-};
-
-function normalizedIndex(index: number, length: number): number {
-  if (length === 0) return 0;
-  return ((index % length) + length) % length;
-}
-
-function entry(item: MediaItem | undefined): BroadcastScheduleEntry {
-  if (!item) return NOT_SCHEDULED;
-  return {
-    title: item.title || "Not scheduled",
-    creator: kernelBrandOf(item),
-    live: Boolean(item.live),
-  };
-}
+const NOT_SCHEDULED: BroadcastScheduleEntry = { title: "Not scheduled", creator: "", live: false };
 
 function kindsFor(surface: "TV" | "RADIO"): MediaItem["kind"][] {
   return surface === "RADIO" ? ["music", "podcast"] : ["video", "reel"];
 }
 
-function nextForCreator(catalog: MediaItem[], current: number): MediaItem | undefined {
-  if (catalog.length === 0) return undefined;
-  const brand = kernelBrandOf(catalog[current]!).toLowerCase();
-  for (let i = 1; i < catalog.length; i++) {
-    const idx = (current + i) % catalog.length;
-    if (kernelBrandOf(catalog[idx]!).toLowerCase() === brand) {
-      return catalog[idx];
-    }
-  }
-  return catalog[(current + 1) % catalog.length];
+function entry(program: Program | undefined): BroadcastScheduleEntry {
+  if (!program) return NOT_SCHEDULED;
+  const metadata = program.metadata ?? {};
+  return {
+    title: typeof metadata.title === "string" && metadata.title ? metadata.title : "Not scheduled",
+    creator: typeof metadata.creator === "string" ? metadata.creator : program.stationId,
+    live: metadata.live === true,
+  };
 }
 
-/** Resolve Now/Next + station identity from the Offline kernel catalog. */
-export function broadcastSchedule(
-  surface: "TV" | "RADIO",
-  channelIndex: number,
-): BroadcastSchedule {
+/**
+ * LifeOS compatibility projection over the canonical CURRENT/NEXT resolver.
+ * Channel order and station naming remain LifeOS concerns.
+ */
+export function broadcastSchedule(surface: "TV" | "RADIO", channelIndex: number): BroadcastSchedule {
   const catalog = kernelMediaFor(kindsFor(surface));
-  if (catalog.length === 0) {
+  const capability = surface === "RADIO" ? "space.radio" : "space.tv";
+  const projection = channelSequenceProjection(catalog, channelIndex, capability, new Date());
+  if (!projection) {
     return {
       stationName: surface === "RADIO" ? "Radio" : "TV",
       now: NOT_SCHEDULED,
       next: NOT_SCHEDULED,
     };
   }
-  const current = normalizedIndex(channelIndex, catalog.length);
-  const nowItem = catalog[current]!;
-  const brand = kernelBrandOf(nowItem);
+  const { current, next } = resolveCurrentNext(projection.value.stations[0]!.programs, new Date());
+  const selected = ((channelIndex % catalog.length) + catalog.length) % catalog.length;
+  const brand = kernelBrandOf(catalog[selected]!);
   const suffix = surface === "RADIO" ? " Radio" : " TV";
-  return {
-    stationName: brand ? `${brand}${suffix}` : surface === "RADIO" ? "Radio" : "TV",
-    now: entry(nowItem),
-    next: entry(nextForCreator(catalog, current)),
-  };
+  return { stationName: `${brand}${suffix}`, now: entry(current), next: entry(next) };
 }
 
 export function broadcastKinds(surface: "TV" | "RADIO"): MediaItem["kind"][] {

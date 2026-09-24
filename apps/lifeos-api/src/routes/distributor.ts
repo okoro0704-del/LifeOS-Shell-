@@ -109,7 +109,7 @@ export async function distributorRoutes(app: FastifyInstance) {
 
   /**
    * Publish / update an app in the LifeOS registry so every user can sync it into their launcher.
-   * Auth: MASTER_DISTRIBUTION_SECRET, or open when LIFEOS_AUTH_BYPASS is enabled.
+   * Auth: MASTER_DISTRIBUTION_SECRET, or open only in explicit non-production development.
    */
   app.post("/v1/distributor/registry", async (req, reply) => {
     if (!authorizeDistribution(req as { headers: Record<string, unknown> })) {

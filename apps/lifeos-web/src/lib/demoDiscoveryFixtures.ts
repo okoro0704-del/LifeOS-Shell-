@@ -4,7 +4,6 @@
  *
  * Activation (any one):
  * - VITE_LIFEOS_DEMO_DISCOVERY=true
- * - VITE_AUTH_BYPASS=true (current Netlify test env)
  * - import.meta.env.DEV
  *
  * Production without those flags → live API only.
@@ -15,8 +14,7 @@ export const DEMO_FIXTURE_SOURCE = "lifeos-demo-fixture" as const;
 
 export function isLifeOsDemoDiscoveryEnabled(): boolean {
   const demo = (import.meta.env.VITE_LIFEOS_DEMO_DISCOVERY ?? "").toLowerCase() === "true";
-  const bypass = (import.meta.env.VITE_AUTH_BYPASS ?? "").toLowerCase() === "true";
-  return demo || bypass || Boolean(import.meta.env.DEV);
+  return demo || Boolean(import.meta.env.DEV);
 }
 
 function pad(n: number) {

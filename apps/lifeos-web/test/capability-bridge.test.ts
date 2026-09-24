@@ -1,0 +1,6 @@
+import { describe, expect, it } from "vitest";
+import { CapabilityRegistry, createDescriptorProvider, resolveExperienceCapabilities } from "@digiconomy/space-capability-bridge";
+import { offlineCapability } from "../src/lib/offlineKernelRuntime";
+import { lifeOsSpaceExperienceCapabilities } from "../src/lib/spaceCapabilities";
+const registry=()=>{const r=new CapabilityRegistry();r.register(createDescriptorProvider("offline-kernel","1.0.0",id=>["space.tv","space.radio","space.call"].includes(id),id=>{const d=offlineCapability(id as "space.tv"|"space.radio"|"space.call");return {state:d.state,reason:d.reason};}));return r};
+describe("LifeOS Space capability declarations",()=>{it("keeps TV/Radio truthful and optional call non-blocking",async()=>{expect((await resolveExperienceCapabilities(lifeOsSpaceExperienceCapabilities.TV,registry())).experienceState).not.toBe("BLOCKED");expect((await resolveExperienceCapabilities(lifeOsSpaceExperienceCapabilities.RADIO,registry())).experienceState).not.toBe("BLOCKED");expect((await resolveExperienceCapabilities(lifeOsSpaceExperienceCapabilities.CALL_DIAGNOSTIC,registry())).experienceState).toBe("READY");expect((await resolveExperienceCapabilities([{id:"space.tv",requirement:"REQUIRED"}],new CapabilityRegistry())).experienceState).toBe("BLOCKED");});});

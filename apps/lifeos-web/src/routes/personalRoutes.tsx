@@ -11,6 +11,7 @@ import {
   PersonalHomePage,
   PersonalPostPage,
   PersonalPremiumPage,
+  PersonalVipPage,
   PersonalProductsPage,
   PersonalReelsPage,
   PersonalSearchPage,
@@ -36,6 +37,7 @@ export function PersonalRoutes() {
         <Route path="search" element={<PersonalSearchPage />} />
         <Route path="connects" element={<Navigate to="../products" replace />} />
         <Route path="premium" element={<PersonalPremiumPage />} />
+        <Route path="vip" element={<PersonalVipPage />} />
         <Route path="compose" element={<Navigate to="../post" replace />} />
         <Route path="creator/:creatorId" element={<CreatorPwaPage />} />
         <Route path="main" element={<Navigate to="/app/personal/post" replace />} />

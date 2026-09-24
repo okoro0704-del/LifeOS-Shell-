@@ -10,8 +10,10 @@
 [build.environment]
   NODE_VERSION = "20"
   VITE_LIFEOS_API = "/api"
-  # Temporary TrustID bypass for testing — remove when reconnecting TrustID
-  VITE_AUTH_BYPASS = "true"
+  VITE_TRUSTID_WEB = "https://trustedid.netlify.app"
+  VITE_TRUSTID_API = "https://trustedid.netlify.app/api"
+  VITE_TRUSTID_CLIENT_ID = "lifeos_mock_public"
+  VITE_TRUSTID_REDIRECT_URI = "https://lifeosapp.getlifeos.app/callback"
   # Isolated Business Space discovery fixtures for experience testing
   VITE_LIFEOS_DEMO_DISCOVERY = "true"
   # Cloud Offline Kernel — station manifests for TV/Radio (device runtime stays local)

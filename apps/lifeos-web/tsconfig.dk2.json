@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.dk1.json",
+  "include": ["src", "test/dk1-*.test.ts", "test/dk2-*.test.ts", "test/fixtures/dk1Media.ts", "test/fixtures/dk2*.ts"]
+}

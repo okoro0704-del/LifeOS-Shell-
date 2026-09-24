@@ -1,0 +1,146 @@
+{
+  "date": "2026-09-24",
+  "repository": "C:\\Users\\Hp\\Desktop\\OS SHELL",
+  "algorithm": "SHA256",
+  "fileCount": 23,
+  "files": [
+    {
+      "path": "packages/space-runtime/package.json",
+      "beforeSha256": "E92CE26D9099E4484CC037EEA0CBF077390B6F836E2799D4D12BFDC0F6BD9B38",
+      "afterSha256": "E92CE26D9099E4484CC037EEA0CBF077390B6F836E2799D4D12BFDC0F6BD9B38",
+      "unchanged": true
+    },
+    {
+      "path": "packages/space-runtime/README.md",
+      "beforeSha256": "3FE55225F168B4F65B381C9686C9FFB0DDADFE38F45EAEADE91C38DE4EB59510",
+      "afterSha256": "3FE55225F168B4F65B381C9686C9FFB0DDADFE38F45EAEADE91C38DE4EB59510",
+      "unchanged": true
+    },
+    {
+      "path": "packages/space-runtime/tsconfig.json",
+      "beforeSha256": "06A283912691D548C71C38CA53835AFB4E62809645C98959B74646C077BC7F89",
+      "afterSha256": "06A283912691D548C71C38CA53835AFB4E62809645C98959B74646C077BC7F89",
+      "unchanged": true
+    },
+    {
+      "path": "packages/space-runtime/dist/index.d.ts",
+      "beforeSha256": "285C79A1619E49CD9D17E51D8F524B512DBE4BA25887A27380176F88A3D1DB7C",
+      "afterSha256": "285C79A1619E49CD9D17E51D8F524B512DBE4BA25887A27380176F88A3D1DB7C",
+      "unchanged": true
+    },
+    {
+      "path": "packages/space-runtime/dist/index.d.ts.map",
+      "beforeSha256": "5E66B43A35D213A19350493D651BDB761B561BFC9F9935996E33C2C688095FD6",
+      "afterSha256": "5E66B43A35D213A19350493D651BDB761B561BFC9F9935996E33C2C688095FD6",
+      "unchanged": true
+    },
+    {
+      "path": "packages/space-runtime/dist/index.js",
+      "beforeSha256": "D74E976F118DDA24BE616177ABD0F7300965B4440886AE3D6CE9444AF12147D0",
+      "afterSha256": "D74E976F118DDA24BE616177ABD0F7300965B4440886AE3D6CE9444AF12147D0",
+      "unchanged": true
+    },
+    {
+      "path": "packages/space-runtime/dist/index.js.map",
+      "beforeSha256": "BD8CE871F1BB23E7034D4A5325134658B3429DD6AF1A172669EE3D4018BC48C2",
+      "afterSha256": "BD8CE871F1BB23E7034D4A5325134658B3429DD6AF1A172669EE3D4018BC48C2",
+      "unchanged": true
+    },
+    {
+      "path": "packages/space-runtime/src/index.ts",
+      "beforeSha256": "8FD34AA56EA75060F7D32C924D5EE42FD7C4645D18869C66D7404DA108C8B4C1",
+      "afterSha256": "8FD34AA56EA75060F7D32C924D5EE42FD7C4645D18869C66D7404DA108C8B4C1",
+      "unchanged": true
+    },
+    {
+      "path": "packages/space-runtime/test/runtime.test.ts",
+      "beforeSha256": "7340B10B995E1CA9E0E8F6B14E60B795DEB796BC34A10EDD4C1C36EA9A024EFC",
+      "afterSha256": "7340B10B995E1CA9E0E8F6B14E60B795DEB796BC34A10EDD4C1C36EA9A024EFC",
+      "unchanged": true
+    },
+    {
+      "path": "packages/offline-kernel/package.json",
+      "beforeSha256": "E5682BD46E8B76704AD5ED780DC9E1FFD5424DB883804E7278C5A58A5E4EB982",
+      "afterSha256": "E5682BD46E8B76704AD5ED780DC9E1FFD5424DB883804E7278C5A58A5E4EB982",
+      "unchanged": true
+    },
+    {
+      "path": "packages/offline-kernel/tsconfig.json",
+      "beforeSha256": "2C930BA39CEE32D716B621B0B0ADD4654F46214DCD7B2EB681E299E95BD1C619",
+      "afterSha256": "2C930BA39CEE32D716B621B0B0ADD4654F46214DCD7B2EB681E299E95BD1C619",
+      "unchanged": true
+    },
+    {
+      "path": "packages/offline-kernel/dist/index.d.ts",
+      "beforeSha256": "91953BEC356844019DBB2276DF5D12C89AAEEE98C95405FAD3E72DEF767EB120",
+      "afterSha256": "91953BEC356844019DBB2276DF5D12C89AAEEE98C95405FAD3E72DEF767EB120",
+      "unchanged": true
+    },
+    {
+      "path": "packages/offline-kernel/dist/index.d.ts.map",
+      "beforeSha256": "05A56FFCE98956CD9F913E881F306DE4735AA96F79192AD5BC9E732646815BA1",
+      "afterSha256": "05A56FFCE98956CD9F913E881F306DE4735AA96F79192AD5BC9E732646815BA1",
+      "unchanged": true
+    },
+    {
+      "path": "packages/offline-kernel/dist/index.js",
+      "beforeSha256": "5063112E3786919ED3EAF591EC6C10BA5ACBD04F7B854AE36153DC46122A95A1",
+      "afterSha256": "5063112E3786919ED3EAF591EC6C10BA5ACBD04F7B854AE36153DC46122A95A1",
+      "unchanged": true
+    },
+    {
+      "path": "packages/offline-kernel/dist/index.js.map",
+      "beforeSha256": "E60B983C7977BD84D6BD1A4EAB266844C19CDACA268136011BB57E9DD6C125E4",
+      "afterSha256": "E60B983C7977BD84D6BD1A4EAB266844C19CDACA268136011BB57E9DD6C125E4",
+      "unchanged": true
+    },
+    {
+      "path": "packages/offline-kernel/src/index.ts",
+      "beforeSha256": "F89195D6A50E7FFD2B8EA0755FA5B5349C313F90B425D6035BB3722002F00B97",
+      "afterSha256": "F89195D6A50E7FFD2B8EA0755FA5B5349C313F90B425D6035BB3722002F00B97",
+      "unchanged": true
+    },
+    {
+      "path": "packages/offline-kernel/test/kernel.test.ts",
+      "beforeSha256": "158B7EB5E04CCCC734653B70A2CC584BBF9D8DFE4017CC1D8387A376726417CF",
+      "afterSha256": "158B7EB5E04CCCC734653B70A2CC584BBF9D8DFE4017CC1D8387A376726417CF",
+      "unchanged": true
+    },
+    {
+      "path": "packages/space-capability-bridge/package.json",
+      "beforeSha256": "4BDB0FB1D1BD9A8AAE0962E89B53DABE97B16FCA6D06151FBD107322DB123858",
+      "afterSha256": "4BDB0FB1D1BD9A8AAE0962E89B53DABE97B16FCA6D06151FBD107322DB123858",
+      "unchanged": true
+    },
+    {
+      "path": "packages/space-capability-bridge/tsconfig.json",
+      "beforeSha256": "7CCB02FF17F7B9449D6346350B6E549AD123810BF55383E32A7F12AA92B13564",
+      "afterSha256": "7CCB02FF17F7B9449D6346350B6E549AD123810BF55383E32A7F12AA92B13564",
+      "unchanged": true
+    },
+    {
+      "path": "packages/space-capability-bridge/dist/index.d.ts",
+      "beforeSha256": "F35394E2E249352E64153F03FFA551D5B99B95C1571D28D47A0DAFA6AAC14C58",
+      "afterSha256": "F35394E2E249352E64153F03FFA551D5B99B95C1571D28D47A0DAFA6AAC14C58",
+      "unchanged": true
+    },
+    {
+      "path": "packages/space-capability-bridge/dist/index.js",
+      "beforeSha256": "F5A338CB12C4EEF714133FEB346EB026604C66FC2B97E7CAD053E136289F188D",
+      "afterSha256": "F5A338CB12C4EEF714133FEB346EB026604C66FC2B97E7CAD053E136289F188D",
+      "unchanged": true
+    },
+    {
+      "path": "packages/space-capability-bridge/src/index.ts",
+      "beforeSha256": "0C15AC8A69EEF5155D0713B951E2B564C4914C2CEBA3C7DCC68DF77479265AF5",
+      "afterSha256": "0C15AC8A69EEF5155D0713B951E2B564C4914C2CEBA3C7DCC68DF77479265AF5",
+      "unchanged": true
+    },
+    {
+      "path": "packages/space-capability-bridge/test/bridge.test.ts",
+      "beforeSha256": "5C6B69FDE8107FE966B7F16039789DFA71F0D7DC11FE607A8F3B88C79468A9C2",
+      "afterSha256": "5C6B69FDE8107FE966B7F16039789DFA71F0D7DC11FE607A8F3B88C79468A9C2",
+      "unchanged": true
+    }
+  ]
+}

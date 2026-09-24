@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SpaceControls } from '../src/lib/SpaceControls';
 import { useSpaceRuntime } from '../src/lib/useSpaceRuntime';
+import { isSpaceExperience, nextExperienceMode } from '../src/lib/experienceMode';
 import type { SpaceDefinition } from '../src/lib/space-runtime';
 
 const spaces: SpaceDefinition[] = ['fixture.one', 'fixture.two'].map(id => ({
@@ -10,6 +11,13 @@ const spaces: SpaceDefinition[] = ['fixture.one', 'fixture.two'].map(id => ({
 }));
 const activate = vi.fn();
 let runtime: ReturnType<typeof useSpaceRuntime>;
+
+it('keeps App and Space presentation selection explicit', () => {
+  expect(isSpaceExperience('APP')).toBe(false);
+  expect(isSpaceExperience('SPACE')).toBe(true);
+  expect(nextExperienceMode('APP', 'SPACE')).toBe('SPACE');
+  expect(nextExperienceMode('SPACE', 'APP')).toBe('APP');
+});
 function Harness({ enabled = true }: { enabled?: boolean }) {
   runtime = useSpaceRuntime(spaces[0], activate, enabled, spaces);
   return <><video data-testid="retained-media" /><SpaceControls {...runtime} />

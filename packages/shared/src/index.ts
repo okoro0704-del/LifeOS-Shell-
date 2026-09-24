@@ -11,6 +11,7 @@ export * from "./personal-context.js";
 export * from "./booking.js";
 export * from "./primitives/index.js";
 export * from "./shell-projection.js";
+export * from "./kernel-contract.js";
 
 export const OS_TYPES = [
   "hospitality",
@@ -290,3 +291,5 @@ export const AUDIT_EVENTS = {
   ACTION_FAILED: "lifeos.action.failed",
   OFFERING_SAVED: "lifeos.offering.saved",
 } as const;
+
+export * from "./space-consumption.js";

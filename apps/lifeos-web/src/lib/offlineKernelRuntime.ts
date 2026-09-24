@@ -6,8 +6,56 @@
 
 import { catalogByKinds, type MediaItem } from "./personalCatalog";
 import { applyWatchedOffline } from "./personalMonetization";
+import {
+  MemoryLastValidStore,
+  descriptor,
+  synchronizeProjection,
+  type CapabilityDescriptor,
+  type ScheduleProjection,
+  type VersionedProjection,
+} from "@digiconomy/offline-kernel";
+import { mediaItemsProjection } from "./offlineKernelMapper";
+import type { LastValidStore } from "@digiconomy/offline-kernel";
+import type { KernelTransport, MediaCapability } from "@lifeos/shared";
 
 export const OFFLINE_KERNEL_ID = "lifeos-offline-kernel" as const;
+
+/** DK1 supports self-contained data assets only, not URL/ownership-based cache claims. */
+function hasInlineMedia(item: MediaItem): boolean {
+  const url = item.mediaUrl || (item.kind === "picture" ? item.posterUrl : undefined);
+  const match = /^data:(?:image|audio|video)\/[a-z0-9.+-]+;base64,([a-z0-9+/]+={0,2})$/i.exec(url ?? "");
+  if (!match) return false;
+  try { return atob(match[1]).length > 0; } catch { return false; }
+}
+
+/**
+ * SPACE reads an explicitly supplied canonical local projection store only.
+ * The caller supplies synchronized/preloaded MediaItem data; this does not sync,
+ * download, reconcile, or infer media bytes from ownedOrConsumed.
+ */
+export function createOfflineMediaCapability(
+  store: LastValidStore<MediaItem>,
+  transport: () => KernelTransport = () => isOnline() ? "INTERNET" : "NO_ROUTE",
+): MediaCapability<MediaItem> {
+  return {
+    mode: "SPACE",
+    async resolve({ contentId }) {
+      const route = transport();
+      try {
+        const projection = await store.load(contentId);
+        if (projection && (!Number.isFinite(projection.version) || !Number.isFinite(Date.parse(projection.updatedAt)) || projection.value?.id !== contentId)) {
+          return { state: "FAILED", transport: route, reason: { code: "INVALID_LOCAL_PROJECTION", message: "Local projection identity or version is invalid." } };
+        }
+        if (projection && hasInlineMedia(projection.value)) {
+          return { state: "COMPLETED_LOCAL", transport: route, data: { contentId, metadata: projection.value, availability: "AVAILABLE_LOCAL", source: "LOCAL_PROJECTION" } };
+        }
+        return { state: route === "NO_ROUTE" ? "AWAITING_ROUTE" : "ONLINE_REQUIRED", transport: route, reason: { code: "MEDIA_NOT_LOCAL", message: "No verified local media data exists for this content." }, retry: { when: route === "NO_ROUTE" ? "ROUTE_AVAILABLE" : "USER_ACTION" } };
+      } catch {
+        return { state: "FAILED", transport: route, reason: { code: "LOCAL_STORE_UNAVAILABLE", message: "Local media storage could not be read." } };
+      }
+    },
+  };
+}
 
 export type OfflineKernelCapability =
   | "local-media"
@@ -44,6 +92,7 @@ type CloudPackageCache = {
 
 const PACKAGE_TTL_MS = 60_000;
 let packageCache: CloudPackageCache | null = null;
+const stationProjectionStore = new MemoryLastValidStore<ScheduleProjection>();
 
 function isOnline(): boolean {
   return typeof navigator === "undefined" || navigator.onLine;
@@ -64,22 +113,27 @@ export async function syncStationPackage(stationIdOrSlug: string): Promise<Cloud
     const res = await fetch(`${base}/v1/stations/${encodeURIComponent(stationIdOrSlug)}/package`);
     if (!res.ok) return packageCache?.programs ?? [];
     const pkg = (await res.json()) as { stationId: string; programs: CloudProgram[] };
-    packageCache = {
+    const candidate: CloudPackageCache = {
       stationId: pkg.stationId,
       fetchedAt: Date.now(),
       programs: pkg.programs ?? [],
     };
+    const accepted = await synchronizeProjection(stationProjectionStore, candidate.stationId, {
+      fetch: async () => cloudProjection(candidate),
+    });
+    if (!accepted || accepted.version !== candidate.fetchedAt) return packageCache?.programs ?? [];
+    packageCache = candidate;
     return packageCache.programs;
   } catch {
     return packageCache?.programs ?? [];
   }
 }
 
-function cloudProgramsAsMedia(kinds: MediaItem["kind"][]): MediaItem[] {
-  if (!packageCache || Date.now() - packageCache.fetchedAt > PACKAGE_TTL_MS * 5) return [];
+function cloudProgramsAsMedia(kinds: MediaItem["kind"][], source = packageCache): MediaItem[] {
+  if (!source || Date.now() - source.fetchedAt > PACKAGE_TTL_MS * 5) return [];
   const wantTv = kinds.some((k) => k === "video" || k === "reel");
   const wantRadio = kinds.some((k) => k === "music" || k === "podcast");
-  return packageCache.programs
+  return source.programs
     .filter((p) => (p.channelType === "TV" && wantTv) || (p.channelType === "RADIO" && wantRadio))
     .filter((p) => Boolean(p.mediaUrl))
     .map((p) => ({
@@ -92,8 +146,15 @@ function cloudProgramsAsMedia(kinds: MediaItem["kind"][]): MediaItem[] {
       premiumRequired: false,
       mediaUrl: p.mediaUrl!,
       posterUrl: p.coverUrl || undefined,
-      author: packageCache?.stationId,
+      author: source.stationId,
     }));
+}
+
+function cloudProjection(source: CloudPackageCache): VersionedProjection<ScheduleProjection> {
+  const media = cloudProgramsAsMedia(["video", "reel", "music", "podcast"], source);
+  const tv = mediaItemsProjection(media.filter((item) => item.kind === "video" || item.kind === "reel"), "space.tv", source.fetchedAt);
+  const radio = mediaItemsProjection(media.filter((item) => item.kind === "music" || item.kind === "podcast"), "space.radio", source.fetchedAt);
+  return { version: source.fetchedAt, updatedAt: new Date(source.fetchedAt).toISOString(), value: { stations: [...tv.value.stations, ...radio.value.stations] } };
 }
 
 /**
@@ -113,6 +174,13 @@ export function kernelMediaFor(kinds: MediaItem["kind"][]): MediaItem[] {
 
 export function kernelHasLocalContent(kinds: MediaItem["kind"][]): boolean {
   return kernelMediaFor(kinds).length > 0;
+}
+
+/** LifeOS adapter: maps its catalog into the canonical capability descriptor. */
+export function offlineCapability(capability: "space.tv" | "space.radio" | "space.call"): CapabilityDescriptor {
+  if (capability === "space.call") return descriptor(capability);
+  const kinds: MediaItem["kind"][] = capability === "space.radio" ? ["music", "podcast"] : ["video", "reel"];
+  return descriptor(capability, mediaItemsProjection(kernelMediaFor(kinds), capability));
 }
 
 export function kernelBrandOf(item: MediaItem): string {

@@ -1,0 +1,48 @@
+{
+  "initial": {
+    "checks": [
+      "APP-only access",
+      "Space denial",
+      "hotel discovery/bootstrap",
+      "saved is not downloaded",
+      "real PCM playback",
+      "checkpoint at 42"
+    ],
+    "contentId": "content:test-media-001",
+    "position": 42
+  },
+  "restartOffline": {
+    "checks": [
+      "browser restart saved metadata",
+      "browser restart provider directory",
+      "browser restart continuity",
+      "offline real PCM playback at 42",
+      "missing media awaits route",
+      "NO_ROUTE runtime restart",
+      "zero network calls"
+    ],
+    "calls": 0,
+    "contentId": "content:test-media-001",
+    "position": 42
+  },
+  "transferRecovery": {
+    "checks": [
+      "PHONE FEED 42 -> TABLET WATCH 42",
+      "TABLET 73 -> LAPTOP CINEMA 73",
+      "atomic concurrent checkpoint conflict",
+      "corrupt saved row isolation",
+      "corrupt checkpoint rejected",
+      "corrupt media rejected",
+      "atomic storage rollback",
+      "closed storage failure"
+    ],
+    "contentId": "content:test-media-001",
+    "position": 73,
+    "transport": "EXPLICIT_TEST_TRANSFER"
+  },
+  "status": "PASSED",
+  "browser": "Chromium",
+  "durability": "Persistent profile, complete browser shutdown and reopen",
+  "scope": "Headless runtime; test code loaded from localhost before disabling network. No production UI adoption or offline app-shell claim.",
+  "checkCount": 21
+}

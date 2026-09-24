@@ -7,6 +7,7 @@ import {
   checkAuthGatewayReachable,
   storeSessionToken,
   cacheUser,
+  trustIdConfigured,
 } from "../lib/api";
 import { useAuth } from "../hooks/useAuth";
 import { useWorkspace } from "../context/WorkspaceContext";
@@ -46,6 +47,10 @@ export function LoginPage() {
   useEffect(() => {
     if (AUTH_BYPASS) {
       setGatewayUp(true);
+      return;
+    }
+    if (!trustIdConfigured) {
+      setGatewayUp(false);
       return;
     }
     void checkAuthGatewayReachable().then(setGatewayUp);
@@ -207,8 +212,8 @@ export function LoginPage() {
 
           {!AUTH_BYPASS && gatewayUp === false ? (
             <StatusBanner
-              title="LifeOS Gateway unavailable"
-              detail="Please try again shortly."
+              title={trustIdConfigured ? "LifeOS Gateway unavailable" : "LifeOS authentication is not configured"}
+              detail={trustIdConfigured ? "Please try again shortly." : "Protected LifeOS access is unavailable until its production TrustID configuration is restored."}
             />
           ) : null}
 

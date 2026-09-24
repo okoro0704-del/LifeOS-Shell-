@@ -42,6 +42,15 @@ describe("personal consumer space wiring", () => {
     expect(src).not.toContain("LiveFloat");
   });
 
+  it("keeps normal App chrome out of the Space presentation tree", () => {
+    const src = readFileSync(join(root, "src/components/AppShell.tsx"), "utf8");
+    const gestures = readFileSync(join(root, "src/components/NavigationDockGestures.tsx"), "utf8");
+    expect(src).toContain("!presentation.spaceMode ? <CommandOverlay /> : null");
+    expect(src).toContain("!presentation.spaceMode && (personalSurfaces");
+    expect(gestures).toContain("data-experience-mode");
+    expect(gestures).toContain("isSpaceExperience(experienceMode)");
+  });
+
   it("command nav is icons-only with accessible labels", () => {
     const src = readFileSync(join(root, "src/components/LifeOsCommandNavigation.tsx"), "utf8");
     expect(src).toContain("lifeos-cmd-nav__icon");

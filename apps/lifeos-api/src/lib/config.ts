@@ -4,6 +4,11 @@ function required(name: string, fallback?: string): string {
   return value;
 }
 
+/** A bypass is a local/test convenience only; production always rejects it. */
+export function isAuthBypassEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.NODE_ENV !== "production" && (env.LIFEOS_AUTH_BYPASS ?? "").toLowerCase() === "true";
+}
+
 /** Cookie SameSite: "lax" for same-site (/api proxy), "none" for cross-site Netlify→Railway. */
 const cookieSameSiteEnv = (process.env.COOKIE_SAMESITE ?? "").toLowerCase();
 const cookieSameSite: "lax" | "none" | "strict" =
@@ -85,12 +90,8 @@ export const config = {
   finproveBind: (process.env.FINPROVE_BIND ?? "").toLowerCase() === "true",
   /** Digiconomy Core Application API (optional personal finance bridge). */
   digiconomyApiUrl: (process.env.DIGICONOMY_API_URL ?? "").replace(/\/$/, ""),
-  /**
-   * Temporary TrustID bypass for local / staging testing.
-   * Set LIFEOS_AUTH_BYPASS=true to mint sessions without OAuth.
-   * Unset to reconnect TrustID. Prefer keeping false in public production.
-   */
-  authBypassEnabled: (process.env.LIFEOS_AUTH_BYPASS ?? "").toLowerCase() === "true",
+  /** Temporary TrustID bypass for explicit non-production testing only. */
+  authBypassEnabled: isAuthBypassEnabled(),
   /** Stable fake TrustID used when auth bypass is on. */
   authBypassTrustId: (process.env.LIFEOS_DEV_TRUST_ID ?? "TD-DEV-BYPASS").trim(),
   authBypassDisplayName: (process.env.LIFEOS_DEV_DISPLAY_NAME ?? "Dev Tester").trim(),

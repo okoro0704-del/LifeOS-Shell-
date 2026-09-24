@@ -34,6 +34,7 @@ import {
 import { installedAppsService } from "../../lib/services";
 import type { InstalledAppManifest } from "@lifeos/shared";
 import { openCreatorApp } from "../../lib/mybrandOS";
+import { EMPTY_VIP_RELATIONSHIPS, activeVipRelationships } from "../../lib/onlineKernel";
 
 export { LivingLifeOsIdentity, KernelBrandBar } from "../../components/LivingLifeOsIdentity";
 
@@ -522,6 +523,13 @@ export function PersonalPremiumPage() {
       </p>
     </div>
   );
+}
+
+/** VIP is a projection of creator-owned relationships, not a marketplace. */
+export function PersonalVipPage() {
+  // Relationship synchronization is intentionally not fabricated in the UI.
+  const relationships = activeVipRelationships(null, EMPTY_VIP_RELATIONSHIPS);
+  return <div className="page personal-page"><header className="page-header page-header--compact"><h1>VIP</h1></header>{relationships.length === 0 ? <p className="muted">No active creator VIP relationships yet. Discover creators through LifeOS.</p> : <ul className="media-feed">{relationships.map((item) => <li key={item.relationshipId} className="media-feed__item"><strong>{item.creatorId}</strong><span className="muted small">VIP Experience available</span></li>)}</ul>}</div>;
 }
 
 export function PersonalHomePage() {

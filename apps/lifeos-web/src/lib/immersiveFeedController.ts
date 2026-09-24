@@ -7,6 +7,20 @@
 
 export const IMMERSIVE_WINDOW_RADIUS = 2;
 
+/** Host presentation policy. Execution mode is deliberately not an input. */
+export const MEDIA_PRESENTATIONS = ["FEED", "WATCH", "CINEMA", "TV"] as const;
+export type MediaPresentation = (typeof MEDIA_PRESENTATIONS)[number];
+export type MediaHostProfile = {
+  deviceClass: "PHONE" | "TABLET" | "DESKTOP" | "TV";
+  inputModel?: "TOUCH" | "KEYBOARD_MOUSE" | "REMOTE_DPAD";
+  display?: { width: number; height: number };
+};
+export function defaultMediaPresentation(host: MediaHostProfile): MediaPresentation {
+  // Device class must come from the host; a wide display alone never implies TV.
+  const defaults = { PHONE: "FEED", TABLET: "WATCH", DESKTOP: "CINEMA", TV: "TV" } as const;
+  return defaults[host.deviceClass];
+}
+
 /** Near end of loaded window → request next page. */
 export const IMMERSIVE_PAGINATION_THRESHOLD = 3;
 

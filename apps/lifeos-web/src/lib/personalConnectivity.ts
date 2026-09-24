@@ -7,14 +7,23 @@ const PENDING_KERNEL_KEY = "lifeos.pending_kernel";
 const NEEDS_FACE_KEY = "lifeos.needs_face_on_kernel";
 const ENV_AUTH_BYPASS = (import.meta.env.VITE_AUTH_BYPASS ?? "").toLowerCase() === "true";
 
-/** TrustID OAuth skipped when env flag is on, or on native Capacitor APK/IPA builds. */
+export function isAuthBypassAllowed(input: {
+  requested: boolean;
+  production: boolean;
+  native: boolean;
+}): boolean {
+  return !input.production && (input.requested || input.native);
+}
+
+/** TrustID OAuth bypass is permitted only for explicit non-production testing. */
 export function isAuthBypass(): boolean {
-  if (ENV_AUTH_BYPASS) return true;
+  let native = false;
   try {
-    return isMobileApp();
+    native = isMobileApp();
   } catch {
-    return false;
+    native = false;
   }
+  return isAuthBypassAllowed({ requested: ENV_AUTH_BYPASS, production: import.meta.env.PROD, native });
 }
 
 export function setPendingKernel(kernel: PersonalKernel) {

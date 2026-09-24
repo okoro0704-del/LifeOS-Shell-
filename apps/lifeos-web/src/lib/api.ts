@@ -5,8 +5,41 @@ import { createAuthClient } from "@lifeos/auth-client";
  * Identity backend endpoints (env still uses TRUSTID_* for deploy compatibility).
  * Prefer the LifeOS Gateway aliases in UI/feature code.
  */
-export const trustIdWeb = import.meta.env.VITE_TRUSTID_WEB ?? "http://localhost:5173";
-export const trustIdApi = import.meta.env.VITE_TRUSTID_API ?? "http://localhost:8787";
+const LOCAL_TRUSTID_WEB = "http://localhost:5173";
+const LOCAL_TRUSTID_API = "http://localhost:8787";
+const INVALID_PRODUCTION_AUTH_API = "https://auth-configuration.invalid";
+
+export function resolveTrustIdConfiguration(env: {
+  production: boolean;
+  trustIdWeb?: string;
+  trustIdApi?: string;
+  clientId?: string;
+  redirectUri?: string;
+}) {
+  const trustIdWeb = env.trustIdWeb?.trim() || (env.production ? "" : LOCAL_TRUSTID_WEB);
+  const trustIdApi = env.trustIdApi?.trim() || (env.production ? "" : LOCAL_TRUSTID_API);
+  const clientId = env.clientId?.trim() || (env.production ? "" : "lifeos_mock_public");
+  const redirectUri = env.redirectUri?.trim() || (env.production ? "" : "http://localhost:5174/callback");
+  return {
+    configured: Boolean(trustIdWeb && trustIdApi && clientId && redirectUri),
+    trustIdWeb,
+    trustIdApi: trustIdApi || INVALID_PRODUCTION_AUTH_API,
+    clientId: clientId || "unconfigured-production-client",
+    redirectUri: redirectUri || "https://auth-configuration.invalid/callback",
+  };
+}
+
+const trustIdConfiguration = resolveTrustIdConfiguration({
+  production: import.meta.env.PROD,
+  trustIdWeb: import.meta.env.VITE_TRUSTID_WEB,
+  trustIdApi: import.meta.env.VITE_TRUSTID_API,
+  clientId: import.meta.env.VITE_TRUSTID_CLIENT_ID,
+  redirectUri: import.meta.env.VITE_TRUSTID_REDIRECT_URI,
+});
+
+export const trustIdConfigured = trustIdConfiguration.configured;
+export const trustIdWeb = trustIdConfiguration.trustIdWeb;
+export const trustIdApi = trustIdConfiguration.trustIdApi;
 /** Public alias — identity portal opened from Profile / security. */
 export const authGatewayWeb = trustIdWeb;
 /** Public alias — OAuth/passkey API base used by the auth client. */
@@ -46,8 +79,8 @@ const USER_CACHE_KEY = "lifeos.auth.user";
 /** Encapsulated OAuth/passkey client — UI should not mention the identity vendor. */
 export const authClient = createAuthClient({
   trustIdApi: authGatewayApi,
-  clientId: import.meta.env.VITE_TRUSTID_CLIENT_ID ?? "lifeos_mock_public",
-  redirectUri: import.meta.env.VITE_TRUSTID_REDIRECT_URI ?? "http://localhost:5174/callback",
+  clientId: trustIdConfiguration.clientId,
+  redirectUri: trustIdConfiguration.redirectUri,
   scopes: import.meta.env.VITE_TRUSTID_SCOPES ?? LIFEOS_AUTH_SCOPES,
 });
 

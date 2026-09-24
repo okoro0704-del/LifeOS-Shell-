@@ -9,6 +9,8 @@ import { SpaceControls } from "../lib/SpaceControls";
 import type { SpaceDefinition } from "../lib/space-runtime";
 import type { LifeOsSurface } from "../context/LifeOsSurfaceContext";
 import { SpacePresentationContext } from "../context/SpacePresentationContext";
+import { isSpaceExperience, nextExperienceMode, type ExperienceMode } from "../lib/experienceMode";
+import { trustStateFor } from "../lib/trustBoundary";
 
 /**
  * TV/Radio: double tap on broadcast → PROGRAM_INFO_REVEALED (creator + NOW/NEXT).
@@ -29,10 +31,12 @@ export function NavigationDockGestures({ children }: { children: ReactNode }) {
     setSurface,
   } = useLifeOsSurface();
   const { user } = useAuth();
-  const [spaceMode, setSpaceMode] = useState(false);
-  const enabled = spaceMode && mode === "PERSONAL" && !!user?.trustId;
+  const [experienceMode, setExperienceMode] = useState<ExperienceMode>('APP');
+  // Public Space consumption is guest-safe. Identity gates only identity-required actions.
+  const enabled = isSpaceExperience(experienceMode) && mode === "PERSONAL";
+  const trustState = trustStateFor(user?.trustId);
   const definition = useMemo<SpaceDefinition>(() => ({
-    id: `space.lifeos.${user?.trustId || 'unavailable'}`, owner: user?.trustId || 'unavailable',
+    id: `space.lifeos.${user?.trustId || 'guest'}`, owner: user?.trustId || 'guest',
     defaultExperienceId: 'LIVING_LIFEOS',
     experiences: [
       { id: 'LIVING_LIFEOS', title: 'LifeOS' }, { id: 'TV', title: 'TV' },
@@ -99,13 +103,15 @@ export function NavigationDockGestures({ children }: { children: ReactNode }) {
   ]);
 
   return (
-    <SpacePresentationContext.Provider value={{ spaceMode: enabled, interactionsOpen: enabled && runtime.state.presentationState === 'INTERACTION' }}>
+    <SpacePresentationContext.Provider value={{ experienceMode: enabled ? 'SPACE' : 'APP', spaceMode: enabled, interactionsOpen: enabled && runtime.state.presentationState === 'INTERACTION' }}>
     <div
       className="lifeos-nav-dock-gesture-root"
       ref={rootRef}
       data-lifeos-surface={surface}
       data-broadcast-ui={broadcastUiMode}
       data-space-mode={enabled ? 'SPACE' : 'APP'}
+      data-experience-mode={enabled ? 'SPACE' : 'APP'}
+      data-trust-state={trustState}
       data-current-space-id={enabled ? runtime.state.currentSpaceId : undefined}
       data-current-experience-id={enabled ? runtime.state.currentExperienceId : undefined}
       data-space-presentation={enabled ? runtime.state.presentationState : undefined}
@@ -113,14 +119,11 @@ export function NavigationDockGestures({ children }: { children: ReactNode }) {
       {children}
       {enabled ? <SpaceControls state={runtime.state} definition={definition} dispatch={runtime.dispatch} interactionsAvailable={surface === 'TV' || surface === 'LIVING_LIFEOS'}>
         {surface === 'TV' || surface === 'RADIO' ? <button type="button" onClick={openProgramInfo}>Programme information</button> : null}
-        <button type="button" onClick={() => { closeBroadcastUi(); setSpaceMode(false); }}>App mode</button>
-      </SpaceControls> : mode === 'PERSONAL' && user?.trustId ? <button type="button"
+        <button type="button" onClick={() => { closeBroadcastUi(); setExperienceMode(current => nextExperienceMode(current, 'APP')); }}>App mode</button>
+      </SpaceControls> : mode === 'PERSONAL' ? <button type="button"
         style={{ position: 'fixed', right: 20, bottom: 20, zIndex: 90 }}
-        onClick={() => { close(); closeSwitcher(); closeBroadcastUi(); setSpaceMode(true); }}>Space mode</button> : null}
-      {enabled ? <style>{`[data-space-mode="SPACE"] .sidebar,
-        [data-space-mode="SPACE"] .lifeos-cmd-nav,
-        [data-space-mode="SPACE"] .lifeos-surface-switcher,
-        [data-space-mode="SPACE"] [data-broadcast-reveal] { visibility: hidden; pointer-events: none; }`}</style> : null}
+        data-space-entry="true"
+        onClick={() => { close(); closeSwitcher(); closeBroadcastUi(); setExperienceMode(current => nextExperienceMode(current, 'SPACE')); }}>Space mode</button> : null}
       {ripple ? (
         <span
           className="lifeos-cmd-nav__ripple"

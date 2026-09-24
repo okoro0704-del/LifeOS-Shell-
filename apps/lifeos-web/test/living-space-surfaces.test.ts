@@ -45,14 +45,13 @@ describe("Living Space First + Offline TV/Radio broadcast", () => {
     expect(Array.isArray(kernelMediaFor(["video", "reel"]))).toBe(true);
   });
 
-  it("Offline kernel lands on its TV/Radio hub", () => {
+  it("Offline remains a dedicated TV/Radio hub rather than a command-bar peer", () => {
     expect(personalKernelPath("offline")).toBe("/app/personal/offline");
     const home = readFileSync(join(root, "src/pages/personal/PersonalHomePage.tsx"), "utf8");
     expect(home).toContain("offline-broadcast-landing");
     expect(home).not.toContain('Navigate to="/app/personal/offline/post"');
     const nav = readFileSync(join(root, "src/components/LifeOsCommandNavigation.tsx"), "utf8");
-    expect(nav).toContain("enterOffline");
-    expect(nav).toContain('aria-label="Offline"');
+    expect(nav).not.toContain('aria-label="Offline"');
     expect(nav).not.toContain('aria-label="My TV"');
     expect(nav).not.toContain('aria-label="My Radio"');
     expect(nav).toContain("onOfflineHub");

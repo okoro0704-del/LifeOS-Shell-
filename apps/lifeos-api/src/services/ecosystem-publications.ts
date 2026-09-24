@@ -1,4 +1,5 @@
 import { prisma } from "../lib/prisma.js";
+import { config } from "../lib/config.js";
 
 const MYBRANDOS_RAILWAY_ORIGIN =
   (process.env.MYBRANDOS_API_URL ?? "https://mybrandos-production.up.railway.app").replace(/\/$/, "");
@@ -693,7 +694,7 @@ export function authorizePublicationIngest(headers: Record<string, unknown>): bo
     process.env.LIFEOS_PUBLICATION_INGEST_SECRET ||
     "";
   if (!secret) {
-    return (process.env.LIFEOS_AUTH_BYPASS ?? "").toLowerCase() === "true";
+    return config.authBypassEnabled;
   }
   const auth = String(headers.authorization ?? "");
   return auth === `Bearer ${secret}`;

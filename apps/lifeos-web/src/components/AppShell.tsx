@@ -37,6 +37,7 @@ import { VerificationStars } from "./VerificationStars";
 import { resolvePageMeta } from "../lib/pageMeta";
 import { WorkspaceToggle } from "./shell/WorkspaceToggle";
 import { primaryNavForMode, personalKernelFromPath, type ShellNavItem } from "./shell/nav";
+import { useSpacePresentation } from "../context/SpacePresentationContext";
 
 type IconComp = ComponentType<SVGProps<SVGSVGElement> & { size?: number }>;
 
@@ -82,6 +83,7 @@ function isBusinessDetailPath(pathname: string): boolean {
 }
 
 export function AppShell() {
+  const presentation = useSpacePresentation();
   const { user } = useAuth();
   const { mode, setMode } = useWorkspace();
   const { surface, broadcastMode, enterOffline, exitBroadcast } = useLifeOsSurface();
@@ -540,12 +542,12 @@ export function AppShell() {
           </>
         ) : null}
 
-        <CommandOverlay />
-        <LifeOSWakeListener />
-        {(personalSurfaces || (!isImmersive && livingActive && !bareBroadcast)) ? (
+        {!presentation.spaceMode ? <CommandOverlay /> : null}
+        {!presentation.spaceMode ? <LifeOSWakeListener /> : null}
+        {!presentation.spaceMode && (personalSurfaces || (!isImmersive && livingActive && !bareBroadcast)) ? (
           <LifeOsCommandNavigation apps={installedApps} unread={shellUnread} />
         ) : null}
-        {!isImmersive && livingActive && !bareBroadcast ? (
+        {!presentation.spaceMode && !isImmersive && livingActive && !bareBroadcast ? (
           <>
             <ActiveKernelSignature />
             <TransientAlertSurface />

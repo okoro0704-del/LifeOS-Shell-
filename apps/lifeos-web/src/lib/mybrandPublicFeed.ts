@@ -135,6 +135,8 @@ function projectionToMediaItem(row: LifeOsPublication): MediaItem {
 export async function fetchLifeOsPublicationFeed(opts?: {
   cursor?: string;
   limit?: number;
+  /** Capability callers need failures distinguished from an empty feed. */
+  throwOnError?: boolean;
 }): Promise<{ items: MediaItem[]; nextCursor: string | null }> {
   try {
     const params = new URLSearchParams();
@@ -159,7 +161,8 @@ export async function fetchLifeOsPublicationFeed(opts?: {
       items,
       nextCursor: items.length >= pageLimit ? nextCursor : null,
     };
-  } catch {
+  } catch (error) {
+    if (opts?.throwOnError) throw error;
     return { items: [], nextCursor: null };
   }
 }
