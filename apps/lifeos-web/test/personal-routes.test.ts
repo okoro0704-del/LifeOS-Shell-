@@ -12,7 +12,7 @@ describe("personal consumer space wiring", () => {
     expect(src).toContain("PersonalProductsPage");
     expect(src).toContain("FreePostPage");
     expect(src).toContain("OfflineKernelHome");
-    expect(src).toContain('Navigate to="/app/personal/offline"');
+    expect(src).toContain("OfflinePostPage");
     expect(src).toContain("LearnVerseRoutes");
   });
 
@@ -45,8 +45,10 @@ describe("personal consumer space wiring", () => {
   it("keeps normal App chrome out of the Space presentation tree", () => {
     const src = readFileSync(join(root, "src/components/AppShell.tsx"), "utf8");
     const gestures = readFileSync(join(root, "src/components/NavigationDockGestures.tsx"), "utf8");
-    expect(src).toContain("!presentation.spaceMode ? <CommandOverlay /> : null");
-    expect(src).toContain("!presentation.spaceMode && (personalSurfaces");
+    expect(src).toContain("!spacePresentation ? <CommandOverlay /> : null");
+    // The presentation consumer must render inside the provider or Space never activates.
+    expect(src).toMatch(/<NavigationDockGestures>\s*<AppShellFrame \/>\s*<\/NavigationDockGestures>/);
+    expect(src).toMatch(/function AppShellFrame\(\) \{\s*const presentation = useSpacePresentation\(\);/);
     expect(gestures).toContain("data-experience-mode");
     expect(gestures).toContain("isSpaceExperience(experienceMode)");
   });

@@ -7,6 +7,11 @@ import {
   FreeReelsPage,
   FreeSearchPage,
   OfflineKernelHome,
+  OfflinePostPage,
+  OfflineReelsPage,
+  OfflineProductsPage,
+  OfflineCommunitiesPage,
+  OfflineSearchPage,
   PersonalCommunitiesPage,
   PersonalHomePage,
   PersonalPostPage,
@@ -59,17 +64,17 @@ export function PersonalRoutes() {
         <Route path="discovery" element={<Navigate to="/app/personal/free/post" replace />} />
 
         <Route path="offline" element={<OfflineKernelHome />} />
-        <Route path="offline/post" element={<Navigate to="/app/personal/offline" replace />} />
-        <Route path="offline/reels" element={<Navigate to="/app/personal/offline" replace />} />
-        <Route path="offline/products" element={<Navigate to="/app/personal/offline" replace />} />
-        <Route path="offline/communities" element={<Navigate to="/app/personal/offline" replace />} />
-        <Route path="offline/search" element={<Navigate to="/app/personal/offline" replace />} />
-        <Route path="offline/connects" element={<Navigate to="/app/personal/offline" replace />} />
-        <Route path="offline/learnverse/*" element={<Navigate to="/app/personal/offline" replace />} />
-        <Route path="offline/streamify/*" element={<Navigate to="/app/personal/offline" replace />} />
-        <Route path="offline/plus" element={<Navigate to="/app/personal/offline" replace />} />
-        <Route path="offline/compose" element={<Navigate to="/app/personal/offline" replace />} />
-        <Route path="vault" element={<Navigate to="/app/personal/offline" replace />} />
+        <Route path="offline/post" element={<OfflinePostPage />} />
+        <Route path="offline/reels" element={<OfflineReelsPage />} />
+        <Route path="offline/products" element={<OfflineProductsPage />} />
+        <Route path="offline/communities" element={<OfflineCommunitiesPage />} />
+        <Route path="offline/search" element={<OfflineSearchPage />} />
+        <Route path="offline/connects" element={<Navigate to="../products" replace />} />
+        <Route path="offline/learnverse/*" element={<LearnVerseRoutes />} />
+        <Route path="offline/streamify/*" element={<StreamifyRoutes />} />
+        <Route path="offline/plus" element={<PersonalPlusPage />} />
+        <Route path="offline/compose" element={<Navigate to="/app/personal/offline/post" replace />} />
+        <Route path="vault" element={<Navigate to="/app/personal/offline/post" replace />} />
 
         <Route path="finance" element={<Navigate to="/app/wallet" replace />} />
         <Route path="*" element={<Navigate to="post" replace />} />

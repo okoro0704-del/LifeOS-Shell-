@@ -55,7 +55,7 @@ describe("Living Space First + Offline TV/Radio broadcast", () => {
     expect(nav).not.toContain('aria-label="My TV"');
     expect(nav).not.toContain('aria-label="My Radio"');
     expect(nav).toContain("onOfflineHub");
-    expect(nav).toContain("if (onOfflineHub) return null");
+    expect(nav).toContain("if (presentation.spaceMode && onOfflineHub) return null");
     const hub = readFileSync(join(root, "src/components/OfflineHubSurface.tsx"), "utf8");
     expect(hub).toContain('setSurface("TV")');
     expect(hub).toContain("offline-hub__online");
@@ -194,6 +194,7 @@ describe("Living Space First + Offline TV/Radio broadcast", () => {
     expect(shell).toContain("OfflineHubSurface");
     expect(shell).toContain("BroadcastNowNext");
     expect(shell).toContain("is-broadcast-bare");
+    expect(shell).toContain("spacePresentation && personalSurfaces");
     expect(shell).toContain("enterOffline");
   });
 });

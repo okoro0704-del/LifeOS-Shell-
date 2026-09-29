@@ -83,6 +83,15 @@ function isBusinessDetailPath(pathname: string): boolean {
 }
 
 export function AppShell() {
+  return (
+    <NavigationDockGestures>
+      <AppShellFrame />
+    </NavigationDockGestures>
+  );
+}
+
+/** Must render inside NavigationDockGestures, which owns the SpacePresentationContext. */
+function AppShellFrame() {
   const presentation = useSpacePresentation();
   const { user } = useAuth();
   const { mode, setMode } = useWorkspace();
@@ -92,7 +101,9 @@ export function AppShell() {
   const { openCommand } = useCommandLayer();
   const livingActive = surface === "LIVING_LIFEOS";
   const personalSurfaces = mode === "PERSONAL";
-  const bareBroadcast = personalSurfaces && (surface === "TV" || surface === "RADIO");
+  const spacePresentation = presentation.spaceMode;
+  const bareBroadcast = spacePresentation && personalSurfaces && (surface === "TV" || surface === "RADIO");
+  const suspendLivingApp = spacePresentation && personalSurfaces && !livingActive;
   const [unread, setUnread] = useState(0);
   const [demoUnread, setDemoUnread] = useState(0);
   const [offline, setOffline] = useState(!navigator.onLine);
@@ -156,18 +167,20 @@ export function AppShell() {
     }
   }, [location.pathname, mode, setMode]);
 
-  // Offline kernel path ↔ bare TV/Radio broadcast session.
+  // SPACE: Offline kernel path ↔ bare TV/Radio. APP: offline kernel stays a normal feed.
   useEffect(() => {
     if (mode !== "PERSONAL") {
       if (broadcastMode) exitBroadcast();
       return;
     }
-    if (personalKernel === "offline") {
+    if (presentation.spaceMode && personalKernel === "offline") {
       enterOffline();
-    } else if (broadcastMode) {
+    } else if (!presentation.spaceMode && broadcastMode) {
+      exitBroadcast();
+    } else if (personalKernel !== "offline" && broadcastMode) {
       exitBroadcast();
     }
-  }, [mode, personalKernel, broadcastMode, enterOffline, exitBroadcast]);
+  }, [mode, personalKernel, broadcastMode, enterOffline, exitBroadcast, presentation.spaceMode]);
 
   const handleModeChange = (_next: WorkspaceMode) => {};
 
@@ -243,20 +256,20 @@ export function AppShell() {
   const shellUnread = unread + (mode === "PERSONAL" ? demoUnread : 0);
 
   return (
-    <NavigationDockGestures>
     <div
       className={`shell shell--side-dock${
-        personalSurfaces && !livingActive ? " is-living-suspended" : ""
+        suspendLivingApp ? " is-living-suspended" : ""
       }${bareBroadcast ? " is-broadcast-bare" : ""}${
         personalSurfaces ? ` shell--surface-${surface.toLowerCase()}` : ""
       }`}
       data-lifeos-surface={personalSurfaces ? surface : undefined}
+      data-experience-mode={spacePresentation ? "SPACE" : "APP"}
       data-broadcast={bareBroadcast ? "1" : undefined}
     >
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
-      {personalSurfaces ? <SurfaceSwitcherBar /> : null}
+      {spacePresentation && personalSurfaces ? <SurfaceSwitcherBar /> : null}
       <aside className="sidebar" aria-label="Primary">
         <div className="brand">
           <span className="brand-mark" aria-hidden />
@@ -522,17 +535,17 @@ export function AppShell() {
         <main
           id="main-content"
           className={`content${isImmersive ? " content--immersive" : ""}${
-            personalSurfaces && !livingActive ? " content--surface-suspended" : ""
+            suspendLivingApp ? " content--surface-suspended" : ""
           }`}
           key={location.pathname}
-          aria-hidden={personalSurfaces && !livingActive ? true : undefined}
+          aria-hidden={suspendLivingApp ? true : undefined}
         >
           <div className="page-enter">
             <Outlet />
           </div>
         </main>
 
-        {personalSurfaces ? (
+        {spacePresentation && personalSurfaces ? (
           <>
             <OfflineHubSurface />
             <TvSurface />
@@ -542,12 +555,12 @@ export function AppShell() {
           </>
         ) : null}
 
-        {!presentation.spaceMode ? <CommandOverlay /> : null}
-        {!presentation.spaceMode ? <LifeOSWakeListener /> : null}
-        {!presentation.spaceMode && (personalSurfaces || (!isImmersive && livingActive && !bareBroadcast)) ? (
+        {!spacePresentation ? <CommandOverlay /> : null}
+        {!spacePresentation ? <LifeOSWakeListener /> : null}
+        {personalSurfaces || (!isImmersive && livingActive && !bareBroadcast) ? (
           <LifeOsCommandNavigation apps={installedApps} unread={shellUnread} />
         ) : null}
-        {!presentation.spaceMode && !isImmersive && livingActive && !bareBroadcast ? (
+        {!spacePresentation && !isImmersive ? (
           <>
             <ActiveKernelSignature />
             <TransientAlertSurface />
@@ -555,6 +568,5 @@ export function AppShell() {
         ) : null}
       </div>
     </div>
-    </NavigationDockGestures>
   );
 }

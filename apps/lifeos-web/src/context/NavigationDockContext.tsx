@@ -83,7 +83,9 @@ export function markNavDockHintSeen(): void {
 export function NavigationDockProvider({ children }: { children: ReactNode }) {
   const { mode } = useWorkspace();
   const introDone = useRef(hasSeenShellIntro());
-  const [shellControlsVisible, setVisible] = useState(() => !introDone.current);
+  // APP law: ordinary application navigation is visible by default. Space presentation
+  // remains responsible for suppressing this shell while immersive content is active.
+  const [shellControlsVisible, setVisible] = useState(true);
   const [shellDismissReason, setDismissReason] = useState<ShellDismissReason>(null);
   const handleSide: NavSide = mode === "BUSINESS" ? "left" : "right";
   const railSide: NavSide = handleSide === "right" ? "left" : "right";
@@ -136,19 +138,14 @@ export function NavigationDockProvider({ children }: { children: ReactNode }) {
     [clearTimer, scheduleIdle],
   );
 
-  // First visit: briefly show unified shell, then immersive auto-hide once per session.
+  // APP navigation never auto-hides. Space presentation owns gesture-summoned controls.
   useEffect(() => {
-    if (introDone.current) return;
-    setVisible(true);
+    markShellIntroSeen();
+    introDone.current = true;
+    clearTimer();
     phaseRef.current = "idle";
-    const gen = ++genRef.current;
-    timerRef.current = setTimeout(() => {
-      if (gen !== genRef.current) return;
-      markShellIntroSeen();
-      introDone.current = true;
-      hideShell("intro");
-    }, SHELL_INTRO_MS);
-    return () => clearTimer();
+    setVisible(true);
+    return undefined;
   }, [clearTimer, hideShell]);
 
   // Space switch: do not steal an in-flight confirmation hold.

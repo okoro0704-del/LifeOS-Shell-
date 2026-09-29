@@ -32,6 +32,7 @@ import { personalLandingPath } from "../lib/personalConnectivity";
 import { useWorkspace, type WorkspaceMode } from "../context/WorkspaceContext";
 import { useLifeOsSurface } from "../context/LifeOsSurfaceContext";
 import { useNavigationDock } from "../context/NavigationDockContext";
+import { useSpacePresentation } from "../context/SpacePresentationContext";
 import {
   CMD_LABEL_HOLD_MS,
   createCmdTapRecognizer,
@@ -66,6 +67,7 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
   const { mode, setMode } = useWorkspace();
   const { expanded, handleSide, railSide, close, toggle, confirmSelection, noteShellActivity } =
     useNavigationDock();
+  const presentation = useSpacePresentation();
   const {
     setSurface,
     enterOffline,
@@ -164,7 +166,13 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
   }
 
   function goStreamify() {
-    setSurface("TV");
+    if (!presentation.spaceMode) {
+      exitBroadcast();
+      setSurface("LIVING_LIFEOS");
+      navigate(`${personalNavBase(kernel)}/streamify`);
+    } else {
+      setSurface("TV");
+    }
     afterSelect();
   }
 
@@ -202,12 +210,19 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
     setMode("PERSONAL");
     setLastSelectedKernel(next, user?.trustId);
     if (next === "offline") {
-      enterOffline();
+      if (presentation.spaceMode) {
+        enterOffline();
+        navigate(personalKernelPath("offline"));
+      } else {
+        exitBroadcast();
+        setSurface("LIVING_LIFEOS");
+        navigate("/app/personal/offline/post");
+      }
     } else {
       exitBroadcast();
       setSurface("LIVING_LIFEOS");
+      navigate(personalKernelPath(next));
     }
-    navigate(personalKernelPath(next));
     afterSelect();
   }
 
@@ -255,8 +270,8 @@ export function LifeOsCommandNavigation({ apps = [], unread = 0 }: Props) {
     toggle();
   }
 
-  /* Offline hub: no reveal handle — Online / TV / Radio live on the page. */
-  if (onOfflineHub) return null;
+  /* Offline hub chrome is Space-only; APP keeps full navigation. */
+  if (presentation.spaceMode && onOfflineHub) return null;
 
   return (
     <>
