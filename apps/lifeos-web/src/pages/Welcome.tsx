@@ -4,6 +4,7 @@ import { Button } from "@lifeos/ui";
 import { useAuth } from "../hooks/useAuth";
 import { getReturningIdentity } from "../lib/returningIdentity";
 import { hasSeenIntro, markIntroSeen } from "../lib/introSeen";
+import { PUBLIC_LIFEOS_ENTRY } from "../lib/trustBoundary";
 
 const BUSINESS_BOARDS = [
   {
@@ -30,7 +31,8 @@ const BUSINESS_BOARDS = [
 ] as const;
 
 /**
- * First-launch intro only. Returning users (or anyone who already entered) skip to /login.
+ * First-launch intro only. Entering LifeOS opens the public shell.
+ * TrustID is requested later, from an identity or authority action.
  */
 export function WelcomePage() {
   const { user, loading } = useAuth();
@@ -51,11 +53,11 @@ export function WelcomePage() {
   }, [skipIntro]);
 
   if (!loading && user) return null;
-  if (skipIntro) return <Navigate to="/login" replace />;
+  if (skipIntro) return <Navigate to={PUBLIC_LIFEOS_ENTRY} replace />;
 
   function enterLifeOS() {
     markIntroSeen();
-    navigate("/login", { replace: true });
+    navigate(PUBLIC_LIFEOS_ENTRY, { replace: true });
   }
 
   return (

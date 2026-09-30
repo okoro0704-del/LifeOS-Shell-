@@ -116,7 +116,6 @@ function ThemedApp() {
             <Route path="/" element={<WelcomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/callback" element={<CallbackPage />} />
-            <Route element={<RequireAuth />}>
               <Route
                 path="/app"
                 element={
@@ -135,42 +134,10 @@ function ThemedApp() {
                   }
                 />
                 <Route
-                  path="shared/*"
-                  element={
-                    <Suspense fallback={<PageFallback />}>
-                      <SharedRoutes />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="business"
-                  element={
-                    <Suspense fallback={<PageFallback />}>
-                      <BusinessHomePage />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="business/modules"
-                  element={
-                    <Suspense fallback={<PageFallback />}>
-                      <BusinessModulesPage />
-                    </Suspense>
-                  }
-                />
-                <Route
                   path="legacy-home"
                   element={
                     <Suspense fallback={<PageFallback />}>
                       <HomePage />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="wallet"
-                  element={
-                    <Suspense fallback={<PageFallback />}>
-                      <WalletPage />
                     </Suspense>
                   }
                 />
@@ -191,50 +158,10 @@ function ThemedApp() {
                   }
                 />
                 <Route
-                  path="activity"
-                  element={
-                    <Suspense fallback={<PageFallback />}>
-                      <ActivityPage />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="profile"
-                  element={
-                    <Suspense fallback={<PageFallback />}>
-                      <ProfilePage />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="notifications"
-                  element={
-                    <Suspense fallback={<PageFallback />}>
-                      <NotificationsPage />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="messages"
-                  element={
-                    <Suspense fallback={<PageFallback />}>
-                      <MessagesPage />
-                    </Suspense>
-                  }
-                />
-                <Route
                   path="elcom"
                   element={
                     <Suspense fallback={<PageFallback />}>
                       <ElComPage />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="shell/:appId"
-                  element={
-                    <Suspense fallback={<PageFallback />}>
-                      <ShellAppPage />
                     </Suspense>
                   }
                 />
@@ -248,42 +175,10 @@ function ThemedApp() {
                   }
                 />
                 <Route
-                  path="serviceos/track/:bookingId"
-                  element={
-                    <Suspense fallback={<PageFallback />}>
-                      <ServiceOSTrackPage />
-                    </Suspense>
-                  }
-                />
-                <Route
                   path="search"
                   element={
                     <Suspense fallback={<PageFallback />}>
                       <SearchPage />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="connections"
-                  element={
-                    <Suspense fallback={<PageFallback />}>
-                      <ConnectionsPage />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="plans"
-                  element={
-                    <Suspense fallback={<PageFallback />}>
-                      <PlansPage />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="saved"
-                  element={
-                    <Suspense fallback={<PageFallback />}>
-                      <SavedPage />
                     </Suspense>
                   }
                 />
@@ -312,14 +207,6 @@ function ThemedApp() {
                   }
                 />
                 <Route
-                  path="business/:businessId"
-                  element={
-                    <Suspense fallback={<PageFallback />}>
-                      <BusinessPage />
-                    </Suspense>
-                  }
-                />
-                <Route
                   path="services/:category/feed"
                   element={
                     <Suspense fallback={<PageFallback />}>
@@ -335,8 +222,121 @@ function ThemedApp() {
                     </Suspense>
                   }
                 />
+                <Route element={<RequireAuth />}>
+                  <Route
+                    path="shared/*"
+                    element={
+                      <Suspense fallback={<PageFallback />}>
+                        <SharedRoutes />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="business"
+                    element={
+                      <Suspense fallback={<PageFallback />}>
+                        <BusinessHomePage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="business/modules"
+                    element={
+                      <Suspense fallback={<PageFallback />}>
+                        <BusinessModulesPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="wallet"
+                    element={
+                      <Suspense fallback={<PageFallback />}>
+                        <WalletPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="activity"
+                    element={
+                      <Suspense fallback={<PageFallback />}>
+                        <ActivityPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="profile"
+                    element={
+                      <Suspense fallback={<PageFallback />}>
+                        <ProfilePage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="notifications"
+                    element={
+                      <Suspense fallback={<PageFallback />}>
+                        <NotificationsPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="messages"
+                    element={
+                      <Suspense fallback={<PageFallback />}>
+                        <MessagesPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="shell/:appId"
+                    element={
+                      <Suspense fallback={<PageFallback />}>
+                        <ShellAppPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="serviceos/track/:bookingId"
+                    element={
+                      <Suspense fallback={<PageFallback />}>
+                        <ServiceOSTrackPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="connections"
+                    element={
+                      <Suspense fallback={<PageFallback />}>
+                        <ConnectionsPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="plans"
+                    element={
+                      <Suspense fallback={<PageFallback />}>
+                        <PlansPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="saved"
+                    element={
+                      <Suspense fallback={<PageFallback />}>
+                        <SavedPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="business/:businessId"
+                    element={
+                      <Suspense fallback={<PageFallback />}>
+                        <BusinessPage />
+                      </Suspense>
+                    }
+                  />
+                </Route>
               </Route>
-            </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           </LifeOsSurfaceProvider>

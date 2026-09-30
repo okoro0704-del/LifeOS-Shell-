@@ -9,6 +9,7 @@ import { StatusBanner } from "../components/StatusBanner";
 import { saveReturningIdentity } from "../lib/returningIdentity";
 import { markIntroSeen } from "../lib/introSeen";
 import { consumePendingKernel, personalLandingPath } from "../lib/personalConnectivity";
+import { PUBLIC_LIFEOS_ENTRY, consumeTrustReturn } from "../lib/trustBoundary";
 import { personalKernelPath } from "../components/shell/nav";
 import { useWorkspace } from "../context/WorkspaceContext";
 
@@ -60,7 +61,7 @@ export function CallbackPage() {
         setMode("PERSONAL");
         const pending = consumePendingKernel(data.user.trustId);
         navigate(
-          pending ? personalKernelPath(pending) : personalLandingPath(data.user.trustId),
+          consumeTrustReturn() || (pending ? personalKernelPath(pending) : personalLandingPath(data.user.trustId)),
           { replace: true },
         );      } catch (err) {
         if (err instanceof AuthClientError) {
@@ -85,6 +86,9 @@ export function CallbackPage() {
             <StatusBanner title={error} />
             <button className="los-btn los-btn--primary" onClick={() => navigate("/login")}>
               Try again
+            </button>
+            <button className="los-btn" onClick={() => navigate(PUBLIC_LIFEOS_ENTRY)}>
+              Continue browsing
             </button>
           </>
         ) : (

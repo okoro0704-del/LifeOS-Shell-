@@ -1,11 +1,14 @@
-import { Navigate, Outlet, useNavigate } from "react-router-dom";
+import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { StatusBanner } from "./StatusBanner";
 import { Button } from "@lifeos/ui";
+import { PUBLIC_LIFEOS_ENTRY, rememberTrustReturn } from "../lib/trustBoundary";
 
 export function RequireAuth() {
   const { user, loading, status } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = `${location.pathname}${location.search}`;
 
   if (loading) {
     return (
@@ -27,7 +30,10 @@ export function RequireAuth() {
             title="Your session ended"
             detail="Log into LifeOS again to continue."
             action={
-              <Button onClick={() => navigate("/login")}>Log into LifeOS →</Button>
+              <>
+                <Button onClick={() => { rememberTrustReturn(returnTo); navigate(`/login?returnTo=${encodeURIComponent(returnTo)}`); }}>Log into LifeOS →</Button>
+                <Button variant="soft" onClick={() => navigate(PUBLIC_LIFEOS_ENTRY)}>Continue browsing</Button>
+              </>
             }
           />
         </div>
@@ -45,13 +51,21 @@ export function RequireAuth() {
           <StatusBanner
             title="Something went wrong"
             detail="We couldn't load LifeOS. Try again in a moment."
-            action={<Button onClick={() => window.location.reload()}>Try again</Button>}
+            action={
+              <>
+                <Button onClick={() => window.location.reload()}>Try again</Button>
+                <Button variant="soft" onClick={() => navigate(PUBLIC_LIFEOS_ENTRY)}>Continue browsing</Button>
+              </>
+            }
           />
         </div>
       </div>
     );
   }
 
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) {
+    rememberTrustReturn(returnTo);
+    return <Navigate to={`/login?returnTo=${encodeURIComponent(returnTo)}`} replace />;
+  }
   return <Outlet />;
 }

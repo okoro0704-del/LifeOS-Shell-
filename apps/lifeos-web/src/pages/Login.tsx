@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@lifeos/ui";
 import {
   authClient,
@@ -20,6 +20,7 @@ import {
 import { hasSeenIntro, markIntroSeen } from "../lib/introSeen";
 import { meService } from "../lib/services";
 import { personalLandingPath, isAuthBypass, offlineLoginFallbackPath } from "../lib/personalConnectivity";
+import { PUBLIC_LIFEOS_ENTRY, consumeTrustReturn, rememberTrustReturn, trustLevelForPath } from "../lib/trustBoundary";
 
 /**
  * Login surface. Returning users land here directly (intro is skipped).
@@ -30,6 +31,7 @@ export function LoginPage() {
   const { user, loading, status, refresh } = useAuth();
   const { setMode } = useWorkspace();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const [gatewayUp, setGatewayUp] = useState<boolean | null>(null);
   const [returning, setReturning] = useState<ReturningIdentity | null>(() => getReturningIdentity());
   const [bypassError, setBypassError] = useState<string | null>(null);
@@ -38,9 +40,14 @@ export function LoginPage() {
   const AUTH_BYPASS = isAuthBypass();
 
   useEffect(() => {
+    const requested = params.get("returnTo");
+    if (requested && trustLevelForPath(requested) !== "PUBLIC") rememberTrustReturn(requested);
+  }, [params]);
+
+  useEffect(() => {
     if (!loading && user) {
       setMode("PERSONAL");
-      navigate(personalLandingPath(user.trustId), { replace: true });
+      navigate(consumeTrustReturn() || personalLandingPath(user.trustId), { replace: true });
     }
   }, [loading, user, navigate, setMode]);
 
@@ -269,6 +276,9 @@ export function LoginPage() {
               </button>
             </div>
           )}
+          <button type="button" className="returning-card__switch" onClick={() => navigate(PUBLIC_LIFEOS_ENTRY)}>
+            Continue browsing without TrustID
+          </button>
         </div>
       </div>
     </div>
