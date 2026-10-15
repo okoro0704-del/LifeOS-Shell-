@@ -1,0 +1,11 @@
+LifeOS schema has no hospitality domain tables
+action preview requires confirmation fields
+availability returns slots
+book command returns preview not execute
+capability denied for unsupported action
+lists offerings not only businesses
+massage search returns treatments before relying on spa business alone
+offering → business → other offerings
+offerings declare capabilities
+price mismatch fails confirm
+slot check rejects unavailable
