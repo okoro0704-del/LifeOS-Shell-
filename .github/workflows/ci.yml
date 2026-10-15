@@ -68,8 +68,12 @@ jobs:
         env:
           LIFEOS_PG_TEST_URL: ${{ env.PG }}
         run: |
-          npx tsx --test test/publication-ingest.integration.test.ts | tee "$RUNNER_TEMP/int.log"
+          # The spec reporter is pinned: Node 22 defaults to TAP when output is not a terminal.
+          npx tsx --test --test-reporter=spec test/publication-ingest.integration.test.ts 2>&1 | tee "$RUNNER_TEMP/int.log"
           grep -Eq '^ℹ pass 17$' "$RUNNER_TEMP/int.log" && grep -Eq '^ℹ skipped 0$' "$RUNNER_TEMP/int.log"
+      - name: Report failing tests as annotations
+        if: failure()
+        run: bash .github/ci/annotate-failures.sh "$RUNNER_TEMP/int.log"
 
   full-suite-baseline:
     name: full API suite vs documented baseline (fails on NEW failures)
@@ -116,6 +120,9 @@ jobs:
         env:
           DATABASE_URL: ${{ env.PG_SPRINT }}
           LIFEOS_PG_TEST_URL: ${{ env.PG_INT }}
-        run: npx tsx --test --test-concurrency=1 test/*.test.ts > "$RUNNER_TEMP/suite.log" 2>&1 || true
+        run: npx tsx --test --test-concurrency=1 --test-reporter=spec test/*.test.ts > "$RUNNER_TEMP/suite.log" 2>&1 || true
+      - name: Annotate failures (baseline entries as warnings, anything else as errors)
+        if: always()
+        run: bash .github/ci/annotate-failures.sh "$RUNNER_TEMP/suite.log" .github/ci/lifeos-known-failures.txt
       - name: Compare with the 11 documented baseline failures (min 129 tests)
         run: bash .github/ci/compare-baseline.sh "$RUNNER_TEMP/suite.log" .github/ci/lifeos-known-failures.txt 129
