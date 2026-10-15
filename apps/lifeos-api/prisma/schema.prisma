@@ -465,6 +465,8 @@ model PublicationProjection {
   /// JSON string array of canonical asset ids.
   originAssetIds       String    @default("[]")
   originCreatorId      String?
+  /// Origin event order for pushed deliveries; an older sequence never overwrites a newer one.
+  originSequence       Int?
   publicationType      String
   privacy              String    @default("PUBLIC")
   publicationState     String    @default("PUBLISHED")

@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { prisma } from "../lib/prisma.js";
 import { config } from "../lib/config.js";
 
@@ -76,6 +77,8 @@ export type IngestPublicationInput = {
   mediaStatus?: string;
   publishedAt: string | Date;
   rawMetadata?: Record<string, unknown>;
+  /** Monotonic per publication at the origin; pushed deliveries only. */
+  originSequence?: number | null;
 };
 
 function isLocalhostUrl(value: string): boolean {
@@ -399,52 +402,52 @@ export async function discoverPublicationSources(): Promise<{
   return { discovered: candidates.size, eligible, sources };
 }
 
+export type UpsertPublicationResult = {
+  id: string;
+  created: boolean;
+  /** An older origin event than the one already applied; nothing was changed. */
+  stale?: boolean;
+  /** True when the projection is out of the consumer feed after this call. */
+  hidden?: boolean;
+};
+
+/** The publication is already bound to another origin creator. */
+export class PublicationOwnershipConflict extends Error {
+  readonly code = "ownership_conflict";
+  constructor() {
+    super("Publication belongs to another origin creator.");
+  }
+}
+
+function isUniqueViolation(err: unknown): boolean {
+  return Boolean(err && typeof err === "object" && (err as { code?: string }).code === "P2002");
+}
+
+/**
+ * Idempotent per (originApplicationId, originPublicationId).
+ * originSequence (pushed by the origin) orders events: an older sequence never overwrites a newer one,
+ * a sequenced revoke leaves a hidden tombstone, and unsequenced writes (the pull reconciler) never
+ * resurrect a sequenced revocation.
+ */
 export async function upsertPublicationProjection(
   input: IngestPublicationInput,
-): Promise<{ id: string; created: boolean }> {
+): Promise<UpsertPublicationResult> {
+  try {
+    return await applyPublicationProjection(input);
+  } catch (err) {
+    // Two concurrent first deliveries raced on the unique key: the second applies as an update.
+    if (isUniqueViolation(err)) return applyPublicationProjection(input);
+    throw err;
+  }
+}
+
+async function applyPublicationProjection(input: IngestPublicationInput): Promise<UpsertPublicationResult> {
   const privacy = String(input.privacy ?? "PUBLIC").toUpperCase();
   const publicationState = String(input.publicationState ?? "PUBLISHED").toUpperCase();
   const publishedAt =
     input.publishedAt instanceof Date ? input.publishedAt : new Date(input.publishedAt);
-
-  if (privacy !== "PUBLIC" || !["PUBLISHED", "PUBLIC"].includes(publicationState)) {
-    const existing = await prisma.publicationProjection.findUnique({
-      where: {
-        originApplicationId_originPublicationId: {
-          originApplicationId: input.originApplicationId,
-          originPublicationId: input.originPublicationId,
-        },
-      },
-    });
-    if (existing && !existing.hiddenAt) {
-      await prisma.publicationProjection.update({
-        where: { id: existing.id },
-        data: { hiddenAt: new Date(), publicationState, privacy },
-      });
-    }
-    return { id: existing?.id ?? "", created: false };
-  }
-
-  const data = {
-    originApplicationId: input.originApplicationId,
-    originTenantId: input.originTenantId,
-    originPublicationId: input.originPublicationId,
-    originAssetIds: JSON.stringify(input.originAssetIds ?? [input.originPublicationId]),
-    originCreatorId: input.originCreatorId ?? null,
-    publicationType: input.publicationType,
-    privacy: "PUBLIC",
-    publicationState: "PUBLISHED",
-    title: input.title,
-    caption: input.caption ?? "",
-    authorDisplayName: input.authorDisplayName || input.authorSlug,
-    authorSlug: normalizeSlug(input.authorSlug),
-    publicDestinationUrl: input.publicDestinationUrl,
-    mediaUrl: input.mediaUrl ?? null,
-    mediaStatus: input.mediaStatus ?? (input.mediaUrl ? "ok" : "none"),
-    publishedAt,
-    hiddenAt: null,
-    rawMetadata: JSON.stringify(input.rawMetadata ?? {}),
-  };
+  const sequence = typeof input.originSequence === "number" ? input.originSequence : null;
+  const revoking = privacy !== "PUBLIC" || !["PUBLISHED", "PUBLIC"].includes(publicationState);
 
   const existing = await prisma.publicationProjection.findUnique({
     where: {
@@ -456,15 +459,65 @@ export async function upsertPublicationProjection(
   });
 
   if (existing) {
+    if (existing.originCreatorId && input.originCreatorId && existing.originCreatorId !== input.originCreatorId) {
+      throw new PublicationOwnershipConflict();
+    }
+    const stale =
+      (sequence !== null && existing.originSequence !== null && sequence < existing.originSequence) ||
+      (sequence === null && existing.originSequence !== null && Boolean(existing.hiddenAt) && !revoking);
+    if (stale) return { id: existing.id, created: false, stale: true, hidden: Boolean(existing.hiddenAt) };
+  }
+
+  const originSequence = sequence ?? existing?.originSequence ?? null;
+  // Unsequenced writes keep the binding a sequenced origin established.
+  const keepOriginBinding = sequence === null && existing?.originSequence != null;
+
+  if (revoking) {
+    if (existing) {
+      await prisma.publicationProjection.update({
+        where: { id: existing.id },
+        data: { hiddenAt: existing.hiddenAt ?? new Date(), publicationState, privacy, originSequence },
+      });
+      return { id: existing.id, created: false, hidden: true };
+    }
+    if (sequence === null) return { id: "", created: false, hidden: true };
+  }
+
+  const data = {
+    originApplicationId: input.originApplicationId,
+    originTenantId: keepOriginBinding ? existing!.originTenantId : input.originTenantId,
+    originPublicationId: input.originPublicationId,
+    originAssetIds: JSON.stringify(input.originAssetIds ?? [input.originPublicationId]),
+    originCreatorId: keepOriginBinding
+      ? existing!.originCreatorId
+      : input.originCreatorId ?? existing?.originCreatorId ?? null,
+    originSequence,
+    publicationType: input.publicationType,
+    privacy: revoking ? privacy : "PUBLIC",
+    publicationState: revoking ? publicationState : "PUBLISHED",
+    title: input.title,
+    caption: input.caption ?? "",
+    authorDisplayName: input.authorDisplayName || input.authorSlug,
+    authorSlug: normalizeSlug(input.authorSlug),
+    publicDestinationUrl: input.publicDestinationUrl,
+    mediaUrl: input.mediaUrl ?? null,
+    mediaStatus: input.mediaStatus ?? (input.mediaUrl ? "ok" : "none"),
+    publishedAt,
+    // A sequenced revoke of an unseen publication is stored hidden, so a delayed publish cannot resurrect it.
+    hiddenAt: revoking ? new Date() : null,
+    rawMetadata: JSON.stringify(input.rawMetadata ?? {}),
+  };
+
+  if (existing) {
     const row = await prisma.publicationProjection.update({
       where: { id: existing.id },
       data,
     });
-    return { id: row.id, created: false };
+    return { id: row.id, created: false, hidden: revoking };
   }
 
   const row = await prisma.publicationProjection.create({ data });
-  return { id: row.id, created: true };
+  return { id: row.id, created: true, hidden: revoking };
 }
 
 export async function reconcileEcosystemPublications(opts: {
@@ -696,6 +749,7 @@ export function authorizePublicationIngest(headers: Record<string, unknown>): bo
   if (!secret) {
     return config.authBypassEnabled;
   }
-  const auth = String(headers.authorization ?? "");
-  return auth === `Bearer ${secret}`;
+  const auth = Buffer.from(String(headers.authorization ?? ""));
+  const expected = Buffer.from(`Bearer ${secret}`);
+  return auth.length === expected.length && timingSafeEqual(auth, expected);
 }
