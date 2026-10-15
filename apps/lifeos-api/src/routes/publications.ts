@@ -6,6 +6,7 @@ import {
   discoverPublicationSources,
   listFeedProjections,
   PublicationOwnershipConflict,
+  publicationIngestSecret,
   reconcileEcosystemPublications,
   upsertPublicationProjection,
   type UpsertPublicationResult,
@@ -16,6 +17,13 @@ import {
  * LifeOS stores consumer projections only — origin apps remain canonical.
  */
 export async function publicationRoutes(app: FastifyInstance) {
+  if (!publicationIngestSecret()) {
+    app.log.warn(
+      { event: "publication.ingest.disabled" },
+      "LIFEOS_PUBLICATION_INGEST_SECRET is not set (or shorter than 24 characters): publication ingest and reconcile refuse every call",
+    );
+  }
+
   app.get("/v1/publications/feed", async (req) => {
     const query = z
       .object({

@@ -33,6 +33,8 @@ export type ReconcileCounts = {
     hidden: number;
     brokenMedia: number;
     errors: number;
+    /** Publications owned by origin pushes; the pull reconciler leaves them untouched. */
+    pushManaged: number;
   }>;
 };
 
@@ -49,6 +51,10 @@ type PublicAssetCard = {
   status?: string;
   visibility?: string;
   privacy?: string;
+  /** Explicit audience from the origin (mybrandOS public_assets_v1). Anything but FREE is never ingested. */
+  access?: string | null;
+  /** True when the origin only exposes a paid teaser. */
+  locked?: boolean;
 };
 
 type PublicExperience = {
@@ -138,8 +144,17 @@ function isEligiblePublicAsset(asset: PublicAssetCard): { ok: boolean; reason?: 
   if (visibility && visibility !== "PUBLIC" && visibility !== "PUBLISHED") {
     return { ok: false, reason: `privacy:${visibility}` };
   }
+  // Fail closed: only an explicit, unlocked FREE classification from the origin is consumer-public.
+  if (asset.locked === true) return { ok: false, reason: "protected" };
+  if (String(asset.access ?? "").toUpperCase() !== "FREE") return { ok: false, reason: "audience_unclassified" };
   if (!mapPublicationType(asset)) return { ok: false, reason: "unsupported_type" };
   return { ok: true };
+}
+
+/** One identity per origin publication: mybrandOS sources always project under "mybrandos", like pushes. */
+function canonicalApplicationId(source: { applicationId: string; publicApiBaseUrl: string }): string {
+  const base = source.publicApiBaseUrl.replace(/\/$/, "");
+  return base === MYBRANDOS_RAILWAY_ORIGIN || source.applicationId === "mybrandos" ? "mybrandos" : source.applicationId;
 }
 
 async function fetchJson(url: string): Promise<{ ok: boolean; status: number; json: unknown | null }> {
@@ -159,18 +174,26 @@ async function fetchJson(url: string): Promise<{ ok: boolean; status: number; js
   }
 }
 
-async function probePublicExperience(
-  apiBase: string,
-  slug: string,
-): Promise<PublicExperience | null> {
+type ProbeResult =
+  | { kind: "ok"; experience: PublicExperience }
+  /** The origin answered that this public space does not exist (disabled, suspended or removed). */
+  | { kind: "gone" }
+  /** Unreachable or unexpected answer: says nothing about the space, so nothing is hidden. */
+  | { kind: "error" };
+
+async function probePublicExperience(apiBase: string, slug: string): Promise<ProbeResult> {
   const base = apiBase.replace(/\/$/, "");
   const url = `${base}/api/public/${encodeURIComponent(slug)}`;
   const result = await fetchJson(url);
-  if (!result.json || typeof result.json !== "object") return null;
+  if ((result.status === 404 || result.status === 410) && result.json && typeof result.json === "object") {
+    return { kind: "gone" };
+  }
+  if (!result.ok || !result.json || typeof result.json !== "object") return { kind: "error" };
   const body = result.json as PublicExperience;
-  if (body.error) return null;
-  if (!Array.isArray(body.publishedAssets) && body.publicEnabled !== true) return null;
-  return body;
+  if (body.error) return { kind: "error" };
+  if (body.publicEnabled === false) return { kind: "gone" };
+  if (!Array.isArray(body.publishedAssets) && body.publicEnabled !== true) return { kind: "error" };
+  return { kind: "ok", experience: body };
 }
 
 async function headOk(url: string): Promise<boolean> {
@@ -336,8 +359,9 @@ export async function discoverPublicationSources(): Promise<{
   const sources: Array<{ id: string; applicationId: string; tenantId: string; slug: string }> = [];
 
   for (const candidate of candidates.values()) {
-    const experience = await probePublicExperience(candidate.publicApiBaseUrl, candidate.slug);
-    if (!experience) {
+    const probe = await probePublicExperience(candidate.publicApiBaseUrl, candidate.slug);
+    if (probe.kind !== "ok") {
+      const lastError = probe.kind === "gone" ? "public_contract_gone" : "public_contract_unavailable";
       await prisma.publicationSource.upsert({
         where: {
           applicationId_tenantId_slug: {
@@ -349,12 +373,12 @@ export async function discoverPublicationSources(): Promise<{
         create: {
           ...candidate,
           status: "inactive",
-          lastError: "public_contract_unavailable",
+          lastError,
           lastScannedAt: new Date(),
         },
         update: {
           status: "inactive",
-          lastError: "public_contract_unavailable",
+          lastError,
           lastScannedAt: new Date(),
           publicApiBaseUrl: candidate.publicApiBaseUrl,
           publicDestination: candidate.publicDestination,
@@ -363,6 +387,7 @@ export async function discoverPublicationSources(): Promise<{
       continue;
     }
 
+    const experience = probe.experience;
     const displayName = experience.identity?.displayName || candidate.displayName || candidate.slug;
     const row = await prisma.publicationSource.upsert({
       where: {
@@ -462,15 +487,14 @@ async function applyPublicationProjection(input: IngestPublicationInput): Promis
     if (existing.originCreatorId && input.originCreatorId && existing.originCreatorId !== input.originCreatorId) {
       throw new PublicationOwnershipConflict();
     }
+    // Older pushed sequence, or any unsequenced (pull) write over a pushed publication: the push is authoritative.
     const stale =
       (sequence !== null && existing.originSequence !== null && sequence < existing.originSequence) ||
-      (sequence === null && existing.originSequence !== null && Boolean(existing.hiddenAt) && !revoking);
+      (sequence === null && existing.originSequence !== null);
     if (stale) return { id: existing.id, created: false, stale: true, hidden: Boolean(existing.hiddenAt) };
   }
 
   const originSequence = sequence ?? existing?.originSequence ?? null;
-  // Unsequenced writes keep the binding a sequenced origin established.
-  const keepOriginBinding = sequence === null && existing?.originSequence != null;
 
   if (revoking) {
     if (existing) {
@@ -485,12 +509,10 @@ async function applyPublicationProjection(input: IngestPublicationInput): Promis
 
   const data = {
     originApplicationId: input.originApplicationId,
-    originTenantId: keepOriginBinding ? existing!.originTenantId : input.originTenantId,
+    originTenantId: input.originTenantId,
     originPublicationId: input.originPublicationId,
     originAssetIds: JSON.stringify(input.originAssetIds ?? [input.originPublicationId]),
-    originCreatorId: keepOriginBinding
-      ? existing!.originCreatorId
-      : input.originCreatorId ?? existing?.originCreatorId ?? null,
+    originCreatorId: input.originCreatorId ?? existing?.originCreatorId ?? null,
     originSequence,
     publicationType: input.publicationType,
     privacy: revoking ? privacy : "PUBLIC",
@@ -529,10 +551,37 @@ export async function reconcileEcosystemPublications(opts: {
   counts.applicationsDiscovered = discovery.discovered;
   counts.eligiblePublicationApps = discovery.eligible;
 
-  const sources = await prisma.publicationSource.findMany({ where: { status: "active" } });
+  // Active sources, plus sources whose origin said the public space is gone (to take their posts down).
+  const sources = await prisma.publicationSource.findMany({
+    where: { OR: [{ status: "active" }, { status: "inactive", lastError: "public_contract_gone" }] },
+  });
   const seenKeys = new Set<string>();
 
+  /** Hide pull-managed projections of a source. Push-managed (sequenced) rows follow their origin's pushes only. */
+  async function hidePulled(source: (typeof sources)[number], keep: Set<string>, report: { hidden: number }) {
+    const projected = await prisma.publicationProjection.findMany({
+      where: {
+        originApplicationId: canonicalApplicationId(source),
+        authorSlug: source.slug,
+        hiddenAt: null,
+        originSequence: null,
+      },
+    });
+    for (const row of projected) {
+      if (keep.has(row.originPublicationId)) continue;
+      counts.hidden += 1;
+      report.hidden += 1;
+      if (!dryRun) {
+        await prisma.publicationProjection.updateMany({
+          where: { id: row.id, originSequence: null, hiddenAt: null },
+          data: { hiddenAt: new Date(), publicationState: "REVOKED" },
+        });
+      }
+    }
+  }
+
   for (const source of sources) {
+    const originApplicationId = canonicalApplicationId(source);
     const appReport = {
       applicationId: source.applicationId,
       tenantId: source.tenantId,
@@ -545,16 +594,31 @@ export async function reconcileEcosystemPublications(opts: {
       hidden: 0,
       brokenMedia: 0,
       errors: 0,
+      pushManaged: 0,
     };
 
     try {
-      const experience = await probePublicExperience(source.publicApiBaseUrl, source.slug);
-      if (!experience) {
+      const probe = await probePublicExperience(source.publicApiBaseUrl, source.slug);
+      if (probe.kind === "gone") {
+        // The creator's public space is disabled, suspended or removed: nothing of it stays visible.
+        await hidePulled(source, new Set(), appReport);
+        if (!dryRun) {
+          await prisma.publicationSource.update({
+            where: { id: source.id },
+            data: { status: "inactive", lastError: "public_contract_gone", lastScannedAt: new Date() },
+          });
+        }
+        counts.byApplication.push(appReport);
+        continue;
+      }
+      if (probe.kind === "error") {
+        // Unreachable is not "removed": keep what is projected and try again later.
         appReport.errors += 1;
         counts.errors += 1;
         counts.byApplication.push(appReport);
         continue;
       }
+      const experience = probe.experience;
 
       const assets = experience.publishedAssets ?? [];
       appReport.canonical = assets.length;
@@ -571,16 +635,23 @@ export async function reconcileEcosystemPublications(opts: {
         counts.eligiblePublic += 1;
         appReport.eligible += 1;
         eligibleIds.add(asset.id);
-        seenKeys.add(`${source.applicationId}::${asset.id}`);
+        seenKeys.add(`${originApplicationId}::${asset.id}`);
 
         const existing = await prisma.publicationProjection.findUnique({
           where: {
             originApplicationId_originPublicationId: {
-              originApplicationId: source.applicationId,
+              originApplicationId,
               originPublicationId: asset.id,
             },
           },
         });
+        if (existing && existing.originSequence !== null) {
+          // Delivered by push: the push sequence is authoritative; a public-page snapshot may be stale.
+          appReport.pushManaged += 1;
+          counts.alreadyInLifeOs += existing.hiddenAt ? 0 : 1;
+          counts.skippedExisting += 1;
+          continue;
+        }
 
         const cover = asset.coverAvailable
           ? `${source.publicApiBaseUrl.replace(/\/$/, "")}/api/public/${encodeURIComponent(source.slug)}/assets/${encodeURIComponent(asset.id)}/cover`
@@ -595,43 +666,8 @@ export async function reconcileEcosystemPublications(opts: {
           }
         }
 
-        if (existing && !existing.hiddenAt) {
-          counts.alreadyInLifeOs += 1;
-          appReport.alreadyProjected += 1;
-          if (dryRun) {
-            counts.skippedExisting += 1;
-            continue;
-          }
-          await upsertPublicationProjection({
-            originApplicationId: source.applicationId,
-            originTenantId: source.tenantId,
-            originPublicationId: asset.id,
-            originAssetIds: [asset.id],
-            originCreatorId: experience.identity?.creatorId ?? experience.identity?.trustId ?? null,
-            publicationType,
-            title: asset.title || "Untitled",
-            caption:
-              (typeof asset.presentation?.body === "string" && asset.presentation.body) ||
-              asset.description ||
-              "",
-            authorDisplayName: experience.identity?.displayName || source.displayName,
-            authorSlug: source.slug,
-            publicDestinationUrl: source.publicDestination,
-            mediaUrl: cover,
-            mediaStatus,
-            publishedAt: asset.publishedAt || asset.createdAt || existing.publishedAt,
-            rawMetadata: { assetType: asset.assetType, presentationTypes: asset.presentationTypes },
-          });
-          counts.updated += 1;
-          counts.skippedExisting += 1;
-          continue;
-        }
-
-        counts.missing += 1;
-        if (dryRun) continue;
-
-        const result = await upsertPublicationProjection({
-          originApplicationId: source.applicationId,
+        const projection: IngestPublicationInput = {
+          originApplicationId,
           originTenantId: source.tenantId,
           originPublicationId: asset.id,
           originAssetIds: [asset.id],
@@ -647,10 +683,31 @@ export async function reconcileEcosystemPublications(opts: {
           publicDestinationUrl: source.publicDestination,
           mediaUrl: cover,
           mediaStatus,
-          publishedAt: asset.publishedAt || asset.createdAt || new Date().toISOString(),
-          rawMetadata: { assetType: asset.assetType, presentationTypes: asset.presentationTypes },
-        });
-        if (result.created) {
+          publishedAt: asset.publishedAt || asset.createdAt || existing?.publishedAt || new Date().toISOString(),
+          rawMetadata: { assetType: asset.assetType, presentationTypes: asset.presentationTypes, access: asset.access },
+        };
+
+        if (existing && !existing.hiddenAt) {
+          counts.alreadyInLifeOs += 1;
+          appReport.alreadyProjected += 1;
+          if (dryRun) {
+            counts.skippedExisting += 1;
+            continue;
+          }
+          const result = await upsertPublicationProjection(projection);
+          if (result.stale) appReport.pushManaged += 1;
+          else counts.updated += 1;
+          counts.skippedExisting += 1;
+          continue;
+        }
+
+        counts.missing += 1;
+        if (dryRun) continue;
+
+        const result = await upsertPublicationProjection(projection);
+        if (result.stale) {
+          appReport.pushManaged += 1;
+        } else if (result.created) {
           counts.created += 1;
           appReport.recovered += 1;
         } else {
@@ -658,30 +715,12 @@ export async function reconcileEcosystemPublications(opts: {
         }
       }
 
-      // Hide stale projections for this source that are no longer eligible/public.
-      const projected = await prisma.publicationProjection.findMany({
-        where: {
-          originApplicationId: source.applicationId,
-          originTenantId: source.tenantId,
-          authorSlug: source.slug,
-          hiddenAt: null,
-        },
-      });
-      for (const row of projected) {
-        if (eligibleIds.has(row.originPublicationId)) continue;
-        counts.hidden += 1;
-        appReport.hidden += 1;
-        if (!dryRun) {
-          await prisma.publicationProjection.update({
-            where: { id: row.id },
-            data: { hiddenAt: new Date(), publicationState: "REVOKED" },
-          });
-        }
-      }
+      // Hide stale pull projections of this source that are no longer eligible/public.
+      await hidePulled(source, eligibleIds, appReport);
 
       await prisma.publicationSource.update({
         where: { id: source.id },
-        data: { lastScannedAt: new Date(), lastError: null },
+        data: { status: "active", lastScannedAt: new Date(), lastError: null },
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : "reconcile_failed";
@@ -740,15 +779,24 @@ export async function listFeedProjections(opts?: { limit?: number; cursor?: stri
   }));
 }
 
-export function authorizePublicationIngest(headers: Record<string, unknown>): boolean {
-  const secret =
-    process.env.MASTER_DISTRIBUTION_SECRET ||
-    process.env.DISTRIBUTOR_SECRET ||
-    process.env.LIFEOS_PUBLICATION_INGEST_SECRET ||
-    "";
-  if (!secret) {
-    return config.authBypassEnabled;
-  }
+export const MIN_PUBLICATION_INGEST_SECRET_LENGTH = 24;
+
+/**
+ * The dedicated credential for origin → LifeOS publication ingestion (and its operator reconcile).
+ * Deliberately separate from MASTER_DISTRIBUTION_SECRET / DISTRIBUTOR_SECRET (OS releases).
+ * Missing, short or whitespace-containing values count as not configured: every call is refused.
+ */
+export function publicationIngestSecret(env: NodeJS.ProcessEnv = process.env): string | null {
+  const secret = env.LIFEOS_PUBLICATION_INGEST_SECRET ?? "";
+  return secret.length >= MIN_PUBLICATION_INGEST_SECRET_LENGTH && !/\s/.test(secret) ? secret : null;
+}
+
+export function authorizePublicationIngest(
+  headers: Record<string, unknown>,
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  const secret = publicationIngestSecret(env);
+  if (!secret) return false;
   const auth = Buffer.from(String(headers.authorization ?? ""));
   const expected = Buffer.from(`Bearer ${secret}`);
   return auth.length === expected.length && timingSafeEqual(auth, expected);
