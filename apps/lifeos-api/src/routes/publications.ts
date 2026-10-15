@@ -5,8 +5,11 @@ import {
   authorizePublicationIngest,
   discoverPublicationSources,
   listFeedProjections,
+  PublicationOwnershipConflict,
+  publicationIngestSecret,
   reconcileEcosystemPublications,
   upsertPublicationProjection,
+  type UpsertPublicationResult,
 } from "../services/ecosystem-publications.js";
 
 /**
@@ -14,6 +17,13 @@ import {
  * LifeOS stores consumer projections only — origin apps remain canonical.
  */
 export async function publicationRoutes(app: FastifyInstance) {
+  if (!publicationIngestSecret()) {
+    app.log.warn(
+      { event: "publication.ingest.disabled" },
+      "LIFEOS_PUBLICATION_INGEST_SECRET is not set (or shorter than 24 characters): publication ingest and reconcile refuse every call",
+    );
+  }
+
   app.get("/v1/publications/feed", async (req) => {
     const query = z
       .object({
@@ -72,6 +82,7 @@ export async function publicationRoutes(app: FastifyInstance) {
         mediaStatus: z.enum(["ok", "broken", "none"]).optional(),
         publishedAt: z.string().datetime().or(z.string().min(1)),
         rawMetadata: z.record(z.unknown()).optional(),
+        originSequence: z.number().int().min(0).max(2_147_483_647).optional(),
       })
       .parse(req.body);
 
@@ -79,13 +90,30 @@ export async function publicationRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: "invalid_destination", message: "localhost destinations are not allowed" });
     }
 
-    const result = await upsertPublicationProjection(body);
+    let result: UpsertPublicationResult;
+    try {
+      result = await upsertPublicationProjection(body);
+    } catch (err) {
+      if (err instanceof PublicationOwnershipConflict) {
+        req.log.warn(
+          { event: "publication.ingest.conflict", originPublicationId: body.originPublicationId, originApplicationId: body.originApplicationId },
+          "publication ownership conflict",
+        );
+        return reply.code(409).send({ error: err.code, message: err.message });
+      }
+      throw err;
+    }
     req.log.info(
       {
         event: "publication.ingest",
+        correlationId: req.headers["x-correlation-id"],
         originPublicationId: body.originPublicationId,
         originApplicationId: body.originApplicationId,
+        originSequence: body.originSequence ?? null,
+        publicationState: body.publicationState ?? "PUBLISHED",
         created: result.created,
+        stale: Boolean(result.stale),
+        hidden: Boolean(result.hidden),
         projectionId: result.id,
       },
       "publication ingested",
@@ -94,6 +122,8 @@ export async function publicationRoutes(app: FastifyInstance) {
       ok: true,
       created: result.created,
       projectionId: result.id,
+      stale: Boolean(result.stale),
+      visible: !result.hidden,
     });
   });
 
